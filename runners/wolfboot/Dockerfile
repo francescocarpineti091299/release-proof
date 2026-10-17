@@ -61,6 +61,18 @@ RUN set -eu; \
 COPY runners/common/rp_runner /opt/releaseproof/rp_runner
 COPY runners/wolfboot/rp_wolfboot /opt/releaseproof/rp_wolfboot
 
+# The stock nrf52840.repl downloads its SVD over HTTPS at load time. The runner network has no
+# egress, so bake the file (sha256-pinned, same as runner-mcuboot) and point the repl at it.
+ARG NRF52840_SVD_SHA256=e5249c6a4a4bc66adbf644b97cff3b497cfdb9727eac0b3f77be576d2edd7db4
+RUN set -eu; \
+    mkdir -p /opt/renode-assets; \
+    curl -fsSL --retry 3 -o /opt/renode-assets/NRF52840.svd.gz \
+      https://dl.antmicro.com/projects/renode/svd/NRF52840.svd.gz; \
+    echo "${NRF52840_SVD_SHA256}  /opt/renode-assets/NRF52840.svd.gz" | sha256sum -c -; \
+    repl=/opt/renode/platforms/cpus/nrf52840.repl; \
+    sed -i 's#@https://dl.antmicro.com/projects/renode/svd/NRF52840.svd.gz#@/opt/renode-assets/NRF52840.svd.gz#' "$repl"; \
+    ! grep -n 'https://' "$repl"
+
 ENV PYTHONPATH=/opt/releaseproof \
     PYTHONUNBUFFERED=1 \
     PYTHONDONTWRITEBYTECODE=1 \

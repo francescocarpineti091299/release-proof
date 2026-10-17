@@ -1,0 +1,98 @@
+[
+  {
+    "profile": "nrf52840-wolfboot-pqc",
+    "change": "ecdsa_p256_to_mldsa87",
+    "run_id": "RP-20261017T124806Z-a39610",
+    "verdict": {
+      "lifecycle": "COMPLETED",
+      "migration": "INCOMPATIBLE",
+      "candidate": "COMPATIBLE",
+      "transition": "INCOMPATIBLE",
+      "canonical_hash": "sha256:a22d6efc4a84584d5a5d033e635e1e555b8c228dabbfa6327278cd2defbe6e54",
+      "official": false
+    },
+    "gates": [
+      {
+        "gate": "run reached a terminal state",
+        "ok": true,
+        "detail": "SUCCEEDED"
+      },
+      {
+        "gate": "run is LIVE (not replay)",
+        "ok": true,
+        "detail": "LIVE"
+      },
+      {
+        "gate": "run created now",
+        "ok": true,
+        "detail": "2026-10-17T12:48:06.000Z"
+      },
+      {
+        "gate": "pipeline succeeded",
+        "ok": true,
+        "detail": "None"
+      },
+      {
+        "gate": "tests executed",
+        "ok": true,
+        "detail": "8/8"
+      },
+      {
+        "gate": "at least one negative test observed",
+        "ok": true,
+        "detail": "wolfboot.tampered_image_rejected, wolfboot.cross_generation_update, wolfboot.candidate_rejects_classical"
+      },
+      {
+        "gate": "positive boot observed (E01)",
+        "ok": true,
+        "detail": ""
+      },
+      {
+        "gate": "build/sign stage succeeded",
+        "ok": true,
+        "detail": ""
+      },
+      {
+        "gate": "deterministic verdict issued",
+        "ok": true,
+        "detail": "INCOMPATIBLE (cand COMPATIBLE, trans INCOMPATIBLE)"
+      },
+      {
+        "gate": "official flag is false",
+        "ok": true,
+        "detail": ""
+      },
+      {
+        "gate": "result hash matches run verdict",
+        "ok": true,
+        "detail": ""
+      },
+      {
+        "gate": "evidence belongs to this run",
+        "ok": true,
+        "detail": "21/22"
+      },
+      {
+        "gate": "manifest hash recorded",
+        "ok": true,
+        "detail": ""
+      },
+      {
+        "gate": "artifacts recorded",
+        "ok": true,
+        "detail": "61"
+      },
+      {
+        "gate": "artifact sha256 verified (sample)",
+        "ok": true,
+        "detail": ""
+      },
+      {
+        "gate": "AMD LLM called for this run",
+        "ok": false,
+        "detail": "informational"
+      }
+    ],
+    "passed": true
+  }
+]

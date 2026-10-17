@@ -1,0 +1,9 @@
+# Local development override: exposes the API on the host and enables experimental profiles.
+#   docker compose -f docker-compose.yml -f docker-compose.dev.yml up -d --build api runner-wolfboot runner-mcuboot
+services:
+  api:
+    ports:
+      - "8000:8000"
+    environment:
+      RELEASEPROOF_ENV: dev
+      RELEASEPROOF_EXPOSE_EXPERIMENTAL: "1"
