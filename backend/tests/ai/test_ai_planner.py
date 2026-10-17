@@ -166,6 +166,21 @@ def test_transient_503_retried_once(wolfboot, traces) -> None:
     assert traces.statuses == ["OK"]
 
 
+def test_wrapped_upstream_timeout_retried_once(wolfboot, traces) -> None:
+    stub, svc = _svc([StubMode.HTTP_UPSTREAM_TIMEOUT, StubMode.VALID], traces)
+    assert svc.plan_tests(run_id="RP-1", **wolfboot).status == AIStatus.OK
+    assert len(stub.requests) == 2
+    assert stub.requests[0] == stub.requests[1]
+    assert traces.statuses == ["OK"]
+
+
+def test_persistent_wrapped_timeout_stops_after_one_retry(wolfboot, traces) -> None:
+    stub, svc = _svc(StubMode.HTTP_UPSTREAM_TIMEOUT, traces)
+    assert svc.plan_tests(run_id="RP-1", **wolfboot).status == AIStatus.AI_UNAVAILABLE
+    assert len(stub.requests) == 2
+    assert traces.statuses == ["AI_UNAVAILABLE"]
+
+
 def test_broken_trace_sink_does_not_break_service(wolfboot) -> None:
     def sink(_trace):
         raise RuntimeError("db down")

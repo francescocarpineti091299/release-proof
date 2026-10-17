@@ -9,12 +9,62 @@ deterministic pipeline continues without them.
 
 ```bash
 AMD_LLM_BASE_URL=https://developer.amd.com.cn/radeon/api/v1   # from the model card
-AMD_LLM_API_KEY=rc-...                                         # server side only
-AMD_LLM_MODEL=<model id from the card or GET /models>
+AMD_LLM_API_KEY=<copy the exact key from Token Factory>    # server side only
+AMD_LLM_MODEL=DeepSeek-V4-Flash
 AMD_LLM_ALLOWED_HOSTS=developer.amd.com.cn
 AMD_LLM_PROVIDER_LABEL="AMD Token Factory"
-AMD_LLM_HARDWARE_LABEL="<GPU shown on the model card>"
+AMD_LLM_HARDWARE_LABEL="AMD-hosted (GPU not disclosed)"
+AMD_LLM_RESPONSE_FORMAT=json_object
 ```
+
+The repository's `.env.example` contains this preset without a key. Copy it to `.env` and
+set `AMD_LLM_API_KEY`. Docker Compose passes it only to the API, not the browser or runners.
+Keys are case-sensitive: AMD documents a lowercase `rc-` prefix followed by 48 hexadecimal
+characters. A copied `Rc-` prefix can be rejected by the upstream LLMGateway even when
+`GET /models` succeeds. Check the prefix against the dashboard before requesting a new key.
+Do not lowercase arbitrary provider keys or modify their secret suffix.
+Rotate any key shared in chat or logs. The catalog does not identify the GPU per shared model,
+so only replace the hardware label with a specific GPU when AMD provides that evidence.
+
+### Shared model IDs
+
+Set `AMD_LLM_MODEL` to any of these IDs, or use the existing per-module overrides:
+
+| Model ID | Input | Context |
+|---|---|---|
+| `DeepSeek-V4.1-Flash` | Text + images | 1,048,576 |
+| `DeepSeek-V4-Flash` | Text | 1,048,576 |
+| `DeepSeek-V4-Flash-Vision-Exp` | Text + images | 1,048,576 |
+| `MiMo-V2.6-Flash` | Text + images | 1,048,576 |
+| `Qwen3.8-Flash-Next` | Text + images | 262,144 |
+| `Qwen3.8-27B` | Text + images | 262,144 |
+| `Gemma-4-31B-IT` | Text + images | 262,144 |
+| `GLM-5.3-Flash` | Text | 262,144 |
+| `MiniCPM-V-4.7-35B-A3B` | Text + images | 262,144 |
+| `MiniCPM-V-4.7-1B` | Text + images | 262,144 |
+| `MiniCPM5-2B` | Text | 131,072 |
+
+IDs and capabilities were checked against `GET /models` on 2026-10-17; availability may change.
+ReleaseProof currently sends **text only**, even when the selected model supports images.
+The existing context budget remains bounded; a large model window does not send more data.
+
+`DeepSeek-V4-Flash` is the default because it answers directly when reasoning is omitted.
+For Qwen/GLM, the shared API may enable long reasoning by default. Use
+`AMD_LLM_EXTRA_BODY='{"reasoning_effort":"low"}'` and benchmark the token budgets before switching.
+`chat_template_kwargs.enable_thinking` is **not forwarded by the shared gateway**; it is only
+appropriate for dedicated vLLM/SGLang endpoints. All models still pass through local schema,
+citation and verdict guardrails; the LLM never decides the engineering verdict.
+
+The shared preset uses `json_object`: live strict `json_schema` requests to DeepSeek produced
+upstream 504 errors wrapped in HTTP 500, while JSON mode completed a schema-valid planner call.
+This changes only server-side generation constraints, not local validation or the verdict
+engine. Use `auto`/`json_schema` for dedicated endpoints that reliably support strict schemas.
+Transient upstream timeouts also occasionally occur in JSON mode. The client retries once
+when HTTP 500 explicitly reports `call_upstream_timeout`, just as for HTTP 502/503/504.
+Arbitrary 500s, authentication errors and quota errors are not retried; there is no provider
+fallback, and persistent failures still report `AI_UNAVAILABLE` without changing verdicts.
+
+API reference: [chat completions](https://amd-aim.github.io/radeon-cloud-docs/api/chat-completions/).
 
 ## Plan B: self-hosted vLLM on an AMD Developer Cloud MI300X droplet
 
@@ -76,12 +126,18 @@ example, Gemma for the assistant and Qwen for the explainer. Both must be served
 
 ## Smoke and benchmark
 
-From the repo root, with the variables above exported:
+From the repo root, using your local `.env` (or omit `--env-file` for exported variables):
 
 ```powershell
-backend\.venv\Scripts\python.exe scripts\amd_smoke.py              # 10 calls -> docs/AMD_SMOKE.json
-backend\.venv\Scripts\python.exe scripts\amd_benchmark.py -n 5     # -> docs/AMD_BENCHMARK.json
+backend\.venv\Scripts\python.exe scripts\amd_smoke.py --env-file .env
+backend\.venv\Scripts\python.exe scripts\amd_benchmark.py --env-file .env -n 5
 ```
+
+Exported environment variables take precedence over the file. No dotenv file is discovered
+automatically, so tests/CI do not pick up local credentials. Reports go to `docs/AMD_SMOKE.json`
+and `docs/AMD_BENCHMARK.json`. These commands make real, potentially billable inference calls.
+A successful `GET /models` alone does not prove inference authentication; the smoke test must
+complete real chat requests. HTTP 401 means the key was rejected; HTTP 429 means quota/rate limit.
 
 Exit codes: `0` all OK, `1` some calls not OK (or a prompt injection leaked), `2` endpoint
 unavailable for every call. The JSON files contain traces (model, endpoint host, request id,

@@ -29,6 +29,7 @@ from amd_common import (
     assistant_context_for,
     bundle,
     freeze_case,
+    load_env_file,
     now_utc,
     run_stamp,
     trace_summary,
@@ -200,7 +201,12 @@ def main(argv: list[str] | None = None) -> int:
     parser.add_argument("-n", "--iterations", type=int, default=5)
     parser.add_argument("--models", default="", help="comma list; default = AMD_LLM_MODEL")
     parser.add_argument("--out", default="docs/AMD_BENCHMARK.json")
+    parser.add_argument("--env-file", help="dotenv file, relative to the repository root")
     args = parser.parse_args(argv)
+    try:
+        load_env_file(args.env_file)
+    except (ValueError, OSError) as exc:
+        parser.error(str(exc))
 
     base = AISettings.from_env()
     models = [m.strip() for m in args.models.split(",") if m.strip()] or [base.model or ""]

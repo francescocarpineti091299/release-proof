@@ -75,6 +75,10 @@ open http://localhost:8080      # UI; API on http://localhost:8000/api
 python scripts/acceptance.py --base http://localhost:8000   # end-to-end gate, both profiles
 ```
 
+`.env.example` is preconfigured for **AMD Token Factory**, model `DeepSeek-V4-Flash`.
+Set only `AMD_LLM_API_KEY` to get started; the key stays server-side. For other available
+models, per-module overrides and inference checks, see [`deploy/amd/README.md`](deploy/amd/README.md).
+
 Backend tests (Python 3.12+):
 
 ```bash

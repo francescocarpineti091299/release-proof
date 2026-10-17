@@ -40,6 +40,7 @@ class StubMode(StrEnum):
     HTTP_429 = "HTTP_429"
     HTTP_500 = "HTTP_500"
     HTTP_503 = "HTTP_503"
+    HTTP_UPSTREAM_TIMEOUT = "HTTP_UPSTREAM_TIMEOUT"
     TIMEOUT = "TIMEOUT"
 
 
@@ -100,6 +101,16 @@ class StubLLM:
         n = len(self.requests)
         if mode == StubMode.TIMEOUT:
             raise httpx.ReadTimeout("stub timeout", request=request)
+        if mode == StubMode.HTTP_UPSTREAM_TIMEOUT:
+            return httpx.Response(
+                500,
+                json={
+                    "error": {
+                        "message": 'Error from provider: 504 Gateway Timeout '
+                        '{"error":{"code":"call_upstream_timeout"}}'
+                    }
+                },
+            )
         status = {
             StubMode.HTTP_401: 401,
             StubMode.HTTP_429: 429,

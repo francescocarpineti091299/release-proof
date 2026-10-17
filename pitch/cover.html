@@ -1,0 +1,92 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>ReleaseProof — cover</title>
+<style>
+  @page { size: 1920px 1080px; margin: 0; }
+  * { box-sizing: border-box; }
+  html, body { margin: 0; padding: 0; }
+  body {
+    width: 1920px; height: 1080px; overflow: hidden; position: relative;
+    font-family: "Segoe UI", "Inter", ui-sans-serif, system-ui, -apple-system, sans-serif;
+    background: radial-gradient(1200px 700px at 78% 40%, #0f2a2a 0%, #071222 45%, #020617 75%);
+    color: #fff; -webkit-font-smoothing: antialiased;
+    -webkit-print-color-adjust: exact; print-color-adjust: exact;
+  }
+  .grid-bg {
+    position: absolute; inset: 0; opacity: .22;
+    background-image: linear-gradient(#1e293b 1px, transparent 1px), linear-gradient(90deg, #1e293b 1px, transparent 1px);
+    background-size: 64px 64px;
+    -webkit-mask-image: radial-gradient(900px 600px at 75% 45%, #000 0%, transparent 75%);
+            mask-image: radial-gradient(900px 600px at 75% 45%, #000 0%, transparent 75%);
+  }
+  .wrap { position: absolute; inset: 0; display: grid; grid-template-columns: 1.05fr .95fr; gap: 40px; padding: 96px 110px; align-items: center; }
+  .brand { display: flex; align-items: center; gap: 22px; font-size: 52px; font-weight: 900; letter-spacing: -.02em; }
+  .brand svg { width: 86px; height: 86px; }
+  .eyebrow { margin-top: 46px; font-size: 24px; font-weight: 700; letter-spacing: .16em; text-transform: uppercase; color: #34d399; }
+  h1 { margin: 18px 0 0; font-size: 84px; line-height: 1.02; font-weight: 900; letter-spacing: -.035em; }
+  h1 em { font-style: normal; color: #34d399; }
+  .sub { margin-top: 34px; font-size: 30px; line-height: 1.4; color: #cbd5e1; max-width: 900px; }
+  .sub b { color: #fff; }
+  .foot { position: absolute; left: 110px; right: 110px; bottom: 56px; display: flex; justify-content: space-between; align-items: center; font-size: 22px; color: #94a3b8; font-weight: 600; }
+  .foot .pill { border: 1px solid #334155; background: rgba(2,6,23,.6); border-radius: 999px; padding: 10px 22px; color: #e2e8f0; }
+  .foot .pill b { color: #34d399; }
+
+  .stack { position: relative; height: 640px; }
+  .panel { position: absolute; background: #fff; color: #0b1220; border-radius: 22px; box-shadow: 0 40px 100px rgba(0,0,0,.6); }
+  .verdict { right: 0; top: -20px; width: 760px; padding: 34px 38px; border: 4px solid #dc2626; }
+  .k { font-size: 18px; font-weight: 800; letter-spacing: .12em; text-transform: uppercase; color: #64748b; }
+  .vt { display: flex; align-items: center; gap: 18px; margin-top: 10px; }
+  .vt .x { width: 70px; height: 70px; border: 6px solid #dc2626; border-radius: 50%; color: #dc2626; display: grid; place-items: center; font-weight: 900; font-size: 44px; line-height: 1; }
+  .vt .w { font-size: 70px; font-weight: 900; color: #dc2626; letter-spacing: -.025em; }
+  .row { display: flex; justify-content: space-between; align-items: center; border: 2.5px solid; border-radius: 14px; padding: 18px 22px; margin-top: 18px; font-size: 25px; font-weight: 800; }
+  .row.ok { border-color: #10b981; }
+  .row.bad { border-color: #dc2626; }
+  .chip { border-radius: 999px; padding: 6px 16px; font-size: 20px; font-weight: 800; border: 2px solid currentColor; }
+  .chip.ok { color: #047857; background: #ecfdf5; }
+  .chip.bad { color: #dc2626; background: #fef2f2; }
+  .meta { margin-top: 20px; font-family: ui-monospace, "Cascadia Code", Consolas, monospace; font-size: 17px; color: #475569; line-height: 1.5; }
+  .uart { left: 0; bottom: -30px; width: 640px; padding: 22px 26px; background: #0b1220; color: #e2e8f0; border: 1px solid #334155; font-family: ui-monospace, "Cascadia Code", Consolas, monospace; font-size: 19px; line-height: 1.55; }
+  .uart .t { font-family: "Segoe UI", sans-serif; font-size: 15px; font-weight: 800; letter-spacing: .14em; color: #94a3b8; text-transform: uppercase; margin-bottom: 8px; }
+  .uart .g { color: #6ee7b7; }
+  .uart .r { color: #fca5a5; }
+  .amd { position: absolute; right: 0; bottom: 30px; display: flex; gap: 12px; }
+  .amd span { border-radius: 12px; padding: 12px 18px; font-size: 19px; font-weight: 800; background: #111a2e; border: 1px solid #334155; color: #e2e8f0; }
+  .amd span i { font-style: normal; color: #f87171; }
+</style>
+</head>
+<body>
+  <div class="grid-bg"></div>
+  <div class="wrap">
+    <div>
+      <div class="brand">
+        <svg viewBox="0 0 32 32" aria-hidden="true"><rect width="32" height="32" rx="7" fill="#0b1220"/><path d="M16 5l9 3.5v6.8c0 5.6-3.8 10.2-9 11.7-5.2-1.5-9-6.1-9-11.7V8.5L16 5z" fill="none" stroke="#34d399" stroke-width="2.4" stroke-linejoin="round"/><path d="M11.5 16.2l3.2 3.2 6-6.4" fill="none" stroke="#34d399" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"/></svg>
+        ReleaseProof
+      </div>
+      <div class="eyebrow">Post-quantum firmware migration assurance</div>
+      <h1>A firmware can boot and still be <em>impossible to upgrade</em> safely.</h1>
+      <p class="sub">Real builds, real Renode emulation and a <b>deterministic verdict</b> on the migration path. AMD-hosted AI plans and explains. <b>It never decides.</b></p>
+    </div>
+    <div class="stack">
+      <div class="panel verdict">
+        <div class="k">wolfBoot · nRF52840 · ECDSA P-256 → ML-DSA-87</div>
+        <div class="vt"><div class="x">×</div><div class="w">INCOMPATIBLE</div></div>
+        <div class="row ok"><span>Candidate boots?</span><span class="chip ok">Compatible</span></div>
+        <div class="row bad"><span>Deployed fleet can get there?</span><span class="chip bad">Incompatible</span></div>
+        <div class="meta">LIVE run RP-20261017T124806Z-a39610 · 8/8 tests</div>
+      </div>
+      <div class="panel uart">
+        <div class="t">UART · deployed ECDSA bootloader + ML-DSA update</div>
+        <div class="g">2a 00 00 00 01   v1 running</div>
+        <div class="r">Update type invalid 0xB01!=0x200</div>
+        <div class="g">2a 00 00 00 01   v1 still running after reset</div>
+      </div>
+    </div>
+  </div>
+  <div class="foot">
+    <span class="pill">AMD Developer Hackathon ACT III · <b>Intelligent Industry</b></span>
+    <span>wolfBoot &amp; MCUboot · Zephyr · Renode · built for AMD EPYC + AMD Instinct</span>
+  </div>
+</body>
+</html>

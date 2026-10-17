@@ -1,0 +1,115 @@
+{
+  "kind": "AMD_TOKEN_FACTORY_RECHECK",
+  "generated_at": "2026-10-17T13:40:10Z",
+  "results": {
+    "alternatives": {
+      "status": "OK",
+      "trace_ids": [
+        "AIT-64066f6932f04fe8"
+      ],
+      "message": "",
+      "alternatives": {
+        "proposals": [
+          {
+            "plan_id": "field_service_reflash",
+            "title": "Field-service reflash to replace bootloader and install ML-DSA firmware",
+            "rationale": "The blocking REQ-BOOT-S0S1 is caused by the declared transition requiring bootloader self-update, which is unsupported on this board. The field-service plan replaces the bootloader via the debug port during a maintenance window, avoiding the unsupported self-update path. This also provides a controlled environment to address the unknown invariants INV-I2 and INV-I4 by performing the update with stable UART and observing the non-atomic window.",
+            "addresses": [
+              "REQ-BOOT-S0S1",
+              "INV-I2",
+              "INV-I4"
+            ],
+            "preconditions": [
+              "Physical access to the device debug port",
+              "Scheduled maintenance window",
+              "Stable UART connection for interruption testing",
+              "Ability to capture and verify the update state after interruption"
+            ],
+            "tradeoffs": [
+              "Requires manual intervention, not suitable for remote or large-scale deployment",
+              "Downtime during the maintenance window",
+              "Does not address the dual-signature invariant INV-I3"
+            ],
+            "evidence_still_needed": [
+              "E10 event-based interruption with stable UART",
+              "E12 interrupted update with observed recovery"
+            ]
+          },
+          {
+            "plan_id": "staged_hybrid_dual_signature",
+            "title": "Staged hybrid bootloader with dual-signature verification",
+            "rationale": "The invariant INV-I3 is unknown because the dual-signature build failed and the AND/OR behavior was not observed. This plan ships an intermediate bootloader that verifies both ECDSA and ML-DSA signatures, directly addressing the dual-policy gap. It also provides a staged transition that may reduce the risk of interruption (INV-I4) by keeping the old signature valid during the transition.",
+            "addresses": [
+              "INV-I3",
+              "INV-I4"
+            ],
+            "preconditions": [
+              "A working dual-signature build on the pinned commit",
+              "Ability to test the AND/OR signature verification matrix",
+              "Stable UART for interruption testing"
+            ],
+            "tradeoffs": [
+              "Requires a successful dual-signature build, which previously failed",
+              "Adds complexity to the bootloader",
+              "Does not address the bootloader self-update requirement REQ-BOOT-S0S1"
+            ],
+            "evidence_still_needed": [
+              "O05 behavioral dual signature matrix",
+              "E10 event-based interruption with stable UART",
+              "E12 interrupted update with observed recovery"
+            ]
+          }
+        ],
+        "not_addressable": []
+      }
+    },
+    "local_assistant": {
+      "http_status": 200,
+      "status": "OK",
+      "content": "The migration verdict is **INCOMPATIBLE** because the declared transition plan requires a bootloader self-update, which is unsupported on this board as evidenced by [EV-E11-SELF-UPDATE] and violates requirement [REQ-BOOT-S0S1] for both transition steps [STEP-S0-S1] and [STEP-S1-S2].",
+      "provider_info": {
+        "provider": "AMD Token Factory",
+        "hardware": "AMD-hosted (GPU not disclosed)",
+        "endpoint_host": "developer.amd.com.cn",
+        "configured": true,
+        "unavailable_reason": null,
+        "models": {
+          "planner": "DeepSeek-V4-Flash",
+          "explainer": "DeepSeek-V4-Flash",
+          "alternatives": "DeepSeek-V4-Flash",
+          "assistant": "DeepSeek-V4-Flash"
+        },
+        "prompt_templates": {
+          "planner": "planner@1",
+          "explainer": "explainer@1",
+          "alternatives": "alternatives@1",
+          "assistant": "assistant@1"
+        },
+        "allowed_hosts": [
+          "developer.amd.com.cn"
+        ],
+        "response_format": "json_object",
+        "fallback_provider": null
+      }
+    }
+  },
+  "traces": [
+    {
+      "trace_id": "AIT-64066f6932f04fe8",
+      "run_id": "TOKENFACTORY-RECHECK",
+      "module": "alternatives",
+      "provider": "AMD Token Factory",
+      "model": "self-dploy/DeepSeek-V4-Flash",
+      "endpoint_host": "developer.amd.com.cn",
+      "hardware_label": "AMD-hosted (GPU not disclosed)",
+      "request_id": "5f90e95bd71641f4900b4ad0618d2fb2",
+      "prompt_template": "alternatives@1",
+      "started_at": "2026-10-17T13:38:40.012Z",
+      "latency_ms": 90098,
+      "prompt_tokens": 1652,
+      "completion_tokens": 591,
+      "status": "OK",
+      "error": null
+    }
+  ]
+}

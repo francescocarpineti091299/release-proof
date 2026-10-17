@@ -1,8 +1,13 @@
 from __future__ import annotations
 
+from pathlib import Path
+
+import httpx
 import pytest
+from dotenv import dotenv_values
 
 from releaseproof.ai import AIService, AISettings, InjectedTransportRefused
+from releaseproof.ai.client import AMDChatClient
 from releaseproof.ai.stub import STUB_HOST, StubLLM, StubMode, StubRefusedError
 from releaseproof.contracts.api import AIStatus
 
@@ -114,3 +119,34 @@ def test_provider_info(traces) -> None:
     assert info["models"]["planner"] == "stub-amd-model"
     assert info["prompt_templates"]["explainer"] == "explainer@1"
     assert "api_key" not in info and "stub-secret" not in str(info)
+
+
+@pytest.mark.parametrize(
+    ("host", "key", "prefix_hint"),
+    [
+        ("developer.amd.com.cn", "Rc-test-secret", True),
+        ("developer.amd.com.cn", "rc-test-secret", False),
+        ("dedicated.example.com", "Rc-test-secret", False),
+    ],
+)
+def test_token_factory_auth_error_explains_prefix_without_changing_key(host, key, prefix_hint):
+    client = AMDChatClient(AISettings(base_url=f"https://{host}/v1", api_key=key))
+    error = client._http_error(httpx.Response(401, text=f"Rejected credential {key}"))
+    assert ("Token Factory documents 'rc-'" in error.reason) is prefix_hint
+    assert key not in error.reason
+    assert client._headers()["Authorization"] == f"Bearer {key}"
+
+
+def test_token_factory_example_has_safe_usable_defaults():
+    example = Path(__file__).resolve().parents[3] / ".env.example"
+    env = {key: value for key, value in dotenv_values(example).items() if value is not None}
+    assert env["AMD_LLM_API_KEY"] == ""
+    settings = AISettings.from_env(env)
+    assert not settings.configured
+    assert settings.unavailable_reason() == "AMD_LLM_API_KEY is not set"
+    assert settings.endpoint_host == "developer.amd.com.cn"
+    assert settings.response_format == "json_object"
+    assert settings.provider_label == "AMD Token Factory"
+    assert "MI300X" not in settings.hardware_label
+    env["AMD_LLM_API_KEY"] = "rc-test-secret"
+    assert AISettings.from_env(env).configured

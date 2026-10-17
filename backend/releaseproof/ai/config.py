@@ -18,8 +18,8 @@ MODULES: tuple[str, ...] = ("planner", "explainer", "alternatives", "assistant")
 ResponseFormatMode = Literal["auto", "json_schema", "json_object", "none"]
 
 DEFAULT_ALLOWED_HOSTS = ("developer.amd.com.cn",)
-DEFAULT_PROVIDER_LABEL = "AMD Developer Cloud"
-DEFAULT_HARDWARE_LABEL = "AMD Instinct MI300X"
+DEFAULT_PROVIDER_LABEL = "AMD-hosted endpoint"
+DEFAULT_HARDWARE_LABEL = "AMD GPU (not disclosed by provider)"
 
 # Fields of the request body an operator may never override through AMD_LLM_EXTRA_BODY.
 _RESERVED_BODY_KEYS = frozenset(

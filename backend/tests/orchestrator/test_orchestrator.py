@@ -349,7 +349,8 @@ def test_request_alternatives_updates_ai_view_only(harness):
     assert after.ai_alternatives == view
 
 
-def test_selection_rules(tmp_path):
+def test_selection_rules(tmp_path, monkeypatch):
+    _force_experimental(monkeypatch)
     h = Harness(tmp_path, expose=False)
     orch = h.orchestrator()
     with pytest.raises(Unprocessable):
@@ -396,3 +397,15 @@ def test_startup_recovery_fails_interrupted_runs(harness):
     assert not any(s.status == "RUNNING" for s in view.stages)
     gate.set()
     orch.wait(run.run_id)
+
+
+def _force_experimental(monkeypatch):
+    """Selection rules must not depend on the current status in profiles/*.yaml."""
+    from releaseproof.contracts.profile import ProfileStatus
+    from releaseproof.profiles import registry
+
+    real = registry.load_profiles()
+    forced = {
+        k: v.model_copy(update={"status": ProfileStatus.EXPERIMENTAL}) for k, v in real.items()
+    }
+    monkeypatch.setattr(registry, "load_profiles", lambda: forced)

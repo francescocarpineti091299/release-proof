@@ -1,6 +1,6 @@
 id: nrf52840-mcuboot-pqc
 version: "1.0"
-status: EXPERIMENTAL   # becomes SUPPORTED only after the end-to-end acceptance gate passes
+status: SUPPORTED   # promoted 2026-10-17: scripts/acceptance.py --require-ai passed (docs/acceptance/20261017T135337Z.json)
 title: Nordic nRF52840 + MCUboot (Zephyr)
 description: >
   nRF52840 emulated in Renode running MCUboot built with Zephyr sysbuild and a demo application.

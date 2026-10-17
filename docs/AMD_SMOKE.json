@@ -1,0 +1,996 @@
+{
+  "kind": "AMD_SMOKE",
+  "generated_at": "2026-10-17T13:38:14Z",
+  "run_id": "SMOKE-20261017T132953Z",
+  "provider_info": {
+    "provider": "AMD Token Factory",
+    "hardware": "AMD-hosted (GPU not disclosed)",
+    "endpoint_host": "developer.amd.com.cn",
+    "configured": true,
+    "unavailable_reason": null,
+    "models": {
+      "planner": "DeepSeek-V4-Flash",
+      "explainer": "DeepSeek-V4-Flash",
+      "alternatives": "DeepSeek-V4-Flash",
+      "assistant": "DeepSeek-V4-Flash"
+    },
+    "prompt_templates": {
+      "planner": "planner@1",
+      "explainer": "explainer@1",
+      "alternatives": "alternatives@1",
+      "assistant": "assistant@1"
+    },
+    "allowed_hosts": [
+      "developer.amd.com.cn"
+    ],
+    "response_format": "json_object",
+    "fallback_provider": null
+  },
+  "fallback_provider": null,
+  "calls": [
+    {
+      "index": 1,
+      "module": "planner",
+      "case": "nrf52840-wolfboot-pqc",
+      "wall_ms": 36005,
+      "status": "OK",
+      "trace_ids": [
+        "AIT-b1ddf0a070334454"
+      ],
+      "message": "",
+      "proposal": {
+        "selected": [
+          {
+            "template_id": "wolfboot.discover",
+            "priority": 1,
+            "rationale": "Required discovery to record the pinned source, toolchain, and partition layout for the nRF52840 configuration."
+          },
+          {
+            "template_id": "wolfboot.self_update_capability",
+            "priority": 2,
+            "rationale": "Required to verify the bootloader self-update path, which is essential for the migration from ECDSA to ML-DSA."
+          },
+          {
+            "template_id": "wolfboot.boot_current",
+            "priority": 3,
+            "rationale": "Required baseline test to confirm the current ECDSA P-256 bootloader and image boot correctly before migration."
+          },
+          {
+            "template_id": "wolfboot.boot_candidate",
+            "priority": 4,
+            "rationale": "Required to validate that the candidate ML-DSA-87 bootloader builds, signs, and boots successfully within the slot constraints."
+          },
+          {
+            "template_id": "wolfboot.tampered_image_rejected",
+            "priority": 5,
+            "rationale": "Required negative test to ensure the candidate bootloader rejects tampered images, a core security property."
+          },
+          {
+            "template_id": "wolfboot.cross_generation_update",
+            "priority": 6,
+            "rationale": "Required negative test to confirm that a deployed ECDSA bootloader does not accept an ML-DSA-signed update, preserving migration safety."
+          },
+          {
+            "template_id": "wolfboot.candidate_rejects_classical",
+            "priority": 7,
+            "rationale": "Optional but selected to verify the candidate ML-DSA bootloader rejects ECDSA-signed images, ensuring the new scheme is enforced."
+          },
+          {
+            "template_id": "wolfboot.dual_signature_build",
+            "priority": 8,
+            "rationale": "Optional but selected to check whether a dual-signature build is feasible, which could ease migration for deployed devices."
+          }
+        ],
+        "skipped": [],
+        "suggested_new_tests": [
+          {
+            "title": "ML-DSA-87 signature size vs slot capacity",
+            "purpose": "Measure the actual ML-DSA-87 signature and image size against the nRF52840 boot slot to ensure the candidate fits without overflow."
+          },
+          {
+            "title": "Self-update with ML-DSA-signed bootloader image",
+            "purpose": "Verify that the deployed ECDSA bootloader can accept and apply a self-update image signed with ML-DSA-87, if such a path is supported."
+          },
+          {
+            "title": "Rollback protection after ML-DSA migration",
+            "purpose": "Test that after migrating to ML-DSA, the bootloader prevents rollback to an older ECDSA-signed firmware version."
+          }
+        ],
+        "summary": "Plan covers required discovery, self-update capability, baseline ECDSA boot, candidate ML-DSA boot, tamper rejection, and cross-generation negative tests. Optional tests for candidate rejecting classical signatures and dual-signature build are included to strengthen migration assurance. No templates are skipped."
+      },
+      "blocked_templates": []
+    },
+    {
+      "index": 2,
+      "module": "planner",
+      "case": "nrf52840-mcuboot-pqc",
+      "wall_ms": 47876,
+      "status": "OK",
+      "trace_ids": [
+        "AIT-a23617dd31454da7"
+      ],
+      "message": "",
+      "proposal": {
+        "selected": [
+          {
+            "template_id": "mcuboot.discover",
+            "priority": 1,
+            "rationale": "First, record the pinned toolchain, partition map)Skip and signing algorithms to establish the baseline for the migration."
+          },
+          {
+            "template_id": "mcuboot.bootloader_update_capability",
+            "priority": 2,
+            "rationale": "Determine whether the deployed MCUboot can be replaced in the field, which is essential for the migration plan."
+          },
+          {
+            "template_id": "mcuboot.boot_current",
+            "priority": 3,
+            "rationale": "Boot the current ECDSA P-256 image to confirm the baseline works before any migration steps."
+          },
+          {
+            "template_id": "mcuboot.tampered_image_rejected",
+            "priority": 4,
+            "rationale": "Verify that the current bootloader still rejects tampered images, ensuring security baseline is intact."
+          },
+          {
+            "template_id": "mcuboot.pqc_sign_attempt",
+            "priority": 5,
+            "rationale": "Attempt to produce an ML-DSA signed image with the pinned imgtool to see if the toolchain supports the new scheme."
+          },
+          {
+            "template_id": "mcuboot.cross_key_update",
+            "priority": 6,
+            "rationale": "Test that the deployed bootloader rejects an update signed with a new key, simulating the ML-DSA key change."
+          }
+        ],
+        "skipped": [
+          {
+            "template_id": "mcuboot.signed_update",
+            "reason": "This test applies a valid signed update with the deployed key; it does not directly assess the ECDSA-to-ML-DSA migration and is not required."
+          }
+        ],
+        "suggested_new_tests": [
+          {
+            "title": "Bootloader replacement with ML-DSA support",
+            "purpose": "Verify that a field-updatable MCUboot can be replaced with a version that embeds the ML-DSA public key, and that the new bootloader boots the existing ECDSA-signed image."
+          },
+          {
+            "title": "ML-DSA signed update after bootloader replacement",
+            "purpose": "After replacing the bootloader with ML-DSA support, stage an ML-DSA signed v2 image and confirm it is accepted and applied."
+          },
+          {
+            "title": "Rollback protection across signature scheme change",
+            "purpose": "Ensure that after migrating to ML-DSA, the bootloader rejects older ECDSA-signed images to prevent downgrade attacks."
+          }
+        ],
+        "summary": "Plan focuses on establishing the ECDSA baseline, verifying bootloader update capability, and testing rejection of tampered and cross-key updates. The optional signed_update test is skipped as it does not directly address the signature scheme migration. New tests are suggested to cover bootloader replacement and ML-DSA acceptance."
+      },
+      "blocked_templates": []
+    },
+    {
+      "index": 3,
+      "module": "planner",
+      "case": "nrf52840-wolfboot-pqc",
+      "wall_ms": 68338,
+      "status": "OK",
+      "trace_ids": [
+        "AIT-8c1b868b90f34530"
+      ],
+      "message": "",
+      "proposal": {
+        "selected": [
+          {
+            "template_id": "wolfboot.discover",
+            "priority": 1,
+            "rationale": "Must first record the pinned source, toolchain, and partition layout to establish the baseline for the migration."
+          },
+          {
+            "template_id": "wolfboot.self_update_capability",
+            "priority": 2,
+            "rationale": "Determine if the bootloader self-update path is supported, which is essential for the migration plan."
+          },
+          {
+            "template_id": "wolfboot.boot_current",
+            "priority": 3,
+            "rationale": "Verify the current ECDSA P-256 boot path works as a baseline before introducing the ML-DSA candidate."
+          },
+          {
+            "template_id": "wolfboot.boot_candidate",
+            "priority": 4,
+            "rationale": "Build and boot the ML-DSA-87 candidate to confirm it fits and boots correctly in the emulator."
+          },
+          {
+            "template_id": "wolfboot.tampered_image_rejected",
+            "priority": 5,
+            "rationale": "Ensure the candidate bootloader rejects tampered images, a critical security property for the new signature scheme."
+          },
+          {
+            "template_id": "wolfboot.cross_generation_update",
+            "priority": 6,
+            "rationale": "Verify that the deployed ECDSA bootloader correctly rejects an ML-DSA-signed update, confirming the migration path requires a self-update."
+          }
+        ],
+        "skipped": [
+          {
+            "template_id": "wolfboot.candidate_rejects_classical",
+            "reason": "This optional test is not required for the migration plan; the focus is on the deployed bootloader's behavior and the candidate's boot success."
+          },
+          {
+            "template_id": "wolfboot.dual_signature_build",
+            "reason": "The change is a full migration to ML-DSA-87, not a dual-signature transitional build, so this test is out of scope."
+          }
+        ],
+        "suggested_new_tests": [
+          {
+            "title": "Self-update to ML-DSA bootloader",
+            "purpose": "Verify that the deployed ECDSA bootloader can self-update to the ML-DSA-87 bootloader and then boot an ML-DSA-signed image, completing the migration path."
+          },
+          {
+            "title": "ML-DSA signature size vs slot capacity",
+            "purpose": "Measure the ML-DSA-87 signed image size against the available boot slot to ensure it fits without overflow, as the larger signature may impact layout."
+          },
+          {
+            "title": "Rollback protection after migration",
+            "purpose": "Ensure that after migrating to ML-DSA-87, the bootloader rejects attempts to roll back to an ECDSA-signed image, preventing downgrade attacks."
+          }
+        ],
+        "summary": "Plan the required tests to establish the ECDSA baseline, verify the ML-DSA candidate boots, and confirm the deployed bootloader rejects cross-generation updates. Skip optional tests not aligned with the full migration, and suggest new tests for the self-update path and signature size constraints."
+      },
+      "blocked_templates": []
+    },
+    {
+      "index": 4,
+      "module": "planner",
+      "case": "nrf52840-mcuboot-pqc",
+      "wall_ms": 35598,
+      "status": "OK",
+      "trace_ids": [
+        "AIT-c9596acc0b6a4355"
+      ],
+      "message": "",
+      "proposal": {
+        "selected": [
+          {
+            "template_id": "mcuboot.discover",
+            "priority": 1,
+            "rationale": "First, record the pinned toolchain, partition mapaine and signing algorithms to establish the baseline for the migration."
+          },
+          {
+            "template_id": "mcuboot.bootloader_update_capability",
+            "priority": 2,
+            "rationale": "Determine whether the deployed MCUboot can be replaced in the field, which is central to the migration plan."
+          },
+          {
+            "template_id": "mcuboot.boot_current",
+            "priority": 3,
+            "rationale": "Boot the current ECDSA P-256 image to confirm the baseline works before any migration steps."
+          },
+          {
+            "template_id": "mcuboot.tampered_image_rejected",
+            "priority": 4,
+            "rationale": "Verify the existing bootloader still rejects tampered images, ensuring integrity checks remain active."
+          },
+          {
+            "template_id": "mcuboot.pqc_sign_attempt",
+            "priority": 5,
+            "rationale": "Attempt to produce an ML-DSA signed image with the pinned imgtool to see if the toolchain supports the new scheme."
+          },
+          {
+            "template_id": "mcuboot.cross_key_update",
+            "priority": 6,
+            "rationale": "Test that the deployed bootloader rejects an update signed with a new key, simulating the ML-DSA key change."
+          }
+        ],
+        "skipped": [
+          {
+            "template_id": "mcuboot.signed_update",
+            "reason": "This test validates a normal signed update with the deployed key, which is not the focus of the migration and would not exercise the new ML-DSA scheme."
+          }
+        ],
+        "suggested_new_tests": [
+          {
+            "title": "ML-DSA signed update after bootloader replacement",
+            "purpose": "After replacing MCUboot with an ML-DSA-capable version, verify that a firmware image signed with ML-DSA is accepted and boots."
+          },
+          {
+            "title": "Bootloader replacement rollback on failed ML-DSA boot",
+            "purpose": "Ensure that if the new ML-DSA bootloader fails to validate or boot, the device can roll back to the previous ECDSA bootloader."
+          },
+          {
+            "title": "Mixed-key update rejection during transition",
+            "purpose": "Verify that during the transition, an update signed with the old ECDSA key is rejected once the bootloader expects ML-DSA, preventing downgrade attacks."
+          }
+        ],
+        "summary": "Plan focuses on establishing the ECDSA baseline, checking bootloader update capability, and testing rejection of tampered and cross-key updates. The ML-DSA signing attempt is included to assess toolchain supportUTE. The normal signed update test is skipped as it does not address the migration. New tests are suggested for post-replacement ML-DSA boot and rollback scenarios."
+      },
+      "blocked_templates": []
+    },
+    {
+      "index": 5,
+      "module": "explainer",
+      "case": "WP0-FREEZE",
+      "wall_ms": 78031,
+      "status": "OK",
+      "trace_ids": [
+        "AIT-b9e43dc076a544ca"
+      ],
+      "message": "",
+      "report": {
+        "headline": "Migration to ML-DSA-87 blocked: bootloader self-update unsupported and critical invariants unverified",
+        "verdict_echo": {
+          "migration": "INCOMPATIBLE",
+          "candidate": "INDETERMINATE",
+          "transition": "INCOMPATIBLE"
+        },
+        "main_causes": [
+          {
+            "text": "The declared transition requires a bootloader self-update, which is unsupported on this board (EV-E11-SELF-UPDATE), violating REQ-BOOT-S0S1 for both transition steps.",
+            "citations": [
+              "REQ-BOOT-S0S1",
+              "EV-E11-SELF-UPDATE"
+            ]
+          },
+          {
+            "text": "Critical invariant INV-I2 (transition step S0-S1) is UNKNOWN because no evidence was provided for that step.",
+            "citations": [
+              "INV-I2"
+            ]
+          },
+          {
+            "text": "Critical invariants INV-I3 and INV-I4 are UNKNOWN due to missing dual-signature policy (GAP-O05-DUAL-POLICY) and missing interruption/atomicity evidence (GAP-E10-INTERRUPT, GAP-E12-NON-ATOMIC).",
+            "citations": [
+              "INV-I3",
+              "INV-I4",
+              "GAP-O05-DUAL-POLICY",
+              "GAP-E10-INTERRUPT",
+              "GAP-E12-NON-ATOMIC"
+            ]
+          }
+        ],
+        "verified": [
+          {
+            "text": "Boot works in both states S0 and S1 (EV-E01-BOOT, EV-E02-BOOT), satisfying INV-I1.",
+            "citations": [
+              "INV-I1",
+              "EV-E01-BOOT",
+              "EV-E02-BOOT"
+            ]
+          },
+          {
+            "text": "The transitional verifier rejects a factory image with the wrong signing key (EV-E03-PANIC), satisfying REQ-AUTH-NEGATIVE.",
+            "citations": [
+              "REQ-AUTH-NEGATIVE",
+              "EV-E03-PANIC"
+            ]
+          },
+          {
+            "text": "The signed factory image (12,876 bytes) fits the boot partition capacity (262,144 bytes), satisfying REQ-LAYOUT.",
+            "citations": [
+              "REQ-LAYOUT",
+              "EV-E05-LAYOUT-G2",
+              "EV-LAYOUT-PARTITION"
+            ]
+          },
+          {
+            "text": "The image header size is declared and measured as 12,288 bytes (EV-E04-HEADER, EV-E04-HEADER-SPAN).",
+            "citations": [
+              "EV-E04-HEADER",
+              "EV-E04-HEADER-SPAN"
+            ]
+          },
+          {
+            "text": "An application update script is present (EV-APP-UPDATE-SCRIPT).",
+            "citations": [
+              "EV-APP-UPDATE-SCRIPT"
+            ]
+          }
+        ],
+        "unknowns": [
+          {
+            "text": "RAM/stack usage within budget is UNKNOWN because stack painting was not run (GAP-E07-RAM).",
+            "citations": [
+              "REQ-RAM",
+              "GAP-E07-RAM"
+            ]
+          },
+          {
+            "text": "The dual-signature (AND/OR) policy is UNKNOWN because the dual build failed (EV-T3-DUAL-BUILD, GAP-O05-DUAL-POLICY).",
+            "citations": [
+              "INV-I3",
+              "EV-T3-DUAL-BUILD",
+              "GAP-O05-DUAL-POLICY"
+            ]
+          },
+          {
+            "text": "Interruption behavior is UNKNOWN: no event-based interruption test (GAP-E10-INTERRUPT) and no non-atomic update window observation (GAP-E12-NON-ATOMIC).",
+            "citations": [
+              "INV-I4",
+              "GAP-E10-INTERRUPT",
+              "GAP-E12-NON-ATOMIC"
+            ]
+          },
+          {
+            "text": "The transition step S0-S1 is UNKNOWN for INV-I2 because no evidence was provided.",
+            "citations": [
+              "INV-I2"
+            ]
+          }
+        ],
+        "executive_summary": "The migration from ECDSA P-256 to ML-DSA-87 is INCOMPATIBLE because the declared transition requires a bootloader self-update, which is unsupported on this board (EV-E11-SELF-UPDATE), violating REQ-BOOT-S0S1. The candidate itself is INDETERMINATE because critical invariants INV-I2, INV-I3, and INV-I4 remain UNKNOWN: no evidence for the S0-S1 step, the dual-signature build failed (EV-T3-DUAL-BUILD), and interruption/atomicity tests are missing (GAP-E10-INTERRUPT, GAP-E12-NON-ATOMIC). Verified aspects include successful boot in S0/S1 (EV-E01-BOOT, EV-E02-BOOT), rejection of wrong-key images (EV-E03-PANIC), and layout fit (EV-E05-LAYOUT-G2, EV-LAYOUT-PARTITION). RAM usage remains unverified (GAP-E07-RAM)."
+      }
+    },
+    {
+      "index": 6,
+      "module": "explainer",
+      "case": "WP0-FREEZE",
+      "wall_ms": 73351,
+      "status": "OK",
+      "trace_ids": [
+        "AIT-f9b0902cf2234baf"
+      ],
+      "message": "",
+      "report": {
+        "headline": "Migration to ML-DSA-87 is INCOMPATIBLE: bootloader self-update unsupported; candidate INDETERMINATE due to missing dual-signature and interruption evidence.",
+        "verdict_echo": {
+          "migration": "INCOMPATIBLE",
+          "candidate": "INDETERMINATE",
+          "transition": "INCOMPATIBLE"
+        },
+        "main_causes": [
+          {
+            "text": "The declared transition requires a bootloader self-update, but the board does not support it (EV-E11-SELF-UPDATE = UNSUPPORTED), violating REQ-BOOT-S0S1 for both transition steps.",
+            "citations": [
+              "EV-E11-SELF-UPDATE",
+              "REQ-BOOT-S0S1"
+            ]
+          },
+          {
+            "text": "Critical invariant INV-I2 (transition step S0-S1) is UNKNOWN because no evidence was provided for the step's behavior.",
+            "citations": [
+              "INV-I2"
+            ]
+          },
+          {
+            "text": "Critical invariants INV-I3 and INV-I4 are UNKNOWN due to missing dual-signature policy (GAP-O05-DUAL-POLICY) and missing interruption/atomicity evidence (GAP-E10-INTERRUPT, GAP-E12-NON-ATOMIC).",
+            "citations": [
+              "INV-I3",
+              "INV-I4",
+              "GAP-O05-DUAL-POLICY",
+              "GAP-E10-INTERRUPT",
+              "GAP-E12-NON-ATOMIC"
+            ]
+          }
+        ],
+        "verified": [
+          {
+            "text": "Boot works in both generations: E01 and E02 both report BOOT_OK, satisfying INV-I1 for transition state S1.",
+            "citations": [
+              "EV-E01-BOOT",
+              "EV-E02-BOOT",
+              "INV-I1"
+            ]
+          },
+          {
+            "text": "The signed factory image (12,876 bytes) fits within the boot slot capacity (262,144 bytes), satisfying REQ-LAYOUT.",
+            "citations": [
+              "EV-E05-LAYOUT-G2",
+              "EV-LAYOUT-PARTITION",
+              "REQ-LAYOUT"
+            ]
+          },
+          {
+            "text": "The transitional verifier rejects a factory image with the wrong signing key (E03 = REJECT), satisfying REQ-AUTH-NEGATIVE.",
+            "citations": [
+              "EV-E03-PANIC",
+              "REQ-AUTH-NEGATIVE"
+            ]
+          },
+          {
+            "text": "The image header size declared (12,288 bytes) matches the measured header span (12,288 bytes).",
+            "citations": [
+              "EV-E04-HEADER",
+              "EV-E04-HEADER-SPAN"
+            ]
+          },
+          {
+            "text": "An application update script is present in the source.",
+            "citations": [
+              "EV-APP-UPDATE-SCRIPT"
+            ]
+          }
+        ],
+        "unknowns": [
+          {
+            "text": "RAM/stack usage within budget is UNKNOWN because stack painting was not run; only a static linker region was available (GAP-E07-RAM).",
+            "citations": [
+              "GAP-E07-RAM",
+              "REQ-RAM"
+            ]
+          },
+          {
+            "text": "The dual-signature (AND/OR) policy was not observed because the dual build failed (EV-T3-DUAL-BUILD = BUILD_FAILED), leaving INV-I3 UNKNOWN.",
+            "citations": [
+              "EV-T3-DUAL-BUILD",
+              "GAP-O05-DUAL-POLICY",
+              "INV-I3"
+            ]
+          },
+          {
+            "text": "Interruption behavior during firmware update is UNKNOWN; the E12 window was not observed (EV-E12-WINDOW = UNKNOWN) and the interruption test was not repeatable (GAP-E10-INTERRUPT).",
+            "citations": [
+              "EV-E12-WINDOW",
+              "GAP-E10-INTERRUPT",
+              "INV-I4"
+            ]
+          },
+          {
+            "text": "Non-atomic update recovery is UNKNOWN because the interrupted update with recovery was not observed (GAP-E12-NON-ATOMIC).",
+            "citations": [
+              "GAP-E12-NON-ATOMIC",
+              "INV-I4"
+            ]
+          }
+        ],
+        "executive_summary": "The migration from ECDSA P-256 to ML-DSA-87 is INCOMPATIBLE because the declared transition requires a bootloader self-update, which is unsupported on this board (EV-E11-SELF-UPDATE = UNSUPPORTED), violating REQ-BOOT-S0S1. The candidate is INDETERMINATE: while boot, layout, and negative authentication are verified, critical invariants remain UNKNOWN due to missing evidence for the transition step (INV-I2), the dual-signature policy (INV-I3, dual build failed), and interruption/atomicity (INV-I4). RAM usage is also UNKNOWN. The transition verdict is INCOMPATIBLE because the self-update requirement is violated."
+      }
+    },
+    {
+      "index": 7,
+      "module": "explainer",
+      "case": "WP0-FREEZE",
+      "wall_ms": 44280,
+      "status": "OK",
+      "trace_ids": [
+        "AIT-3df1d68a04da4c83"
+      ],
+      "message": "",
+      "report": {
+        "headline": "Migration to ML-DSA-87 blocked: bootloader self-update unsupported and critical invariants unverified",
+        "verdict_echo": {
+          "migration": "INCOMPATIBLE",
+          "candidate": "INDETERMINATE",
+          "transition": "INCOMPATIBLE"
+        },
+        "main_causes": [
+          {
+            "text": "The declared transition requires a bootloader self-update, which is unsupported on this board (E11), violating REQ-BOOT-S0S1 for both transition steps.",
+            "citations": [
+              "REQ-BOOT-S0S1",
+              "EV-E11-SELF-UPDATE"
+            ]
+          },
+          {
+            "text": "Critical invariant INV-I2 (transition step S0-S1) is UNKNOWN because no evidence was provided for the step.",
+            "citations": [
+              "INV-I2"
+            ]
+          },
+          {
+            "text": "Critical invariants INV-I3 and INV-I4 are UNKNOWN due to missing dual-signature policy (GAP-O05) and missing interruption/atomicity evidence (GAP-E10, GAP-E12).",
+            "citations": [
+              "INV-I3",
+              "INV-I4",
+              "GAP-O05-DUAL-POLICY",
+              "GAP-E10-INTERRUPT",
+              "GAP-E12-NON-ATOMIC"
+            ]
+          }
+        ],
+        "verified": [
+          {
+            "text": "Boot works in both generations (E01, E02) and the transitional verifier rejects a wrong signing key (E03).",
+            "citations": [
+              "EV-E01-BOOT",
+              "EV-E02-BOOT",
+              "EV-E03-PANIC"
+            ]
+          },
+          {
+            "text": "The signed factory image (12,876 bytes) fits the 262,144-byte boot slot, satisfying REQ-LAYOUT.",
+            "citations": [
+              "EV-E05-LAYOUT-G2",
+              "EV-LAYOUT-PARTITION",
+              "REQ-LAYOUT"
+            ]
+          },
+          {
+            "text": "Header size declared (12,288 bytes) matches the measured header span (12,288 bytes).",
+            "citations": [
+              "EV-E04-HEADER",
+              "EV-E04-HEADER-SPAN"
+            ]
+          },
+          {
+            "text": "An application update script is present, and the bootloader sizes are 23,652 bytes (G1) and 22,840 bytes (G2).",
+            "citations": [
+              "EV-APP-UPDATE-SCRIPT",
+              "EV-BOOTLOADER-SIZE-G1",
+              "EV-BOOTLOADER-SIZE-G2"
+            ]
+          },
+          {
+            "text": "Invariant INV-I1 (transition state S1) is satisfied.",
+            "citations": [
+              "INV-I1"
+            ]
+          }
+        ],
+        "unknowns": [
+          {
+            "text": "RAM/stack budget is UNKNOWN because stack painting was not run (GAP-E07).",
+            "citations": [
+              "REQ-RAM",
+              "GAP-E07-RAM"
+            ]
+          },
+          {
+            "text": "Dual-signature (AND/OR) policy is UNKNOWN because the dual build failed (GAP-O05, EV-T3-DUAL-BUILD).",
+            "citations": [
+              "GAP-O05-DUAL-POLICY",
+              "EV-T3-DUAL-BUILD"
+            ]
+          },
+          {
+            "text": "Interruption behavior is UNKNOWN: no event-based interruption test (GAP-E10) and no non-atomic update window observation (GAP-E12).",
+            "citations": [
+              "GAP-E10-INTERRUPT",
+              "GAP-E12-NON-ATOMIC",
+              "EV-E12-WINDOW"
+            ]
+          },
+          {
+            "text": "Transition step S0-S1 is UNKNOWN for INV-I2 and INV-I4 because no evidence was provided.",
+            "citations": [
+              "INV-I2",
+              "INV-I4"
+            ]
+          }
+        ],
+        "executive_summary": "The migration from ECDSA P-256 to ML-DSA-87 is INCOMPATIBLE because the declared transition requires a bootloader self-update, which is unsupported on this board (E11), violating REQ-BOOT-S0S1. The candidate itself is INDETERMINATE: critical invariants INV-I2, INV-I3, and INV-I4 remain UNKNOWN due to missing evidence for the transition step, dual-signature policy, and interruption/atomicity behavior. The transition is INCOMPATIBLE for the same self-update reason. Verified facts: boot works in both generations, the verifier rejects a wrong key, the signed image fits the boot slot, and header sizes match. Unknowns: RAM/stack budget, dual-signature behavior, and interruption handling. No official certification is claimed."
+      }
+    },
+    {
+      "index": 8,
+      "module": "alternatives",
+      "case": "WP0-FREEZE",
+      "wall_ms": 56644,
+      "status": "OK",
+      "trace_ids": [
+        "AIT-7dca6c74bfb341e2"
+      ],
+      "message": "",
+      "alternatives": {
+        "proposals": [
+          {
+            "plan_id": "field_service_reflash",
+            "title": "Field-service reflash to replace bootloader and install ML-DSA firmware",
+            "rationale": "The blocking requirement REQ-BOOT-S0S1 is violated because the declared transition requires bootloader self-update, which is unsupported on this board. The field-service reflash plan replaces the bootloader via the debug port during a maintenance window, avoiding the unsupported self-update path. This also provides a controlled environment to address the unknown invariants INV-I2, INV-I3, and INV-I4 by enabling direct observation of the update process and recovery behavior.",
+            "addresses": [
+              "REQ-BOOT-S0S1",
+              "INV-I2",
+              "INV-I3",
+              "INV-I4"
+            ],
+            "preconditions": [
+              "Physical access to the device debug port is available.",
+              "A maintenance window can be scheduled without disrupting service.",
+              "The ML-DSA bootloader image is built and validated for the target board.",
+              "The current ECDSA bootloader can be overwritten via the debug interface."
+            ],
+            "tradeoffs": [
+              "Requires manual intervention, increasing operational cost and downtime.",
+              "Not suitable for remote or large-scale deployments.",
+              "May void warranty or require specialized technician training.",
+              "Does not provide an over-the-air update path for future changes."
+            ],
+            "evidence_still_needed": [
+              "E10 event-based interruption with stable UART to confirm repeatable interruption.",
+              "E12 interrupted update with observed recovery to validate non-atomic window handling.",
+              "O05 behavioral dual signature matrix if dual-signature is used during transition.",
+              "Measurement of flash erase/write timing on real hardware (NVMC behavior)."
+            ]
+          },
+          {
+            "plan_id": "staged_hybrid_dual_signature",
+            "title": "Staged hybrid bootloader accepting ECDSA and ML-DSA signatures",
+            "rationale": "The invariant INV-I3 is unknown because the dual-signature build failed and the AND/OR policy was not observed. This plan ships an intermediate bootloader that verifies both ECDSA and ML-DSA signatures, directly addressing the dual-policy gap. It also provides a controlled transition that may help resolve the unknown invariants INV-I2 and INV-I4 by allowing staged verification and observation of the update process.",
+            "addresses": [
+              "INV-I3",
+              "INV-I2",
+              "INV-I4"
+            ],
+            "preconditions": [
+              "A working dual-signature build on the pinned commit is available.",
+              "The bootloader can be updated to the hybrid version before the transition.",
+              "The hybrid bootloader fits within the available flash and RAM constraints.",
+              "The transition plan can be adjusted to include the staged hybrid step."
+            ],
+            "tradeoffs": [
+              "Requires an additional bootloader update, which may still face self-update limitations.",
+              "Increases boot time and code complexity due to dual signature verification.",
+              "May require re-testing of the entire boot sequence.",
+              "Temporary state may introduce security considerations if not properly managed."
+            ],
+            "evidence_still_needed": [
+              "O05 behavioral dual signature matrix on the frozen commit.",
+              "E10 event-based interruption with stable UART to confirm repeatable interruption.",
+              "E12 interrupted update with observed recovery to validate non-atomic window handling.",
+              "Flash erase/write timing measurements on real hardware (NVMC behavior)."
+            ]
+          }
+        ],
+        "not_addressable": []
+      }
+    },
+    {
+      "index": 9,
+      "module": "alternatives",
+      "case": "WP0-FREEZE",
+      "wall_ms": 35158,
+      "status": "OK",
+      "trace_ids": [
+        "AIT-ea13f5a7838440a4"
+      ],
+      "message": "",
+      "alternatives": {
+        "proposals": [
+          {
+            "plan_id": "field_service_reflash",
+            "title": "Field-service reflash to replace bootloader and install ML-DSA firmware",
+            "rationale": "The blocking requirement REQ-BOOT-S0S1 is violated because the declared transition requires bootloader self-update, which is unsupported on this board. The field-service reflash plan replaces the bootloader via the debug port during a maintenance window, avoiding the need for self-update and directly addressing the transition violation. It also provides a controlled environment to re-evaluate the unknown invariants INV-I2, INV-I3, and INV-I4 by performing the update in a supervised setting.",
+            "addresses": [
+              "REQ-BOOT-S0S1",
+              "INV-I2",
+              "INV-I3",
+              "INV-I4"
+            ],
+            "preconditions": [
+              "Physical access to the device debug port",
+              "Scheduled maintenance window",
+              "Technician available to perform the reflash",
+              "ML-DSA bootloader image available for the target board"
+            ],
+            "tradeoffs": [
+              "Requires manual intervention, not suitable for remote or large-scale deployments",
+              "Downtime during the maintenance window",
+              "Does not validate the self-update path, which remains unsupported"
+            ],
+            "evidence_still_needed": [
+              "E10 event-based interruption with stable UART",
+              "E12 interrupted update with observed recovery",
+              "O05 behavioral dual signature matrix"
+            ]
+          },
+          {
+            "plan_id": "staged_hybrid_dual_signature",
+            "title": "Staged hybrid bootloader accepting ECDSA and ML-DSA",
+            "rationale": "The invariant INV-I3 is unknown because the dual-signature build failed and the AND/OR policy was not observed. The staged hybrid plan explicitly requires a working dual-signature build on the pinned commit)Skip, which would provide the missing evidence for INV-I3. It also allows a staged transition that may avoid the self-update requirement if the hybrid bootloader is installed via a supported method, potentially addressing REQ-BOOT-S0S1. The plan requires rerunning tests, which could also gather evidence for INV-I2 and INV-I4.",
+            "addresses": [
+              "INV-I3",
+              "REQ-BOOT-S0S1",
+              "INV-I2",
+              "INV-I4"
+            ],
+            "preconditions": [
+              "Dual-signature build must succeed on the pinned commit",
+              "Bootloader update mechanism must be available (either self-update or external reflash)",
+              "Test environment capable of running the required reruns"
+            ],
+            "tradeoffs": [
+              "Requires additional development and testing effort",
+              "May still need a field-service step if self-update is unsupported",
+              "Temporary increase in bootloader complexity"
+            ],
+            "evidence_still_needed": [
+              "O05 behavioral dual signature matrix",
+              "E10 event-based interruption with stable UART",
+              "E12 interrupted update with observed recovery"
+            ]
+          }
+        ],
+        "not_addressable": []
+      }
+    },
+    {
+      "index": 10,
+      "module": "assistant",
+      "case": "WP0-FREEZE",
+      "wall_ms": 25906,
+      "status": "OK",
+      "message": "The migration verdict is **INCOMPATIBLE** for this run. The blocking IDs are:\n\n- **REQ-BOOT-S0S1** (critical): The declared transition requires a bootloader self-update, and evidence [EV-E11-SELF-UPDATE] shows this is **UNSUPPORTED** on the board. Both transition steps STEP-S0-S1 and STEP-S1-S2 are **VIOLATED**.\n- **INV-I2** (critical): Transition step STEP-S0-S1 is **UNKNOWN** — no evidence is provided.\n- **INV-I3** (critical): Both the transition plan and target plan are **UNKNOWN** due to gap [GAP-O05-DUAL-POLICY] (dual signature build failed; AND/OR not observed).\n- **INV-I4** (critical): ",
+      "chunks": 305
+    }
+  ],
+  "summary": {
+    "traces": 10,
+    "by_status": {
+      "OK": 10
+    },
+    "latency_ms": {
+      "p50": 44280,
+      "p95": 78030,
+      "mean": 50117
+    },
+    "prompt_tokens_total": 22561,
+    "completion_tokens_total": 7630,
+    "models": [
+      "DeepSeek-V4-Flash",
+      "self-dploy/DeepSeek-V4-Flash"
+    ],
+    "request_ids_present": 10,
+    "logical_calls": 10,
+    "logical_calls_ok": 10
+  },
+  "traces": [
+    {
+      "trace_id": "AIT-b1ddf0a070334454",
+      "run_id": "SMOKE-20261017T132953Z",
+      "module": "planner",
+      "provider": "AMD Token Factory",
+      "model": "self-dploy/DeepSeek-V4-Flash",
+      "endpoint_host": "developer.amd.com.cn",
+      "hardware_label": "AMD-hosted (GPU not disclosed)",
+      "request_id": "a4eefa6adde2452a89e0717183a4ac92",
+      "prompt_template": "planner@1",
+      "started_at": "2026-10-17T13:29:53.467Z",
+      "latency_ms": 36002,
+      "prompt_tokens": 1924,
+      "completion_tokens": 689,
+      "status": "OK",
+      "error": null
+    },
+    {
+      "trace_id": "AIT-a23617dd31454da7",
+      "run_id": "SMOKE-20261017T132953Z",
+      "module": "planner",
+      "provider": "AMD Token Factory",
+      "model": "self-dploy/DeepSeek-V4-Flash",
+      "endpoint_host": "developer.amd.com.cn",
+      "hardware_label": "AMD-hosted (GPU not disclosed)",
+      "request_id": "de21346238c449f2b65aa24246158a24",
+      "prompt_template": "planner@1",
+      "started_at": "2026-10-17T13:30:29.469Z",
+      "latency_ms": 47876,
+      "prompt_tokens": 1848,
+      "completion_tokens": 635,
+      "status": "OK",
+      "error": null
+    },
+    {
+      "trace_id": "AIT-8c1b868b90f34530",
+      "run_id": "SMOKE-20261017T132953Z",
+      "module": "planner",
+      "provider": "AMD Token Factory",
+      "model": "self-dploy/DeepSeek-V4-Flash",
+      "endpoint_host": "developer.amd.com.cn",
+      "hardware_label": "AMD-hosted (GPU not disclosed)",
+      "request_id": "6439ef8ab0894c74a2281dbb9e9d8259",
+      "prompt_template": "planner@1",
+      "started_at": "2026-10-17T13:31:17.346Z",
+      "latency_ms": 68338,
+      "prompt_tokens": 1924,
+      "completion_tokens": 682,
+      "status": "OK",
+      "error": null
+    },
+    {
+      "trace_id": "AIT-c9596acc0b6a4355",
+      "run_id": "SMOKE-20261017T132953Z",
+      "module": "planner",
+      "provider": "AMD Token Factory",
+      "model": "self-dploy/DeepSeek-V4-Flash",
+      "endpoint_host": "developer.amd.com.cn",
+      "hardware_label": "AMD-hosted (GPU not disclosed)",
+      "request_id": "5baad4d7401c40aba6e3d6e0b5ce691a",
+      "prompt_template": "planner@1",
+      "started_at": "2026-10-17T13:32:25.686Z",
+      "latency_ms": 35597,
+      "prompt_tokens": 1848,
+      "completion_tokens": 644,
+      "status": "OK",
+      "error": null
+    },
+    {
+      "trace_id": "AIT-b9e43dc076a544ca",
+      "run_id": "SMOKE-20261017T132953Z",
+      "module": "explainer",
+      "provider": "AMD Token Factory",
+      "model": "self-dploy/DeepSeek-V4-Flash",
+      "endpoint_host": "developer.amd.com.cn",
+      "hardware_label": "AMD-hosted (GPU not disclosed)",
+      "request_id": "49ef61e1565246a4969321dadd5d355b",
+      "prompt_template": "explainer@1",
+      "started_at": "2026-10-17T13:33:01.284Z",
+      "latency_ms": 78030,
+      "prompt_tokens": 3135,
+      "completion_tokens": 1116,
+      "status": "OK",
+      "error": null
+    },
+    {
+      "trace_id": "AIT-f9b0902cf2234baf",
+      "run_id": "SMOKE-20261017T132953Z",
+      "module": "explainer",
+      "provider": "AMD Token Factory",
+      "model": "self-dploy/DeepSeek-V4-Flash",
+      "endpoint_host": "developer.amd.com.cn",
+      "hardware_label": "AMD-hosted (GPU not disclosed)",
+      "request_id": "8ee118018905483ea150597f64e630d7",
+      "prompt_template": "explainer@1",
+      "started_at": "2026-10-17T13:34:19.316Z",
+      "latency_ms": 73350,
+      "prompt_tokens": 3135,
+      "completion_tokens": 1086,
+      "status": "OK",
+      "error": null
+    },
+    {
+      "trace_id": "AIT-3df1d68a04da4c83",
+      "run_id": "SMOKE-20261017T132953Z",
+      "module": "explainer",
+      "provider": "AMD Token Factory",
+      "model": "self-dploy/DeepSeek-V4-Flash",
+      "endpoint_host": "developer.amd.com.cn",
+      "hardware_label": "AMD-hosted (GPU not disclosed)",
+      "request_id": "e1fc1c2fea9949cdb2ffdbbb22f55646",
+      "prompt_template": "explainer@1",
+      "started_at": "2026-10-17T13:35:32.668Z",
+      "latency_ms": 44280,
+      "prompt_tokens": 3135,
+      "completion_tokens": 1039,
+      "status": "OK",
+      "error": null
+    },
+    {
+      "trace_id": "AIT-7dca6c74bfb341e2",
+      "run_id": "SMOKE-20261017T132953Z",
+      "module": "alternatives",
+      "provider": "AMD Token Factory",
+      "model": "self-dploy/DeepSeek-V4-Flash",
+      "endpoint_host": "developer.amd.com.cn",
+      "hardware_label": "AMD-hosted (GPU not disclosed)",
+      "request_id": "b78024010f634d598d87f69df646a343",
+      "prompt_template": "alternatives@1",
+      "started_at": "2026-10-17T13:36:16.949Z",
+      "latency_ms": 56643,
+      "prompt_tokens": 1652,
+      "completion_tokens": 762,
+      "status": "OK",
+      "error": null
+    },
+    {
+      "trace_id": "AIT-ea13f5a7838440a4",
+      "run_id": "SMOKE-20261017T132953Z",
+      "module": "alternatives",
+      "provider": "AMD Token Factory",
+      "model": "self-dploy/DeepSeek-V4-Flash",
+      "endpoint_host": "developer.amd.com.cn",
+      "hardware_label": "AMD-hosted (GPU not disclosed)",
+      "request_id": "c226f5267dd54c3995abd42a2bd050b9",
+      "prompt_template": "alternatives@1",
+      "started_at": "2026-10-17T13:37:13.594Z",
+      "latency_ms": 35157,
+      "prompt_tokens": 1652,
+      "completion_tokens": 667,
+      "status": "OK",
+      "error": null
+    },
+    {
+      "trace_id": "AIT-5936b5a5d6e04c54",
+      "run_id": "SMOKE-20261017T132953Z",
+      "module": "assistant",
+      "provider": "AMD Token Factory",
+      "model": "DeepSeek-V4-Flash",
+      "endpoint_host": "developer.amd.com.cn",
+      "hardware_label": "AMD-hosted (GPU not disclosed)",
+      "request_id": "af45156bfdb949dbb5265e4c7668693a",
+      "prompt_template": "assistant@1",
+      "started_at": "2026-10-17T13:37:48.752Z",
+      "latency_ms": 25905,
+      "prompt_tokens": 2308,
+      "completion_tokens": 310,
+      "status": "OK",
+      "error": null
+    }
+  ]
+}

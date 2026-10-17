@@ -101,7 +101,8 @@ def test_health_and_configurations(h):
         assert cors.headers.get("access-control-allow-origin") == "http://localhost:3000"
 
 
-def test_experimental_profiles_hidden_by_default(tmp_path):
+def test_experimental_profiles_hidden_by_default(tmp_path, monkeypatch):
+    _force_experimental(monkeypatch)
     h = Harness(tmp_path, expose=False)
     with _client(h) as client:
         assert client.get("/api/configurations").json() == []
@@ -439,3 +440,15 @@ def test_amd_panel_aggregates_traces(h):
         assert amd["traces"]["count"] == 3 and amd["traces"]["ok_rate"] == 1.0
         assert amd["traces"]["latency_ms_p50"] == 300 and amd["traces"]["latency_ms_p95"] == 300
         assert amd["traces"]["prompt_tokens"] == 300
+
+
+def _force_experimental(monkeypatch):
+    """Selection rules must not depend on the current status in profiles/*.yaml."""
+    from releaseproof.contracts.profile import ProfileStatus
+    from releaseproof.profiles import registry
+
+    real = registry.load_profiles()
+    forced = {
+        k: v.model_copy(update={"status": ProfileStatus.EXPERIMENTAL}) for k, v in real.items()
+    }
+    monkeypatch.setattr(registry, "load_profiles", lambda: forced)

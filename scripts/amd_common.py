@@ -3,12 +3,15 @@
 from __future__ import annotations
 
 import json
+import os
 import statistics
 import sys
 import threading
 from datetime import UTC, datetime
 from pathlib import Path
 from typing import Any
+
+from dotenv import dotenv_values
 
 REPO_ROOT = Path(__file__).resolve().parents[1]
 BACKEND = REPO_ROOT / "backend"
@@ -23,6 +26,24 @@ from releaseproof.profiles.registry import get_template, load_profiles  # noqa: 
 
 WOLFBOOT = "nrf52840-wolfboot-pqc"
 MCUBOOT = "nrf52840-mcuboot-pqc"
+
+
+def load_env_file(path: str | None) -> None:
+    """Load an explicitly selected dotenv file without replacing exported settings.
+
+    No automatic discovery: tests and CI must not accidentally consume local credentials.
+    Interpolation is disabled so API keys are kept exactly as supplied.
+    """
+    if path is None:
+        return
+    target = Path(path)
+    if not target.is_absolute():
+        target = REPO_ROOT / target
+    if not target.is_file():
+        raise ValueError(f"Environment file not found: {target}")
+    for key, value in dotenv_values(target, interpolate=False, encoding="utf-8-sig").items():
+        if value is not None:
+            os.environ.setdefault(key, value)
 
 
 class TraceLog:

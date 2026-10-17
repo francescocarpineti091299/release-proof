@@ -29,7 +29,7 @@
   "additionalProperties": false,
   "properties": {
     "executive_summary": {
-      "maxLength": 800,
+      "maxLength": 1500,
       "title": "Executive Summary",
       "type": "string"
     },

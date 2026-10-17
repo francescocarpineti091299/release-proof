@@ -1,6 +1,6 @@
 id: nrf52840-wolfboot-pqc
 version: "1.0"
-status: EXPERIMENTAL   # becomes SUPPORTED only after the end-to-end acceptance gate passes
+status: SUPPORTED   # promoted 2026-10-17: scripts/acceptance.py --require-ai passed (docs/acceptance/20261017T135337Z.json)
 title: Nordic nRF52840 + wolfBoot
 description: >
   nRF52840 (Cortex-M4F) emulated in Renode with the wolfBoot secure bootloader pinned to the

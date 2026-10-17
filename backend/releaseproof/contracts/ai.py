@@ -56,7 +56,7 @@ class NarrativeReport(_Strict):
     main_causes: list[CitedStatement] = Field(min_length=1, max_length=3)
     verified: list[CitedStatement] = Field(default_factory=list, max_length=8)
     unknowns: list[CitedStatement] = Field(default_factory=list, max_length=6)
-    executive_summary: str = Field(max_length=800)
+    executive_summary: str = Field(max_length=1500)
 
 
 # ------------------------------------------------------------ alternatives

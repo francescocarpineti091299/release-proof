@@ -1,0 +1,664 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>ReleaseProof — AMD Developer Hackathon ACT III · Intelligent Industry</title>
+<meta name="viewport" content="width=1920">
+<style>
+  @page { size: 1920px 1080px; margin: 0; }
+  :root {
+    --navy: #020617;
+    --navy-2: #0b1220;
+    --navy-3: #111a2e;
+    --line-dark: #1e293b;
+    --bg: #f4f6f9;
+    --card: #ffffff;
+    --ink: #0b1220;
+    --muted: #4a5568;
+    --border: #d5dbe3;
+    --green: #34d399;
+    --green-2: #10b981;
+    --green-ink: #047857;
+    --red: #dc2626;
+    --red-bg: #fef2f2;
+    --amber: #f59e0b;
+    --amber-bg: #fffbeb;
+    --violet: #7c3aed;
+    --slate: #475569;
+    --mono: ui-monospace, "Cascadia Code", "SFMono-Regular", Menlo, Consolas, monospace;
+  }
+  * { box-sizing: border-box; }
+  html, body { margin: 0; padding: 0; background: #0f172a; }
+  body {
+    font-family: "Segoe UI", "Inter", ui-sans-serif, system-ui, -apple-system, sans-serif;
+    -webkit-print-color-adjust: exact; print-color-adjust: exact;
+    -webkit-font-smoothing: antialiased;
+  }
+  .slide {
+    width: 1920px; height: 1080px; position: relative; overflow: hidden;
+    page-break-after: always; break-after: page;
+    display: flex; flex-direction: column;
+  }
+  .slide:last-child { page-break-after: auto; break-after: auto; }
+  @media screen {
+    .slide { margin: 0 auto 32px; box-shadow: 0 10px 40px rgba(0,0,0,.5); }
+    body.single .slide { display: none; margin: 0; box-shadow: none; }
+    body.single .slide.on { display: flex; }
+  }
+  .dark { background: var(--navy); color: #fff; }
+  .light { background: var(--bg); color: var(--ink); }
+
+  /* ---------- header / footer ---------- */
+  .head { padding: 56px 96px 0; }
+  .eyebrow { font-size: 21px; font-weight: 700; letter-spacing: .14em; text-transform: uppercase; color: var(--green-ink); }
+  .dark .eyebrow { color: var(--green); }
+  h1, h2, h3 { margin: 0; letter-spacing: -.02em; }
+  h2 { font-size: 54px; line-height: 1.08; font-weight: 800; margin-top: 10px; max-width: 1650px; }
+  .body { flex: 1; padding: 30px 96px 0; min-height: 0; }
+  .foot {
+    height: 64px; padding: 0 96px; display: flex; align-items: center; justify-content: space-between;
+    font-size: 15px; color: #64748b; border-top: 1px solid var(--border);
+  }
+  .dark .foot { border-top-color: var(--line-dark); color: #64748b; }
+  .foot .brand { display: flex; align-items: center; gap: 10px; font-weight: 700; color: var(--ink); }
+  .dark .foot .brand { color: #e2e8f0; }
+  .foot .src { flex: 1; margin: 0 40px; line-height: 1.3; }
+  .foot .num { font-family: var(--mono); font-weight: 700; color: #94a3b8; }
+  .logo { width: 26px; height: 26px; }
+
+  /* ---------- atoms ---------- */
+  .card { background: var(--card); border: 1px solid var(--border); border-radius: 14px; padding: 26px 28px; }
+  .dark .card { background: var(--navy-3); border-color: var(--line-dark); }
+  .muted { color: var(--muted); }
+  .dark .muted { color: #94a3b8; }
+  .mono { font-family: var(--mono); }
+  .chip {
+    display: inline-flex; align-items: center; gap: 8px; border-radius: 999px; padding: 6px 14px;
+    font-size: 17px; font-weight: 700; border: 1.5px solid currentColor; white-space: nowrap;
+  }
+  .chip.ok { color: var(--green-ink); background: #ecfdf5; }
+  .chip.bad { color: var(--red); background: var(--red-bg); }
+  .chip.unk { color: var(--slate); background: #f1f5f9; }
+  .chip.warn { color: #b45309; background: var(--amber-bg); }
+  .chip.ai { color: var(--violet); background: #f5f3ff; }
+  .dark .chip.ok { color: var(--green); background: rgba(52,211,153,.08); }
+  .dark .chip.bad { color: #f87171; background: rgba(248,113,113,.08); }
+  .dark .chip.unk { color: #cbd5e1; background: rgba(148,163,184,.08); }
+  .ph {
+    font-family: var(--mono); font-weight: 700; color: #92400e; background: #fde68a;
+    border: 1.5px dashed #b45309; border-radius: 6px; padding: 1px 8px; white-space: nowrap;
+  }
+  .shot { border-radius: 12px; border: 1px solid var(--border); box-shadow: 0 8px 28px rgba(15,23,42,.14); display: block; background: #fff; }
+  .cap { font-size: 16px; color: var(--muted); margin-top: 10px; line-height: 1.35; }
+  .cap b { color: var(--ink); }
+  .grid { display: grid; gap: 28px; }
+  ul.clean { list-style: none; margin: 0; padding: 0; }
+  ul.clean li { position: relative; padding-left: 30px; margin: 0 0 12px; }
+  ul.clean li::before { content: ""; position: absolute; left: 4px; top: .55em; width: 11px; height: 11px; border-radius: 3px; background: var(--green-2); }
+  .k { font-size: 17px; font-weight: 700; letter-spacing: .1em; text-transform: uppercase; color: #64748b; }
+  .big { font-size: 64px; font-weight: 800; letter-spacing: -.03em; line-height: 1; }
+  .tag { font-family: var(--mono); font-size: 16px; font-weight: 700; padding: 3px 9px; border-radius: 6px; background: #e2e8f0; color: #0f172a; }
+  .dark .tag { background: #1e293b; color: #e2e8f0; }
+
+  /* ---------- slide 1 ---------- */
+  .s1 .wrap { flex: 1; display: grid; grid-template-columns: 1.08fr .92fr; gap: 64px; padding: 70px 96px 0; align-items: center; }
+  .s1 .brandline { display: flex; align-items: center; gap: 18px; font-size: 34px; font-weight: 800; letter-spacing: -.01em; margin-bottom: 44px; }
+  .s1 .brandline svg { width: 58px; height: 58px; }
+  .s1 h1 { font-size: 86px; line-height: 1.02; font-weight: 900; letter-spacing: -.035em; }
+  .s1 .sub { font-size: 31px; line-height: 1.38; color: #cbd5e1; margin-top: 34px; max-width: 980px; }
+  .s1 .sub b { color: #fff; }
+  .s1 .chips { display: flex; flex-wrap: wrap; gap: 12px; margin-top: 40px; }
+  .s1 .chips span { font-size: 19px; font-weight: 600; color: #e2e8f0; border: 1px solid #334155; background: #0b1220; padding: 9px 16px; border-radius: 10px; }
+  .verdict-mock { background: #fff; color: var(--ink); border-radius: 18px; padding: 30px 32px; box-shadow: 0 30px 80px rgba(0,0,0,.55); border: 3px solid var(--red); }
+  .verdict-mock .k { font-size: 16px; }
+  .verdict-mock .vt { display: flex; align-items: center; gap: 16px; margin-top: 8px; }
+  .verdict-mock .vt .x { width: 56px; height: 56px; border: 5px solid var(--red); border-radius: 50%; color: var(--red); display: grid; place-items: center; font-weight: 900; font-size: 34px; line-height: 1; }
+  .verdict-mock .vt .w { font-size: 54px; font-weight: 900; color: var(--red); letter-spacing: -.02em; }
+  .verdict-mock .row { display: flex; justify-content: space-between; align-items: center; border: 2px solid; border-radius: 12px; padding: 14px 18px; margin-top: 14px; font-size: 21px; font-weight: 700; }
+  .verdict-mock .row.ok { border-color: var(--green-2); }
+  .verdict-mock .row.bad { border-color: var(--red); }
+  .verdict-mock .meta { margin-top: 18px; font-family: var(--mono); font-size: 15px; color: var(--muted); line-height: 1.5; }
+
+  /* ---------- slide 2 ---------- */
+  .s2 .cols { display: grid; grid-template-columns: 1fr 1.02fr; gap: 44px; height: 100%; }
+  .deadline { display: grid; grid-template-columns: 150px 1fr; gap: 22px; align-items: start; padding: 22px 26px; margin-bottom: 18px; }
+  .deadline .yr { font-size: 52px; font-weight: 900; letter-spacing: -.03em; color: var(--ink); line-height: 1; }
+  .deadline .yr small { display: block; font-size: 15px; font-weight: 700; letter-spacing: .08em; color: #64748b; margin-top: 8px; text-transform: uppercase; }
+  .deadline h3 { font-size: 25px; font-weight: 800; }
+  .deadline p { font-size: 20px; line-height: 1.4; margin: 6px 0 0; color: var(--muted); }
+  .trap { background: var(--navy); color: #fff; border-radius: 18px; padding: 32px 36px; height: 100%; display: flex; flex-direction: column; }
+  .trap h3 { font-size: 30px; font-weight: 800; }
+  .trap .lane { margin-top: 24px; border: 1px solid #334155; border-radius: 14px; padding: 20px 22px; background: #0b1220; }
+  .trap .lane .lbl { font-size: 15px; font-weight: 700; letter-spacing: .12em; text-transform: uppercase; color: #94a3b8; }
+  .trap .flow { display: flex; align-items: center; gap: 14px; margin-top: 12px; }
+  .trap .box { border: 1.5px solid #475569; border-radius: 10px; padding: 12px 14px; font-size: 19px; font-weight: 600; line-height: 1.3; background: #111a2e; }
+  .trap .arrow { font-size: 30px; color: #94a3b8; }
+  .trap .res { margin-left: auto; }
+  .trap .uart { font-family: var(--mono); font-size: 16px; color: #fca5a5; margin-top: 12px; }
+  .trap .uart.ok { color: #6ee7b7; }
+  .trap .punch { margin-top: auto; font-size: 30px; line-height: 1.3; font-weight: 800; }
+  .trap .punch em { font-style: normal; color: var(--green); }
+
+  /* ---------- slide 3 ---------- */
+  .steps { display: grid; grid-template-columns: repeat(3, 1fr); gap: 22px; margin-bottom: 26px; }
+  .step { display: flex; gap: 18px; align-items: flex-start; padding: 18px 22px; }
+  .step .n { flex: none; width: 46px; height: 46px; border-radius: 50%; background: var(--navy); color: #fff; display: grid; place-items: center; font-size: 22px; font-weight: 800; }
+  .step h3 { font-size: 23px; font-weight: 800; }
+  .step p { margin: 4px 0 0; font-size: 18px; line-height: 1.35; color: var(--muted); }
+  .shots3 { display: grid; grid-template-columns: 800px 1fr; gap: 32px; }
+  .shots3 img { width: 100%; height: auto; }
+  .step { padding: 16px 22px; }
+
+  /* ---------- slide 4 ---------- */
+  table.cmp { width: 100%; border-collapse: separate; border-spacing: 0; font-size: 19px; background: #fff; border: 1px solid var(--border); border-radius: 14px; overflow: hidden; }
+  table.cmp th, table.cmp td { text-align: left; vertical-align: top; padding: 12px 18px; border-bottom: 1px solid #e5e9ef; line-height: 1.32; }
+  table.cmp tr:last-child td { border-bottom: 0; }
+  table.cmp thead th { background: var(--navy); color: #fff; font-size: 23px; font-weight: 800; padding: 16px 18px; }
+  table.cmp thead th small { display: block; font-size: 15px; font-weight: 600; color: #94a3b8; margin-top: 2px; }
+  table.cmp td.rk { width: 230px; font-weight: 800; color: var(--ink); background: #f8fafc; font-size: 17px; letter-spacing: .02em; }
+  table.cmp .mono { font-size: 16px; }
+
+  /* ---------- slide 5 ---------- */
+  .loop { display: grid; grid-template-columns: repeat(5, 1fr); gap: 0; align-items: stretch; position: relative; }
+  .node { position: relative; margin-right: 34px; padding: 22px 22px; border-radius: 14px; border: 2px solid var(--border); background: #fff; }
+  .node:last-child { margin-right: 0; }
+  .node::after { content: "→"; position: absolute; right: -32px; top: 50%; transform: translateY(-50%); font-size: 30px; color: #94a3b8; font-weight: 800; }
+  .node:last-child::after { content: ""; }
+  .node .who { font-size: 15px; font-weight: 800; letter-spacing: .12em; text-transform: uppercase; }
+  .node.ai { border-color: #c4b5fd; background: #faf5ff; }
+  .node.ai .who { color: var(--violet); }
+  .node.det { border-color: #6ee7b7; background: #f0fdf9; }
+  .node.det .who { color: var(--green-ink); }
+  .node h3 { font-size: 24px; font-weight: 800; margin-top: 6px; }
+  .node p { font-size: 17px; line-height: 1.38; margin: 8px 0 0; color: var(--muted); }
+  .return { margin: 10px 0 0; font-size: 17px; font-weight: 700; color: #64748b; text-align: center; letter-spacing: .02em; }
+  .example { display: grid; grid-template-columns: 1fr 120px 1fr; align-items: center; gap: 0; margin-top: 22px; }
+  .ex { border-radius: 14px; padding: 18px 22px; border: 2px solid; background: #fff; }
+  .ex.bad { border-color: var(--red); }
+  .ex.unk { border-color: var(--slate); }
+  .ex .id { font-family: var(--mono); font-size: 16px; color: var(--muted); }
+  .ex .v { font-size: 34px; font-weight: 900; letter-spacing: -.02em; margin-top: 2px; }
+  .ex.bad .v { color: var(--red); }
+  .ex.unk .v { color: #334155; }
+  .ex p { font-size: 17px; line-height: 1.38; margin: 6px 0 0; color: var(--muted); }
+  .hand { text-align: center; font-size: 15px; font-weight: 700; color: #64748b; line-height: 1.25; }
+  .hand b { display: block; font-size: 34px; color: var(--ink); }
+  .guard { margin-top: 22px; display: grid; grid-template-columns: repeat(3, 1fr); gap: 14px; }
+  .guard div { background: var(--navy); color: #e2e8f0; border-radius: 12px; padding: 14px 18px; font-size: 17px; line-height: 1.35; }
+  .guard div b { color: var(--green); }
+
+  /* ---------- slide 6 ---------- */
+  .arch { display: grid; grid-template-columns: 1.32fr .68fr; gap: 30px; height: 100%; }
+  .zone { border: 2px dashed #94a3b8; border-radius: 16px; padding: 22px 24px 24px; position: relative; background: #fff; }
+  .zone .zt { font-size: 16px; font-weight: 800; letter-spacing: .12em; text-transform: uppercase; color: #475569; margin-bottom: 14px; display: flex; justify-content: space-between; align-items: center; }
+  .zone.amd { border-color: #ef4444; background: #fff; }
+  .zone.amd .zt { color: #b91c1c; }
+  .bx { border: 1.5px solid var(--border); border-radius: 10px; padding: 16px 18px; background: #f8fafc; font-size: 19px; line-height: 1.32; }
+  .bx b { display: block; font-size: 22px; color: var(--ink); margin-bottom: 2px; }
+  .bx span { color: var(--muted); font-size: 17.5px; }
+  .bx.dk { background: var(--navy); border-color: var(--navy); color: #cbd5e1; }
+  .bx.dk b { color: #fff; }
+  .bx.gr { background: #ecfdf5; border-color: #6ee7b7; }
+  .bx.vi { background: #f5f3ff; border-color: #c4b5fd; }
+  .arow { display: grid; gap: 12px; align-items: stretch; }
+  .down { text-align: center; color: #94a3b8; font-size: 19px; line-height: 1; margin: 12px 0; font-weight: 800; }
+  .evid { font-size: 19px; line-height: 1.45; }
+  .evid .r { display: grid; grid-template-columns: 170px 1fr; gap: 10px; padding: 12px 0; border-bottom: 1px solid #eef1f5; }
+  .evid .r:last-child { border-bottom: 0; }
+  .evid .r .kk { font-weight: 800; color: #475569; font-size: 15px; letter-spacing: .08em; text-transform: uppercase; padding-top: 3px; }
+
+  /* ---------- slide 7 ---------- */
+  .quad { display: grid; grid-template-columns: 1fr 1fr; grid-template-rows: 1fr 1fr; gap: 24px; height: 100%; }
+  .q { border-radius: 16px; padding: 24px 28px; border: 1px solid var(--border); background: #fff; display: flex; flex-direction: column; }
+  .q .qt { display: flex; align-items: center; gap: 12px; font-size: 16px; font-weight: 800; letter-spacing: .12em; text-transform: uppercase; }
+  .q h3 { font-size: 28px; font-weight: 800; margin-top: 8px; line-height: 1.2; }
+  .q p, .q li { font-size: 20px; line-height: 1.42; color: #334155; }
+  .q p { margin: 10px 0 0; }
+  .q ul.clean { margin-top: 10px; }
+  .q ul.clean li { margin-bottom: 6px; }
+  .q.biz { border-top: 6px solid var(--green-2); } .q.biz .qt { color: var(--green-ink); }
+  .q.fail { border-top: 6px solid var(--red); } .q.fail .qt { color: var(--red); }
+  .q.lim { border-top: 6px solid var(--amber); } .q.lim .qt { color: #b45309; }
+  .q.hum { border-top: 6px solid var(--violet); } .q.hum .qt { color: var(--violet); }
+  .nums { display: flex; gap: 26px; margin-top: 14px; }
+  .nums div { font-size: 15px; font-weight: 700; color: #64748b; letter-spacing: .04em; text-transform: uppercase; }
+  .nums b { display: block; font-size: 40px; color: var(--ink); letter-spacing: -.02em; text-transform: none; }
+
+  /* ---------- slide 8 ---------- */
+  .mkt { display: grid; grid-template-columns: 1fr 1fr; gap: 34px; height: 100%; }
+  .stat { display: grid; grid-template-columns: 260px 1fr; gap: 22px; align-items: center; padding: 22px 0; border-bottom: 1px solid var(--border); }
+  .stat:last-child { border-bottom: 0; }
+  .stat .v { font-size: 52px; font-weight: 900; letter-spacing: -.03em; line-height: 1.02; }
+  .stat .v small { display: block; font-size: 16px; font-weight: 700; color: #64748b; letter-spacing: 0; margin-top: 6px; }
+  .stat p { margin: 0; font-size: 20px; line-height: 1.4; color: #334155; }
+  .stat p i { color: #64748b; font-style: normal; font-size: 15px; display: block; margin-top: 4px; }
+  .rev { display: grid; gap: 14px; }
+  .rev .card { padding: 18px 22px; }
+  .rev h3 { font-size: 25px; font-weight: 800; display: flex; justify-content: space-between; align-items: baseline; gap: 12px; }
+  .rev h3 span { font-size: 16px; font-weight: 700; color: var(--green-ink); white-space: nowrap; letter-spacing: .06em; text-transform: uppercase; }
+  .rev p { margin: 6px 0 0; font-size: 19px; line-height: 1.4; color: var(--muted); }
+  .hyp { font-size: 16.5px; font-weight: 700; color: #b45309; background: var(--amber-bg); border: 1px solid #fcd34d; border-radius: 8px; padding: 10px 14px; line-height: 1.4; }
+
+  /* ---------- slide 9 ---------- */
+  table.comp { width: 100%; border-collapse: separate; border-spacing: 0; background: #fff; border: 1px solid var(--border); border-radius: 14px; overflow: hidden; font-size: 18px; }
+  table.comp th, table.comp td { padding: 13px 16px; border-bottom: 1px solid #e5e9ef; text-align: center; vertical-align: middle; line-height: 1.28; }
+  table.comp thead th { background: var(--navy); color: #fff; font-size: 17px; font-weight: 700; vertical-align: bottom; }
+  table.comp td:first-child, table.comp th:first-child { text-align: left; }
+  table.comp td:first-child b { font-size: 20px; display: block; }
+  table.comp td:first-child span { font-size: 15.5px; color: var(--muted); }
+  table.comp tr.us td { background: #ecfdf5; border-top: 2px solid var(--green-2); border-bottom: 0; }
+  .y { color: var(--green-ink); font-weight: 900; font-size: 26px; }
+  .n { color: #cbd5e1; font-weight: 900; font-size: 24px; }
+  .p { color: #b45309; font-weight: 800; font-size: 16px; }
+
+  /* ---------- slide 10 ---------- */
+  .road { display: grid; grid-template-columns: repeat(3, 1fr); gap: 24px; }
+  .road .card { padding: 22px 26px; }
+  .road h3 { font-size: 26px; font-weight: 800; }
+  .road .when { font-size: 15px; font-weight: 800; letter-spacing: .12em; text-transform: uppercase; color: var(--green); }
+  .road li { font-size: 20.5px; line-height: 1.4; color: #cbd5e1; }
+  .road ul.clean li::before { background: var(--green); }
+  .ask { display: grid; grid-template-columns: 1.25fr 1fr; gap: 24px; margin-top: 26px; }
+  .ask .card h3 { font-size: 26px; font-weight: 800; }
+  .ask li { font-size: 21px; line-height: 1.42; color: #e2e8f0; }
+  .links { font-family: var(--mono); font-size: 20px; line-height: 2; color: #e2e8f0; }
+  .links .lk { color: #94a3b8; display: inline-block; width: 120px; }
+</style>
+</head>
+<body>
+
+<!-- ===================================================================== 1. TITLE -->
+<section class="slide dark s1" id="s1">
+  <div class="wrap">
+    <div>
+      <div class="brandline">
+        <svg viewBox="0 0 32 32" aria-hidden="true"><rect width="32" height="32" rx="7" fill="#0b1220"/><path d="M16 5l9 3.5v6.8c0 5.6-3.8 10.2-9 11.7-5.2-1.5-9-6.1-9-11.7V8.5L16 5z" fill="none" stroke="#34d399" stroke-width="2.4" stroke-linejoin="round"/><path d="M11.5 16.2l3.2 3.2 6-6.4" fill="none" stroke="#34d399" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"/></svg>
+        ReleaseProof
+      </div>
+      <div class="eyebrow">Firmware migration assurance · Intelligent Industry</div>
+      <h1 style="margin-top:18px">A firmware can boot and still be impossible to upgrade safely.</h1>
+      <p class="sub">ReleaseProof checks the <b>migration path</b>, not just the new image: real builds, real emulation, a <b>deterministic verdict</b>. AMD-hosted AI plans and explains. <b>It never decides.</b></p>
+      <div class="chips">
+        <span>2 live configurations · Nordic nRF52840</span>
+        <span>wolfBoot &amp; MCUboot</span>
+        <span>ECDSA P-256 → ML-DSA</span>
+        <span>≈1 min per run</span>
+        <span>every artifact sha256-hashed</span>
+      </div>
+    </div>
+    <div>
+      <div class="verdict-mock">
+        <div class="k">Overall migration · wolfBoot · ECDSA P-256 → ML-DSA-87</div>
+        <div class="vt"><div class="x">×</div><div class="w">INCOMPATIBLE</div></div>
+        <div class="row ok"><span>Candidate: does the new image boot?</span><span class="chip ok">Compatible</span></div>
+        <div class="row bad"><span>Transition: can deployed devices get there?</span><span class="chip bad">Incompatible</span></div>
+        <div class="meta">LIVE run RP-20261017T124806Z-a39610<br>8/8 tests · 61 hashed artifacts · engine contract V1.2<br>sha256:a22d6efc4a84…6e54 · non-official engineering assessment</div>
+      </div>
+      <p class="muted" style="font-size:17px;margin-top:16px;text-align:right">Values copied from a real run of the app (Renode emulation, 17 Oct 2026).</p>
+    </div>
+  </div>
+  <div class="foot">
+    <div class="brand">AMD Developer Hackathon ACT III · lablab.ai · Track: Intelligent Industry</div>
+    <div class="src" style="text-align:right">Demo <span class="ph">[[DEMO_URL]]</span> · Video <span class="ph">[[VIDEO_URL]]</span></div>
+    <div class="num">01</div>
+  </div>
+</section>
+
+<!-- ===================================================================== 2. PROBLEM -->
+<section class="slide light s2" id="s2">
+  <div class="head">
+    <div class="eyebrow">The problem</div>
+    <h2>Post-quantum deadlines are hitting device fleets that were never built to change their root of trust</h2>
+  </div>
+  <div class="body">
+    <div class="cols">
+      <div>
+        <div class="card deadline">
+          <div class="yr">2030<small>NSA CNSA 2.0</small></div>
+          <div><h3>Software &amp; firmware signing: CNSA 2.0 only</h3><p>"Begin transitioning immediately, support and prefer by 2025, exclusively use by 2030." Firmware signing has the earliest deadline in the suite.<sup>[1]</sup></p></div>
+        </div>
+        <div class="card deadline">
+          <div class="yr">2027<small>EU CRA</small></div>
+          <div><h3>Cyber Resilience Act fully applies on 11 Dec 2027</h3><p>Products must be maintainable with security updates. Vulnerability reporting has applied since 11 Sep 2026.<sup>[2]</sup></p></div>
+        </div>
+        <div class="card deadline">
+          <div class="yr">2035<small>NIST IR 8547</small></div>
+          <div><h3>ECDSA and RSA signatures disallowed after 2035</h3><p>The 112-bit variants are deprecated after 2030 (initial public draft).<sup>[3]</sup></p></div>
+        </div>
+        <div class="card deadline" style="margin-bottom:0">
+          <div class="yr">39 B<small>IoT, 2030</small></div>
+          <div><h3>21.1 B connected devices in 2025 → 39 B by 2030</h3><p>Connected products often stay in service for 10–20 years. Their bootloader keys were chosen long before PQC.<sup>[4][5]</sup></p></div>
+        </div>
+      </div>
+      <div class="trap">
+        <h3>The trap: "boots" ≠ "migrates"</h3>
+        <div class="lane">
+          <div class="lbl">Lab test: candidate state</div>
+          <div class="flow">
+            <div class="box">ML-DSA-87 bootloader</div><div class="arrow">+</div><div class="box">ML-DSA-87 signed image</div>
+            <div class="res"><span class="chip ok">Boots</span></div>
+          </div>
+          <div class="uart ok">UART: version frame 2a 00 00 00 01 → v1 running</div>
+        </div>
+        <div class="lane">
+          <div class="lbl">Field reality: the transition</div>
+          <div class="flow">
+            <div class="box">Deployed ECDSA P-256 bootloader<br><span style="color:#94a3b8;font-size:16px">no self-update on nRF52840</span></div><div class="arrow">←</div><div class="box">OTA: ML-DSA-87 update</div>
+            <div class="res"><span class="chip bad">Rejected</span></div>
+          </div>
+          <div class="uart">UART: "Update type invalid 0xB01!=0x200"; v1 keeps running</div>
+        </div>
+        <p class="punch">Per-algorithm boot tests come back green, yet the fleet <em>cannot get there</em>. Finding that out after shipping means recalls, depot re-flashes or stranded devices.</p>
+        <p style="font-size:15px;color:#64748b;margin:14px 0 0">Both lanes were measured live by ReleaseProof (wolfBoot @4c79eee, Renode 1.16.1, run RP-20261017T124806Z-a39610).</p>
+      </div>
+    </div>
+  </div>
+  <div class="foot">
+    <div class="brand">ReleaseProof</div>
+    <div class="src">[1] NSA, CNSA 2.0 Algorithms CSA, May 2025 · [2] European Commission, CRA summary (digital-strategy.ec.europa.eu) · [3] NIST IR 8547 ipd, Nov 2024 · [4] IoT Analytics, Oct 2025 · [5] ONEKEY, "PQC for connected devices", Jul 2026</div>
+    <div class="num">02</div>
+  </div>
+</section>
+
+<!-- ===================================================================== 3. SOLUTION / LIVE WORKFLOW -->
+<section class="slide light" id="s3">
+  <div class="head">
+    <div class="eyebrow">The solution, live</div>
+    <h2>Choose a configuration and a change, and get a verdict backed by evidence in about a minute</h2>
+  </div>
+  <div class="body">
+    <div class="steps">
+      <div class="card step"><div class="n">1</div><div><h3>Pick a verified configuration</h3><p>Device + bootloader with pinned commits and toolchains. No scripts, flags or flash addresses to type.</p></div></div>
+      <div class="card step"><div class="n">2</div><div><h3>Pick the change</h3><p>For example ECDSA P-256 → ML-DSA-87. Review the required checks and the ones the AI may add.</p></div></div>
+      <div class="card step"><div class="n">3</div><div><h3>Run: it really executes</h3><p>Builds and signs with ephemeral keys, then boots and updates in Renode. Positive and negative tests feed the V1.2 verdict, canonical hash and manifest.</p></div></div>
+    </div>
+    <div class="shots3">
+      <div>
+        <img class="shot" src="assets/home_wizard.png" alt="ReleaseProof wizard">
+        <div class="cap"><b>Wizard:</b> configurations with pinned versions. Both still carry the EXPERIMENTAL flag until they are formally promoted.</div>
+        <img class="shot" src="assets/wolfboot_stages.png" alt="Live pipeline stages" style="margin-top:18px">
+        <div class="cap"><b>Live pipeline:</b> 7 stages streamed from the runner (SSE), 21 observations, 42 s in total.</div>
+      </div>
+      <div>
+        <img class="shot" src="assets/wolfboot_decision.png" alt="Decision: INCOMPATIBLE">
+        <div class="cap"><b>Decision:</b> candidate and transition are judged separately, by the engine and not by the AI. LIVE run <b class="mono">RP-20261017T124806Z-a39610</b>. Every evidence row links to sha256-hashed artifacts: UART captures, ELF files, signed images and Renode scripts.</div>
+      </div>
+    </div>
+  </div>
+  <div class="foot"><div class="brand">ReleaseProof</div><div class="src"></div><div class="num">03</div></div>
+</section>
+
+<!-- ===================================================================== 4. TWO CONFIGURATIONS -->
+<section class="slide light" id="s4">
+  <div class="head">
+    <div class="eyebrow">Two configurations, both running end to end</div>
+    <h2>Same chip, two bootloaders, and two different reasons the migration fails</h2>
+  </div>
+  <div class="body">
+    <table class="cmp">
+      <thead><tr><th style="width:230px"></th><th>nRF52840 + wolfBoot<small>change: ECDSA P-256 → ML-DSA-87</small></th><th>nRF52840 + MCUboot (Zephyr)<small>change: ECDSA P-256 → ML-DSA</small></th></tr></thead>
+      <tbody>
+        <tr><td class="rk">Pinned stack</td><td><span class="mono">wolfBoot 4c79eee · wolfSSL 4aa1ad7 · Arm GCC 14.2.rel1</span></td><td><span class="mono">MCUboot 4eba8087 · Zephyr v4.2.0 · SDK 0.17.4 · imgtool 2.2.0</span></td></tr>
+        <tr><td class="rk">Emulation</td><td>Renode 1.16.1, nRF52840; SVD baked in and sha256-pinned</td><td>Renode 1.16.1 with ReleaseProof's own NVMC flash model (MIT), swap-using-move</td></tr>
+        <tr><td class="rk">Candidate check</td><td>ML-DSA-87 bootloader and image built and <b>booted</b> (E02); signed image 12&nbsp;876&nbsp;B fits the 262&nbsp;144&nbsp;B&nbsp;slot</td><td>PQC signing attempt with the pinned tool (E02): <b>imgtool refuses ml-dsa-44/65/87</b> (measured)</td></tr>
+        <tr><td class="rk">Field-update path</td><td>Source inspection (E11): no nRF52 self-update path (<span class="mono">RAM_CODE=0</span>)</td><td>Partition map + Kconfig (E11): single-stage MCUboot, no bootloader slot</td></tr>
+        <tr><td class="rk">Negative tests</td><td>Tampered image rejected (E03) · deployed ECDSA bootloader rejects the ML-DSA update (X01) · candidate rejects an ECDSA image (P01)</td><td>Tampered image rejected (E03) · update signed with another key rejected (X01)</td></tr>
+        <tr><td class="rk">Engine verdict</td><td><span class="chip ok">Candidate COMPATIBLE</span> <span class="chip bad">Transition INCOMPATIBLE</span><br><span class="muted" style="font-size:16px">REQ-BOOT-S0S1 violated · run a39610 · 8/8 tests · 61 artifacts</span></td><td><span class="chip bad">Candidate INCOMPATIBLE</span> <span class="chip bad">Transition INCOMPATIBLE</span><br><span class="muted" style="font-size:16px">REQ-PQC-VERIFIER + REQ-BL-FIELD-UPDATE · run 7682fc · 7/7 tests · 50 artifacts</span></td></tr>
+      </tbody>
+    </table>
+    <div style="display:grid;grid-template-columns:1fr 640px;gap:28px;margin-top:22px;align-items:center">
+      <p style="font-size:20px;line-height:1.45;margin:0;color:#334155"><b>Why the checks differ:</b> the test semantics are bootloader-agnostic (E01 current boots, E02 candidate, E03 auth-negative, X01 cross-transition, E05 layout, E11 field-update capability). Each profile maps them to its own build and emulation templates. <b>Runners measure; only the engine decides.</b> A missing observation becomes <span class="mono">UNKNOWN</span>, never a pass.</p>
+      <img class="shot" src="assets/mcuboot_pqc_refusal.png" alt="imgtool refuses ML-DSA" style="width:640px">
+    </div>
+  </div>
+  <div class="foot"><div class="brand">ReleaseProof</div><div class="src">Sources: profiles/*.yaml, runners/*/README.md, docs/acceptance/*.json (acceptance gate passed for both profiles)</div><div class="num">04</div></div>
+</section>
+
+<!-- ===================================================================== 5. AGENTIC LOOP -->
+<section class="slide light" id="s5">
+  <div class="head">
+    <div class="eyebrow">The agentic loop</div>
+    <h2>The AI proposes, the emulator measures, the engine decides, and a human chooses the next step</h2>
+  </div>
+  <div class="body">
+    <div class="loop">
+      <div class="node ai"><div class="who">AMD-hosted AI</div><h3>① Plan tests</h3><p>Picks and orders the optional registered checks. Required checks always run, and unknown templates are blocked and shown.</p></div>
+      <div class="node det"><div class="who">Runner</div><h3>② Execute for real</h3><p>Pinned build, ephemeral keys, Renode boot and update, UART capture. No network access, and every artifact is hashed.</p></div>
+      <div class="node det"><div class="who">V1.2 engine</div><h3>③ Deterministic verdict</h3><p>Candidate, transition and migration verdicts plus an explanation graph and a canonical hash. Golden-hash regression tests guard it.</p></div>
+      <div class="node ai"><div class="who">AMD-hosted AI</div><h3>④ Explain + alternatives</h3><p>Explanations must cite real evidence IDs. Alternatives come only from the profile's allowed set and are labelled PROPOSAL.</p></div>
+      <div class="node det"><div class="who">Human + engine</div><h3>⑤ Re-evaluate</h3><p>A human picks an alternative. That creates a <b>new</b> run with a parent reference, and history is never changed.</p></div>
+    </div>
+    <p class="return">↺ the re-evaluation feeds back into ③ or, when new tests are needed, starts a new LIVE run at ②</p>
+    <div class="example">
+      <div class="ex bad"><div class="id">LIVE · RP-20261017T124806Z-a39610 · bootloader_self_update</div><div class="v">INCOMPATIBLE</div><p>REQ-BOOT-S0S1 is violated: the deployed wolfBoot cannot replace itself over the air on nRF52840.</p></div>
+      <div class="hand"><b>→</b>human clicks<br>"Evaluate this plan"</div>
+      <div class="ex unk"><div class="id">REEVALUATION · RP-20261017T124931Z-72d0b1 · field_service_reflash</div><div class="v">INDETERMINATE</div><p>The blocker is gone, but recovery from an interrupted update (INV-I4) was never observed, so the result is an honest unknown and not a pass. The parent's hash is unchanged.</p></div>
+    </div>
+    <div class="guard">
+      <div><b>Schema-validated</b> structured output; bad JSON is repaired once, otherwise rejected</div>
+      <div><b>Citation check:</b> every claim must reference evidence that exists in this run</div>
+      <div><b>Verdict-echo check:</b> AI text that contradicts the engine verdict is discarded</div>
+      <div><b>Allow-listed AMD host</b> and no fallback provider. If the AI is down: <span class="mono">AI_UNAVAILABLE</span> and the deterministic plan runs</div>
+      <div><b>Tool output is untrusted:</b> UART and log text is wrapped against prompt injection</div>
+      <div><b>No shell from the AI:</b> it can only choose allow-listed templates</div>
+    </div>
+  </div>
+  <div class="foot"><div class="brand">ReleaseProof</div><div class="src">Status: the AMD endpoint key is pending, so today's screenshots show AI_UNAVAILABLE with the deterministic fallback, as designed. The guardrails are implemented and unit-tested in backend/releaseproof/ai.</div><div class="num">05</div></div>
+</section>
+
+<!-- ===================================================================== 6. ARCHITECTURE + AMD -->
+<section class="slide light" id="s6">
+  <div class="head">
+    <div class="eyebrow">Architecture on AMD</div>
+    <h2>An AMD EPYC host runs the builds and emulation, and an AMD Instinct-hosted LLM does the reasoning</h2>
+  </div>
+  <div class="body">
+    <div class="arch">
+      <div class="zone">
+        <div class="zt"><span>AWS EC2 c7a.2xlarge · AMD EPYC (Genoa) · Docker Compose</span><span class="chip warn" style="font-size:14px">deploy pending · <span class="ph" style="font-size:13px">[[DEMO_URL]]</span></span></div>
+        <div class="arow" style="grid-template-columns: 1fr 1fr 1fr">
+          <div class="bx dk"><b>Browser · Next.js UI</b><span style="color:#94a3b8">wizard · live run (SSE) · evidence · alternatives · AMD panel</span></div>
+          <div class="bx"><b>Caddy</b><span>auto-TLS edge · /api → api · / → web</span></div>
+          <div class="bx"><b>FastAPI api</b><span>orchestrator state machine · queue · SQLite · artifacts · manifests</span></div>
+        </div>
+        <div class="down">↓ HTTP / NDJSON (internal network, no egress)</div>
+        <div class="arow" style="grid-template-columns: 1fr 1fr">
+          <div class="bx gr"><b>runner-wolfboot</b><span>wolfBoot + wolfSSL · Arm GCC 14.2 · keytools · Renode 1.16.1 · own SVD</span></div>
+          <div class="bx gr"><b>runner-mcuboot</b><span>Zephyr v4.2.0 sysbuild · MCUboot · imgtool 2.2.0 · Renode + NVMC model</span></div>
+        </div>
+        <div class="down">↓ typed observations + artifact sha256</div>
+        <div class="arow" style="grid-template-columns: 1fr 1fr 1fr">
+          <div class="bx"><b>Assessment adapters</b><span>observations → V1.2 assessment; missing fact ⇒ UNKNOWN / gap</span></div>
+          <div class="bx gr"><b>V1.2 semantic engine</b><span>validate · evaluate · explanation graph · canonical hash</span></div>
+          <div class="bx vi"><b>AI gateway</b><span>planner · explainer · alternatives · assistant; schema, citation and verdict-echo guards; traced</span></div>
+        </div>
+        <div class="down">↓ persisted per run</div>
+        <div class="bx dk"><b>Run record (immutable)</b><span style="color:#94a3b8">verdicts · explanation graph · gap plan · dossier · <span class="mono" style="color:#cbd5e1;font-size:16px">manifest.json</span> with inputs, pins, artifact sha256 and result hash · AI traces</span></div>
+        <p style="font-size:17px;color:#64748b;margin:16px 0 0">Run lifecycle: PREPARING → AI_PLAN → DISCOVERY → BUILD_SIGN → EMULATION_TESTS → EVALUATION → NEXT_STEPS. If a runner is killed or crashes, the run is FAILED and no verdict is issued. Secrets live only in the api container.</p>
+      </div>
+      <div class="zone amd">
+        <div class="zt"><span>AMD evidence</span></div>
+        <div class="bx vi" style="margin-bottom:14px"><b>LLM on AMD Instinct (AMD Developer Cloud)</b><span>OpenAI-compatible, allow-listed host only, reached through API egress only</span></div>
+        <div class="evid">
+          <div class="r"><div class="kk">Host CPU</div><div>AMD EPYC 4th gen (EC2 c7a.2xlarge, 8 vCPU) runs builds, Renode and the engine</div></div>
+          <div class="r"><div class="kk">GPU</div><div><span class="ph">[[AMD_HARDWARE]]</span></div></div>
+          <div class="r"><div class="kk">Model</div><div><span class="ph">[[AMD_MODEL]]</span></div></div>
+          <div class="r"><div class="kk">Serving</div><div><span class="ph">[[AMD_SERVING_STACK]]</span></div></div>
+          <div class="r"><div class="kk">p50 latency</div><div><span class="ph">[[AMD_LATENCY_P50]]</span></div></div>
+          <div class="r"><div class="kk">Schema-valid</div><div><span class="ph">[[AMD_SCHEMA_VALID_RATE]]</span> <span class="muted" style="font-size:15px">scripts/amd_benchmark.py also measures citation fidelity, verdict echo and injection leaks</span></div></div>
+          <div class="r"><div class="kk">On AMD</div><div>Every LLM call, plus the full pipeline once deployed on EPYC</div></div>
+        </div>
+      </div>
+    </div>
+  </div>
+  <div class="foot"><div class="brand">ReleaseProof</div><div class="src">Yellow tags are placeholders, filled only with measured values. Nothing on this slide is invented: the AMD endpoint and AWS deployment were still pending when the deck was written.</div><div class="num">06</div></div>
+</section>
+
+<!-- ===================================================================== 7. EVIDENCE & SAFEGUARDS -->
+<section class="slide light" id="s7">
+  <div class="head">
+    <div class="eyebrow">Evaluation</div>
+    <h2>One business result, one failure case, one limitation and one human safeguard</h2>
+  </div>
+  <div class="body">
+    <div class="quad">
+      <div class="q biz">
+        <div class="qt">Business result · measured</div>
+        <h3>A blocker that boot-only testing misses, found in under a minute and backed by evidence</h3>
+        <p>wolfBoot: the ML-DSA-87 candidate boots (a boot-only check would report PASS), but deployed devices cannot get there. The engine shows this with cited evidence before any device is touched.</p>
+        <div class="nums"><div><b>42 s</b>wall time</div><div><b>8/8</b>tests run</div><div><b>21</b>evidence items</div><div><b>61</b>hashed artifacts</div></div>
+        <p style="font-size:15px;color:#64748b;margin-top:10px">Run a39610. MCUboot run 7682fc: 75 s, 7/7 tests, 50 artifacts. Manual-effort savings are not claimed as measured.</p>
+      </div>
+      <div class="q fail">
+        <div class="qt">Failure case · observed</div>
+        <h3>Runner killed mid-run ⇒ FAILED, and no verdict is issued</h3>
+        <img class="shot" src="assets/failed_red_box.png" alt="Run failed: no verdict issued" style="width:100%;margin-top:12px;box-shadow:none">
+        <p>Run <span class="mono">RP-20261017T124942Z-23dd8f</span>: <span class="mono">/result</span> returns 409 and there is no fallback to recorded data. Our own acceptance gate also <b>failed</b> a wolfBoot run when Renode tried to download its SVD on the no-egress network. E01 was reported INCONCLUSIVE instead of being faked, and we fixed it by baking in and pinning the SVD.</p>
+      </div>
+      <div class="q lim">
+        <div class="qt">Known limitation</div>
+        <h3>This is emulation, not silicon, and only two configurations are supported</h3>
+        <ul class="clean">
+          <li>Renode models nRF52840 flash as plain memory (wolfBoot), and our NVMC model for MCUboot is minimal, so there are no power-loss or timing faults.</li>
+          <li>Interrupted-update recovery (E12) is not executed, so INV-I4 stays <b>UNKNOWN</b>.</li>
+          <li>Verdicts are non-official engineering assessments, not certifications.</li>
+          <li>The AMD LLM was not connected for today's runs, so they used the deterministic fallback plan.</li>
+        </ul>
+      </div>
+      <div class="q hum">
+        <div class="qt">Safeguard · human review</div>
+        <h3>The AI never changes a verdict. An engineer chooses and signs off</h3>
+        <ul class="clean">
+          <li>AI output is labelled PROPOSAL, and choosing an alternative creates a new run.</li>
+          <li>Alternatives marked REQUIRES_EXTERNAL_VALIDATION are refused (HTTP 422).</li>
+          <li>Every result carries the engine version, canonical hash and manifest of inputs, pins and artifact hashes, so a reviewer can trace each claim.</li>
+          <li>The "Ask about this run" assistant only produces text from the run's evidence. It has no tools and cannot start runs.</li>
+        </ul>
+      </div>
+    </div>
+  </div>
+  <div class="foot"><div class="brand">ReleaseProof</div><div class="src">Gates verified live through scripts/acceptance.py and docs/acceptance/*.json: LIVE mode, negative test observed, result hash matches the verdict, evidence belongs to the run, artifact sha256 verified.</div><div class="num">07</div></div>
+</section>
+
+<!-- ===================================================================== 8. MARKET + BUSINESS MODEL -->
+<section class="slide light" id="s8">
+  <div class="head">
+    <div class="eyebrow">Market and business model</div>
+    <h2>Regulation creates the demand, and every device configuration is a product</h2>
+  </div>
+  <div class="body">
+    <div class="mkt">
+      <div>
+        <div class="k" style="margin-bottom:6px">Market (third-party estimates)</div>
+        <div class="stat"><div class="v">$2.84 B<small>PQC market 2030 · 46.2% CAGR</small></div><p>Up from $0.42 B in 2025. Includes migration services and quantum risk assessment, with Europe growing fastest.<i>MarketsandMarkets, Oct 2025</i></p></div>
+        <div class="stat"><div class="v">$4.35 B<small>secure boot &amp; firmware security 2030</small></div><p>Up from $2.91 B in 2025 (8.4% CAGR). IoT and embedded is the fastest device segment (9.6%) and OTA update frameworks are the fastest-growing category.<i>Mordor Intelligence, Jul 2025</i></p></div>
+        <div class="stat"><div class="v">$255 M<small>PQC assessment &amp; planning, 2025</small></div><p>The first wave of PQC spend goes to assessment and transition strategy, which is exactly where a verdict on the migration path fits.<i>ABI Research, Apr 2025</i></p></div>
+        <div class="stat"><div class="v">€15 M<small>or 2.5% of turnover</small></div><p>Maximum CRA fine for breaching essential requirements, including security-update obligations.<i>Regulation (EU) 2024/2847, Art. 64</i></p></div>
+      </div>
+      <div>
+        <div class="k" style="margin-bottom:10px">Who pays: device OEMs, embedded integrators, operators of long-lived fleets</div>
+        <div class="rev">
+          <div class="card"><h3>Configuration-profile subscription <span>recurring</span></h3><p>Per device + bootloader + toolchain profile, kept pinned and re-validated as upstream changes. Covers wolfBoot, MCUboot and future bootloader families.</p></div>
+          <div class="card"><h3>Per assessment / CI integration <span>usage</span></h3><p>Metered LIVE runs, or a CI gate that checks every release candidate's transition path and exports the evidence dossier.</p></div>
+          <div class="card"><h3>Custom profile onboarding <span>one-off</span></h3><p>Bringing an OEM's own board and bootloader fork into the registry, with acceptance-gated promotion to SUPPORTED.</p></div>
+          <div class="card" style="background:var(--navy);border-color:var(--navy)"><h3 style="color:#fff">Go-to-market <span style="color:var(--green)">plan</span></h3><p style="color:#cbd5e1">Start with embedded consultancies and integrators already selling PQC readiness assessments, since they get a repeatable, evidence-backed deliverable. Then land CI seats at their OEM clients.</p></div>
+          <div class="hyp">Pricing hypothesis, not validated: about €1–2k per profile per month, €0.5–1k per month per CI pipeline plus metered runs, €10–25k per custom profile. It will be tested with design partners. No ROI figure is claimed.</div>
+        </div>
+      </div>
+    </div>
+  </div>
+  <div class="foot"><div class="brand">ReleaseProof</div><div class="src">marketsandmarkets.com (PQC market, Oct 2025) · mordorintelligence.com (secure boot &amp; firmware security, Jul 2025) · abiresearch.com (PQC press release, 29 Apr 2025) · eur-lex.europa.eu (Regulation (EU) 2024/2847). These analyst estimates differ by source.</div><div class="num">08</div></div>
+</section>
+
+<!-- ===================================================================== 9. COMPETITION -->
+<section class="slide light" id="s9">
+  <div class="head">
+    <div class="eyebrow">Competitive landscape</div>
+    <h2>Others inventory the crypto, ship the update, or test each algorithm alone. We verify the transition</h2>
+  </div>
+  <div class="body">
+    <table class="comp">
+      <thead><tr>
+        <th style="width:420px">Category · examples</th>
+        <th>Finds crypto / components in binaries (CBOM, SBOM)</th>
+        <th>Delivers OTA updates to fleets</th>
+        <th>Builds &amp; boots each algorithm in emulation</th>
+        <th>Executes the deployed → candidate transition</th>
+        <th>Deterministic verdict + alternatives with evidence</th>
+      </tr></thead>
+      <tbody>
+        <tr><td><b>Binarly · ONEKEY</b><span>static binary analysis, CBOM / PQC-readiness reports, CRA compliance workflows</span></td><td class="y">✓</td><td class="n">—</td><td class="n">—</td><td class="n">—</td><td class="p">compliance evidence</td></tr>
+        <tr><td><b>Finite State · NetRise</b><span>binary SBOM and firmware supply-chain risk</span></td><td class="y">✓</td><td class="n">—</td><td class="n">—</td><td class="n">—</td><td class="n">—</td></tr>
+        <tr><td><b>Memfault · Mender · Golioth</b><span>device management, OTA delivery, observability</span></td><td class="n">—</td><td class="y">✓</td><td class="n">—</td><td class="n">—</td><td class="n">—</td></tr>
+        <tr><td><b>wolfBoot upstream CI</b><span>GitHub Actions + Renode on nRF52840, one job per signing config (incl. ML-DSA-44/65/87), same-scheme v1→v2</span></td><td class="n">—</td><td class="n">—</td><td class="y">✓</td><td class="n">—</td><td class="n">—</td></tr>
+        <tr class="us"><td><b>ReleaseProof</b><span>migration-path assurance for a pinned configuration</span></td><td class="p">config &amp; pin discovery</td><td class="n">—</td><td class="y">✓</td><td class="y">✓</td><td class="y">✓</td></tr>
+      </tbody>
+    </table>
+    <div style="display:grid;grid-template-columns:1fr 1fr;gap:28px;margin-top:24px">
+      <div class="card"><h3 style="font-size:24px;font-weight:800">Our wedge</h3><p style="font-size:19px;line-height:1.42;margin:8px 0 0;color:#334155">The cross-generation test (X01) puts the <b>deployed</b> bootloader in front of the <b>candidate's</b> image. Combined with field-update capability and negative tests, it answers the question a CBOM or per-algorithm CI cannot: <b>can this fleet actually get there?</b></p></div>
+      <div class="card"><h3 style="font-size:24px;font-weight:800">Complementary, not a replacement</h3><p style="font-size:19px;line-height:1.42;margin:8px 0 0;color:#334155">A CBOM tells you <i>what</i> to migrate, an OTA platform <i>delivers</i> the update, and ReleaseProof tells you <i>whether the path works</i> before you ship. They are integration partners as much as competitors.</p></div>
+    </div>
+  </div>
+  <div class="foot"><div class="brand">ReleaseProof</div><div class="src">Based on public product documentation as of Oct 2026 (docs.binarly.io CBOM/PQC report; onekey.com; wolfSSL/wolfBoot .github/workflows/test-renode-nrf52.yml). No head-to-head benchmark was run, so the matrix describes focus, not quality.</div><div class="num">09</div></div>
+</section>
+
+<!-- ===================================================================== 10. ROADMAP + ASK -->
+<section class="slide dark" id="s10">
+  <div class="head">
+    <div class="eyebrow">Roadmap and ask</div>
+    <h2>From two emulated configurations to a release gate for every device fleet</h2>
+  </div>
+  <div class="body">
+    <div class="road">
+      <div class="card"><div class="when">Real today</div><h3>Built during the hackathon</h3>
+        <ul class="clean" style="margin-top:12px">
+          <li>2 LIVE configurations passing the acceptance gate</li>
+          <li>Deterministic V1.2 engine with golden-hash regression tests</li>
+          <li>Re-evaluation runs, immutable history and a failed-run policy</li>
+          <li>Guardrailed AMD-only AI gateway, with 249 tests green at the integration checkpoint</li>
+        </ul></div>
+      <div class="card"><div class="when">Next 30 days</div><h3>Close the open items</h3>
+        <ul class="clean" style="margin-top:12px">
+          <li>Connect the AMD endpoint and publish the benchmark</li>
+          <li>Public deployment on EC2 c7a (AMD EPYC)</li>
+          <li>Interrupted-update test (E12) via power-fail injection</li>
+          <li>Staged hybrid ECDSA + ML-DSA plan; LMS once upstream lands (MCUboot PR #2707)</li>
+        </ul></div>
+      <div class="card"><div class="when">3–6 months</div><h3>Scale the registry</h3>
+        <ul class="clean" style="margin-top:12px">
+          <li>More boards (STM32, NXP) and bootloader families</li>
+          <li>Hardware-in-the-loop runner on real dev kits</li>
+          <li>CI action plus evidence pack for CRA technical files (not a certification)</li>
+          <li>Key-rotation and layout-change rulesets</li>
+        </ul></div>
+    </div>
+    <div class="ask">
+      <div class="card"><h3>Our ask</h3>
+        <ul class="clean" style="margin-top:12px">
+          <li><b>Design partners:</b> OEMs and integrators with ECDSA-signed fleets that face CNSA 2.0 or CRA</li>
+          <li><b>AMD Developer Cloud capacity</b> to benchmark open models on Instinct for planning and explanation</li>
+          <li><b>Maintainer feedback</b> from the wolfBoot, MCUboot and Zephyr communities on test semantics</li>
+        </ul></div>
+      <div class="card"><h3>Team &amp; links</h3>
+        <div class="links" style="margin-top:12px">
+          <div><span class="lk">team</span><span class="ph">[[TEAM]]</span></div>
+          <div><span class="lk">demo</span><span class="ph">[[DEMO_URL]]</span></div>
+          <div><span class="lk">video</span><span class="ph">[[VIDEO_URL]]</span></div>
+          <div><span class="lk">code</span><span class="ph">[[GITHUB_URL]]</span> <span style="color:#94a3b8">MIT</span></div>
+        </div></div>
+    </div>
+  </div>
+  <div class="foot"><div class="brand">ReleaseProof: a firmware can boot and still be impossible to upgrade safely.</div><div class="src"></div><div class="num">10</div></div>
+</section>
+
+<script>
+  // Screen helper: open slides.html#3 to show only slide 3 (used for previews). Print is unaffected.
+  (function () {
+    var m = /^#(\d+)$/.exec(location.hash);
+    if (!m) return;
+    var s = document.getElementById("s" + m[1]);
+    if (s) { document.body.classList.add("single"); s.classList.add("on"); }
+  })();
+</script>
+</body>
+</html>

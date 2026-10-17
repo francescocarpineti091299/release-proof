@@ -10,6 +10,8 @@
 #                           [--instance-type c7a.2xlarge] [--volume-gb 60]
 #                           [--ssh-cidr 203.0.113.7/32] [--key-name releaseproof]
 set -euo pipefail
+# Git Bash on Windows rewrites POSIX-looking arguments (e.g. /dev/sda1); disable that.
+export MSYS_NO_PATHCONV=1 MSYS2_ARG_CONV_EXCL='*'
 
 REGION="${AWS_REGION:-eu-west-1}"
 NAME="releaseproof"
@@ -40,6 +42,9 @@ SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 STATE_DIR="${HOME}/.releaseproof-aws"
 STATE_FILE="${STATE_DIR}/${NAME}.env"
 KEY_FILE="${STATE_DIR}/${KEY_NAME}.pem"
+USER_DATA_PATH="${SCRIPT_DIR}/cloud-init.yaml"
+# aws.exe (Git Bash on Windows) cannot open POSIX paths: hand it a Windows-style path.
+if command -v cygpath >/dev/null; then USER_DATA_PATH="$(cygpath -m "$USER_DATA_PATH")"; fi
 
 aws_() { aws "${PROFILE_ARGS[@]}" --region "$REGION" "$@"; }
 log() { printf '\033[1;34m[provision]\033[0m %s\n' "$*"; }
@@ -86,7 +91,7 @@ else
   umask 077
   aws_ ec2 create-key-pair --key-name "$KEY_NAME" --key-type ed25519 \
     --tag-specifications "ResourceType=key-pair,Tags=[{Key=Name,Value=${NAME}},{Key=app,Value=releaseproof}]" \
-    --query KeyMaterial --output text > "$KEY_FILE"
+    --query KeyMaterial --output text | tr -d '\r' > "$KEY_FILE"   # aws.exe emits CRLF
   chmod 600 "$KEY_FILE"
 fi
 
@@ -148,7 +153,7 @@ if none "$INSTANCE_ID"; then
     --associate-public-ip-address \
     --block-device-mappings "DeviceName=/dev/sda1,Ebs={VolumeSize=${VOLUME_GB},VolumeType=gp3,DeleteOnTermination=true,Encrypted=true}" \
     --metadata-options "HttpTokens=required,HttpEndpoint=enabled,HttpPutResponseHopLimit=1" \
-    --user-data "file://${SCRIPT_DIR}/cloud-init.yaml" \
+    --user-data "file://${USER_DATA_PATH}" \
     --tag-specifications \
       "ResourceType=instance,Tags=[{Key=Name,Value=${NAME}},{Key=app,Value=releaseproof}]" \
       "ResourceType=volume,Tags=[{Key=Name,Value=${NAME}-root},{Key=app,Value=releaseproof}]" \

@@ -210,6 +210,12 @@ class AMDChatClient:
             snippet = ""
         if code in (401, 403):
             hint = "authentication rejected by the AMD endpoint"
+            if (
+                code == 401
+                and self.settings.endpoint_host == "developer.amd.com.cn"
+                and (self.settings.api_key or "").startswith("Rc-")
+            ):
+                hint += "; check AMD_LLM_API_KEY prefix: Token Factory documents 'rc-', not 'Rc-'"
         elif code == 404:
             hint = "endpoint or model not found"
         elif code == 429:
@@ -221,7 +227,7 @@ class AMDChatClient:
         return AIUnavailableError(self.scrub(f"{hint} (HTTP {code}): {snippet}"))
 
     def _post(self, body: dict[str, Any]) -> httpx.Response:
-        """POST /chat/completions with one retry on connection errors and 502/503/504."""
+        """POST with one retry on connection errors and transient upstream failures."""
         client = self._client()
         last_exc: Exception | None = None
         for attempt in range(2):
@@ -237,11 +243,31 @@ class AMDChatClient:
                 raise AIUnavailableError(
                     self.scrub(f"cannot reach AMD endpoint: {type(exc).__name__}: {exc}")
                 ) from exc
-            if response.status_code in _TRANSIENT_STATUS and attempt == 0:
+            if self._retryable(response) and attempt == 0:
                 time.sleep(0.5)
                 continue
             return response
         raise AIUnavailableError(self.scrub(f"cannot reach AMD endpoint: {last_exc}"))
+
+    @staticmethod
+    def _retryable(response: httpx.Response) -> bool:
+        if response.status_code in _TRANSIENT_STATUS:
+            return True
+        if response.status_code != 500:
+            return False
+        # Token Factory wraps the serving backend's transient 504 in HTTP 500.
+        # Do not retry arbitrary 500s, authentication failures or quota errors.
+        try:
+            payload = response.json()
+        except ValueError:
+            return False
+        error = payload.get("error") if isinstance(payload, dict) else None
+        if not isinstance(error, dict):
+            return False
+        message = error.get("message")
+        return error.get("code") == "call_upstream_timeout" or (
+            isinstance(message, str) and "call_upstream_timeout" in message
+        )
 
     def _rf_start(self, model: str) -> str:
         configured = self.settings.response_format
