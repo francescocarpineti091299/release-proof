@@ -78,7 +78,11 @@ else
   # Git Bash on Windows has no rsync: stream a tarball of the working tree instead.
   TAR_EX=()
   for ex in "${EXCLUDES[@]}"; do
-    ex="${ex#/}"; ex="${ex%/}"; ex="${ex#\*\*/}"
+    ex="${ex%/}"
+    case "$ex" in
+      /*) ex="./${ex#/}" ;;        # root-anchored: only the top-level entry
+      \*\*/*) ex="${ex#\*\*/}" ;;  # any depth
+    esac
     TAR_EX+=("--exclude=${ex}")
   done
   tar -C "$REPO_ROOT" "${TAR_EX[@]}" --exclude='.env' -czf - . \

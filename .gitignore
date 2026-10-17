@@ -13,7 +13,7 @@ web/out/
 *.tsbuildinfo
 
 # Runtime data (job DB, artifacts)
-data/
+/data/
 *.sqlite
 *.sqlite-journal
 *.db

@@ -1,0 +1,1027 @@
+{
+ "assessment": {
+  "assessment_id": "WP0-FREEZE-20261001",
+  "contract_version": "1.2",
+  "created_at": "2026-10-01T08:00:00Z",
+  "lifecycle": "READY",
+  "observed_recovery_mode": "UNKNOWN",
+  "profile": {
+   "id": "PROFILE-WP0-NRF52840",
+   "version": "1.0",
+   "hash": "version-pin:profile-wp0-nrf52840",
+   "acceptable_recovery_modes": [
+    "FIELD_SERVICE",
+    "DEPOT_PHYSICAL_REFLASH"
+   ],
+   "allowed_operational_preconditions": [],
+   "requirements": [
+    {
+     "id": "REQ-LAYOUT",
+     "risk_category": "LAYOUT_STORAGE",
+     "applicable_phase": [
+      "TARGET",
+      "TRANSITION"
+     ],
+     "critical_for_verdict": true,
+     "criterion": "Signed factory image fits boot partition",
+     "scope_status": "IN_SCOPE",
+     "rule_refs": [
+      "RULE-LAYOUT"
+     ],
+     "acceptable_evidence_policy": {
+      "required_evidence_groups": [
+       {
+        "role": "PRIMARY",
+        "min_satisfied": 1,
+        "accepted_combinations": [
+         {
+          "evidence_kind": [
+           "MEASUREMENT"
+          ],
+          "source_role": [
+           "TOOL"
+          ],
+          "authority_context": [
+           "OBSERVED"
+          ],
+          "acquisition_mode": [
+           "STATIC_ARTIFACT",
+           "STATIC_ANALYSIS"
+          ],
+          "review_status": [
+           "AUTOMATIC"
+          ]
+         }
+        ]
+       }
+      ]
+     }
+    },
+    {
+     "id": "REQ-BOOT-S0S1",
+     "risk_category": "UPDATE_ROLLBACK_RECOVERY",
+     "applicable_phase": [
+      "TRANSITION"
+     ],
+     "applicable_subject_types": [
+      "TRANSITION_STEP"
+     ],
+     "critical_for_verdict": true,
+     "criterion": "Declared transition requires bootloader self-update. Unsupported on this board blocks the transition verdict, not the candidate.",
+     "scope_status": "IN_SCOPE",
+     "rule_refs": [
+      "RULE-BOOT-S0S1"
+     ],
+     "acceptable_evidence_policy": {
+      "required_evidence_groups": [
+       {
+        "role": "PRIMARY",
+        "min_satisfied": 1,
+        "accepted_combinations": [
+         {
+          "evidence_kind": [
+           "MEASUREMENT"
+          ],
+          "source_role": [
+           "TOOL"
+          ],
+          "authority_context": [
+           "OBSERVED"
+          ],
+          "acquisition_mode": [
+           "SOURCE_INSPECTION",
+           "EMULATED"
+          ],
+          "review_status": [
+           "AUTOMATIC"
+          ]
+         }
+        ]
+       }
+      ]
+     }
+    },
+    {
+     "id": "REQ-AUTH-NEGATIVE",
+     "risk_category": "AUTHENTICITY_SIGNATURE",
+     "applicable_phase": [
+      "TARGET"
+     ],
+     "critical_for_verdict": false,
+     "criterion": "Transitional verifier rejects factory image with wrong signing key (E03)",
+     "scope_status": "IN_SCOPE",
+     "rule_refs": [
+      "RULE-AUTH-NEGATIVE"
+     ],
+     "acceptable_evidence_policy": {
+      "required_evidence_groups": [
+       {
+        "role": "PRIMARY",
+        "min_satisfied": 1,
+        "accepted_combinations": [
+         {
+          "evidence_kind": [
+           "MEASUREMENT"
+          ],
+          "source_role": [
+           "TOOL"
+          ],
+          "authority_context": [
+           "OBSERVED"
+          ],
+          "acquisition_mode": [
+           "EMULATED"
+          ],
+          "review_status": [
+           "AUTOMATIC"
+          ]
+         }
+        ]
+       }
+      ]
+     }
+    },
+    {
+     "id": "REQ-RAM",
+     "risk_category": "RUNTIME_RESOURCES",
+     "applicable_phase": [
+      "TARGET"
+     ],
+     "critical_for_verdict": false,
+     "criterion": "RAM/stack within budget",
+     "scope_status": "IN_SCOPE",
+     "rule_refs": [
+      "RULE-RAM"
+     ],
+     "acceptable_evidence_policy": {
+      "required_evidence_groups": [
+       {
+        "role": "PRIMARY",
+        "min_satisfied": 1,
+        "accepted_combinations": [
+         {
+          "evidence_kind": [
+           "MEASUREMENT"
+          ],
+          "source_role": [
+           "TOOL"
+          ],
+          "authority_context": [
+           "OBSERVED"
+          ],
+          "acquisition_mode": [
+           "STATIC_ANALYSIS"
+          ],
+          "review_status": [
+           "AUTOMATIC"
+          ]
+         }
+        ]
+       }
+      ]
+     }
+    }
+   ]
+  },
+  "platform_model": {
+   "id": "PLATFORM-NRF52840-WOLFBOOT",
+   "version": "1.0",
+   "hash": "version-pin:wolfboot-4c79eee999b7",
+   "declared_surface_ids": [
+    "fw-boot",
+    "fw-update",
+    "recovery"
+   ],
+   "components": [
+    {
+     "component_id": "bootloader",
+     "component_type": "SECURE_BOOTLOADER",
+     "mutability": "UPDATABLE"
+    },
+    {
+     "component_id": "firmware",
+     "component_type": "APPLICATION_FIRMWARE",
+     "mutability": "UPDATABLE"
+    }
+   ],
+   "authorization_paths": [
+    {
+     "path_id": "fw-boot",
+     "purpose": "FIRMWARE_BOOT",
+     "authorization_mode": "UNKNOWN",
+     "component_refs": [
+      "bootloader"
+     ]
+    }
+   ],
+   "recovery_modes": [
+    "FIELD_SERVICE",
+    "DEPOT_PHYSICAL_REFLASH",
+    "UNKNOWN"
+   ]
+  },
+  "deployed_state": {
+   "state_id": "S0",
+   "snapshot_hash": "sha256:wp0-s0-ecdsa",
+   "components": [
+    {
+     "component_id": "bootloader",
+     "configuration": {
+      "sign": "ECC256",
+      "wolfboot_size_bytes": 23652
+     }
+    },
+    {
+     "component_id": "firmware",
+     "configuration": {
+      "sign": "ECC256",
+      "signed_image_size_bytes": 840
+     }
+    }
+   ],
+   "authorization_path_states": {
+    "fw-boot": {
+     "policy": "CLASSICAL_ONLY",
+     "accepted_schemes": [
+      "ECDSA_P256"
+     ]
+    }
+   }
+  },
+  "candidate_state": {
+   "state_id": "S2",
+   "snapshot_hash": "sha256:wp0-s2-mldsa87",
+   "components": [
+    {
+     "component_id": "bootloader",
+     "configuration": {
+      "sign": "ML_DSA",
+      "ml_dsa_level": 5,
+      "wolfboot_size_bytes": 22840
+     }
+    },
+    {
+     "component_id": "firmware",
+     "configuration": {
+      "sign": "ML_DSA",
+      "signed_image_size_bytes": 12876
+     }
+    }
+   ],
+   "authorization_path_states": {
+    "fw-boot": {
+     "policy": "UNKNOWN",
+     "accepted_schemes": [
+      "ML_DSA_87"
+     ]
+    }
+   }
+  },
+  "allowed_change_set": {
+   "modifiable_components": [
+    "bootloader",
+    "firmware"
+   ],
+   "allowed_actions": [
+    "UPDATE_BOOTLOADER",
+    "UPDATE_FIRMWARE"
+   ]
+  },
+  "derived_effects": [
+   {
+    "effect_id": "DE-AUTH-S1",
+    "effect_type": "AUTHORIZATION_POLICY_UPDATE",
+    "target_ref": "fw-boot",
+    "affected_field": "authorization_path_states",
+    "derivation_rule_ref": "RULE-AUTH-TRANSITION"
+   },
+   {
+    "effect_id": "DE-AUTH-S2",
+    "effect_type": "AUTHORIZATION_POLICY_UPDATE",
+    "target_ref": "fw-boot",
+    "affected_field": "authorization_path_states",
+    "derivation_rule_ref": "RULE-AUTH-TRANSITION"
+   }
+  ],
+  "transition_plan": {
+   "plan_id": "PLAN-WP0-S0-S2",
+   "version": "1.0",
+   "hash": "version-pin:plan-wp0-s0-s2",
+   "states": [
+    {
+     "state_id": "S0",
+     "snapshot_hash": "sha256:wp0-s0-ecdsa",
+     "components": [
+      {
+       "component_id": "bootloader",
+       "configuration": {
+        "sign": "ECC256"
+       }
+      },
+      {
+       "component_id": "firmware",
+       "configuration": {
+        "sign": "ECC256"
+       }
+      }
+     ],
+     "authorization_path_states": {
+      "fw-boot": {
+       "policy": "CLASSICAL_ONLY",
+       "accepted_schemes": [
+        "ECDSA_P256"
+       ]
+      }
+     }
+    },
+    {
+     "state_id": "S1",
+     "snapshot_hash": "sha256:wp0-s1-transitional",
+     "components": [
+      {
+       "component_id": "bootloader",
+       "configuration": {
+        "sign": "ML_DSA",
+        "ml_dsa_level": 5
+       }
+      },
+      {
+       "component_id": "firmware",
+       "configuration": {
+        "sign": "ECC256"
+       }
+      }
+     ],
+     "authorization_path_states": {
+      "fw-boot": {
+       "policy": "UNKNOWN",
+       "accepted_schemes": []
+      }
+     }
+    },
+    {
+     "state_id": "S2",
+     "snapshot_hash": "sha256:wp0-s2-mldsa87",
+     "components": [
+      {
+       "component_id": "bootloader",
+       "configuration": {
+        "sign": "ML_DSA",
+        "ml_dsa_level": 5
+       }
+      },
+      {
+       "component_id": "firmware",
+       "configuration": {
+        "sign": "ML_DSA"
+       }
+      }
+     ],
+     "authorization_path_states": {
+      "fw-boot": {
+       "policy": "UNKNOWN",
+       "accepted_schemes": [
+        "ML_DSA_87"
+       ]
+      }
+     }
+    }
+   ],
+   "steps": [
+    {
+     "step_id": "STEP-S0-S1",
+     "from": "S0",
+     "to": "S1",
+     "actions": [
+      {
+       "action_id": "ACT-BOOTLOADER-S0S1",
+       "action_type": "UPDATE_BOOTLOADER",
+       "component_ref": "bootloader",
+       "parameters": {
+        "mechanism": "bootloader_self_update"
+       },
+       "derived_effect_refs": [
+        "DE-AUTH-S1"
+       ]
+      }
+     ],
+     "preconditions": []
+    },
+    {
+     "step_id": "STEP-S1-S2",
+     "from": "S1",
+     "to": "S2",
+     "actions": [
+      {
+       "action_id": "ACT-FIRMWARE-S1S2",
+       "action_type": "UPDATE_FIRMWARE",
+       "component_ref": "firmware",
+       "parameters": {},
+       "derived_effect_refs": [
+        "DE-AUTH-S2"
+       ]
+      }
+     ],
+     "preconditions": []
+    }
+   ]
+  },
+  "evidence": [
+   {
+    "id": "EV-E01-BOOT",
+    "evidence_kind": "MEASUREMENT",
+    "source_role": "TOOL",
+    "authority_context": "OBSERVED",
+    "acquisition_mode": "EMULATED",
+    "review_status": "AUTOMATIC",
+    "status": "VALID",
+    "test_id": "E01",
+    "run_id": "g1-1-20261001T070631Z-d240aafd",
+    "value": "BOOT_OK"
+   },
+   {
+    "id": "EV-E02-BOOT",
+    "evidence_kind": "MEASUREMENT",
+    "source_role": "TOOL",
+    "authority_context": "OBSERVED",
+    "acquisition_mode": "EMULATED",
+    "review_status": "AUTOMATIC",
+    "status": "VALID",
+    "test_id": "E02",
+    "run_id": "g2-2-20261001T070236Z-c16fefd2",
+    "value": "BOOT_OK"
+   },
+   {
+    "id": "EV-E03-PANIC",
+    "evidence_kind": "MEASUREMENT",
+    "source_role": "TOOL",
+    "authority_context": "OBSERVED",
+    "acquisition_mode": "EMULATED",
+    "review_status": "AUTOMATIC",
+    "status": "VALID",
+    "test_id": "E03",
+    "run_id": "t3-20261001T070859Z-028f05b9",
+    "artifact_refs": [
+     "mismatch.resc"
+    ],
+    "value": "REJECT"
+   },
+   {
+    "id": "EV-E05-LAYOUT-G2",
+    "evidence_kind": "MEASUREMENT",
+    "source_role": "TOOL",
+    "authority_context": "OBSERVED",
+    "acquisition_mode": "STATIC_ARTIFACT",
+    "review_status": "AUTOMATIC",
+    "status": "VALID",
+    "test_id": "E05",
+    "value": {
+     "signed_artifact_size": 12876
+    },
+    "run_id": "g2-2-20261001T070236Z-c16fefd2",
+    "artifact_refs": [
+     "test-app_image_v1_signed.bin"
+    ]
+   },
+   {
+    "id": "EV-LAYOUT-PARTITION",
+    "evidence_kind": "MEASUREMENT",
+    "source_role": "TOOL",
+    "authority_context": "OBSERVED",
+    "acquisition_mode": "STATIC_CONFIG",
+    "review_status": "AUTOMATIC",
+    "status": "VALID",
+    "test_id": "E05",
+    "run_id": "g2-2-20261001T070236Z-c16fefd2",
+    "artifact_refs": [
+     "config/examples/nrf52840.config"
+    ],
+    "value": {
+     "boot_slot_capacity": 262144
+    }
+   },
+   {
+    "id": "EV-E04-HEADER",
+    "evidence_kind": "MEASUREMENT",
+    "source_role": "TOOL",
+    "authority_context": "OBSERVED",
+    "acquisition_mode": "STATIC_CONFIG",
+    "review_status": "AUTOMATIC",
+    "status": "VALID",
+    "test_id": "E04",
+    "run_id": "g2-2-20261001T070236Z-c16fefd2",
+    "value": {
+     "image_header_size_declared": 12288
+    }
+   },
+   {
+    "id": "EV-E04-HEADER-SPAN",
+    "evidence_kind": "MEASUREMENT",
+    "source_role": "TOOL",
+    "authority_context": "OBSERVED",
+    "acquisition_mode": "STATIC_ARTIFACT",
+    "review_status": "AUTOMATIC",
+    "status": "VALID",
+    "test_id": "E04",
+    "run_id": "g2-2-20261001T070236Z-c16fefd2",
+    "artifact_refs": [
+     "test-app_image_v1_signed.bin"
+    ],
+    "value": {
+     "header_span_measured_bytes": 12288
+    }
+   },
+   {
+    "id": "EV-E11-SELF-UPDATE",
+    "evidence_kind": "MEASUREMENT",
+    "source_role": "TOOL",
+    "authority_context": "OBSERVED",
+    "acquisition_mode": "SOURCE_INSPECTION",
+    "review_status": "AUTOMATIC",
+    "status": "VALID",
+    "test_id": "E11",
+    "run_id": "t1-20261001T070826Z-3d2346b1",
+    "artifact_refs": [
+     "hal/nrf52.c"
+    ],
+    "value": "UNSUPPORTED"
+   },
+   {
+    "id": "EV-PIN-WOLFBOOT",
+    "evidence_kind": "MEASUREMENT",
+    "source_role": "TOOL",
+    "authority_context": "OBSERVED",
+    "acquisition_mode": "REPOSITORY",
+    "review_status": "AUTOMATIC",
+    "status": "VALID",
+    "source_identity": "4c79eee999b7083743811f37928322fe78b9fdb1",
+    "value": "4c79eee999b7083743811f37928322fe78b9fdb1"
+   },
+   {
+    "id": "EV-E12-WINDOW",
+    "evidence_kind": "MEASUREMENT",
+    "source_role": "TOOL",
+    "authority_context": "NOT_OBSERVED",
+    "acquisition_mode": "UNOBSERVED",
+    "review_status": "AUTOMATIC",
+    "status": "VALID",
+    "test_id": "E12",
+    "value": "UNKNOWN"
+   },
+   {
+    "id": "EV-APP-UPDATE-SCRIPT",
+    "evidence_kind": "INFERENCE",
+    "source_role": "TOOL",
+    "authority_context": "OBSERVED",
+    "acquisition_mode": "SOURCE_INSPECTION",
+    "review_status": "AUTOMATIC",
+    "status": "VALID",
+    "test_id": "E08",
+    "artifact_refs": [
+     "tools/scripts/renode-test-update.sh"
+    ],
+    "value": "PRESENT"
+   },
+   {
+    "id": "EV-BOOTLOADER-SIZE-G1",
+    "evidence_kind": "MEASUREMENT",
+    "source_role": "TOOL",
+    "authority_context": "OBSERVED",
+    "acquisition_mode": "STATIC_ARTIFACT",
+    "review_status": "AUTOMATIC",
+    "status": "VALID",
+    "run_id": "g1-1-20261001T070631Z-d240aafd",
+    "artifact_refs": [
+     "wolfboot.bin"
+    ],
+    "value": {
+     "bootloader_size_bytes": 23652
+    },
+    "content_hash": "sha256:c27df53eb950e48f275a0322401b9601072e29f725775ff556dcf0d8d078334b"
+   },
+   {
+    "id": "EV-BOOTLOADER-SIZE-G2",
+    "evidence_kind": "MEASUREMENT",
+    "source_role": "TOOL",
+    "authority_context": "OBSERVED",
+    "acquisition_mode": "STATIC_ARTIFACT",
+    "review_status": "AUTOMATIC",
+    "status": "VALID",
+    "run_id": "g2-2-20261001T070236Z-c16fefd2",
+    "artifact_refs": [
+     "wolfboot.bin"
+    ],
+    "value": {
+     "bootloader_size_bytes": 22840
+    },
+    "content_hash": "sha256:4464a1de8ab5ac91b628b30c8bdb89f9faeaf4c00befb58977861daf8ebf6d5f"
+   },
+   {
+    "id": "EV-T3-DUAL-BUILD",
+    "evidence_kind": "MEASUREMENT",
+    "source_role": "TOOL",
+    "authority_context": "OBSERVED",
+    "acquisition_mode": "BUILD",
+    "review_status": "AUTOMATIC",
+    "status": "VALID",
+    "test_id": "E03",
+    "run_id": "t3-20261001T070859Z-028f05b9",
+    "source_identity": "UNSUPPORTED_CONFIGURATION_ON_FROZEN_COMMIT",
+    "value": "BUILD_FAILED"
+   },
+   {
+    "id": "EV-RUN-MANIFEST-g1-1-20261001T070631Z-d240aafd",
+    "evidence_kind": "INFERENCE",
+    "source_role": "TOOL",
+    "authority_context": "OBSERVED",
+    "acquisition_mode": "RUN_MANIFEST",
+    "review_status": "AUTOMATIC",
+    "status": "VALID",
+    "run_id": "g1-1-20261001T070631Z-d240aafd",
+    "content_hash": "sha256:0cb977f50e590c4327852db6996ad301096e69fcd6e90298ad5dbb80272902d6",
+    "value": null,
+    "artifact_refs": [
+     "wolfboot.bin"
+    ]
+   },
+   {
+    "id": "EV-RUN-MANIFEST-g2-2-20261001T070236Z-c16fefd2",
+    "evidence_kind": "INFERENCE",
+    "source_role": "TOOL",
+    "authority_context": "OBSERVED",
+    "acquisition_mode": "RUN_MANIFEST",
+    "review_status": "AUTOMATIC",
+    "status": "VALID",
+    "run_id": "g2-2-20261001T070236Z-c16fefd2",
+    "content_hash": "sha256:ee9dc882f71326eab82d1fa63657a8a1d0b0bdb597077d081b910b8f22733f16",
+    "value": null,
+    "artifact_refs": [
+     "wolfboot.bin"
+    ]
+   },
+   {
+    "id": "EV-RUN-MANIFEST-t1-20261001T070826Z-3d2346b1",
+    "evidence_kind": "INFERENCE",
+    "source_role": "TOOL",
+    "authority_context": "OBSERVED",
+    "acquisition_mode": "RUN_MANIFEST",
+    "review_status": "AUTOMATIC",
+    "status": "VALID",
+    "run_id": "t1-20261001T070826Z-3d2346b1",
+    "content_hash": "sha256:c038d79436f6bae7950b87577c24ca130c62ab0aa384e8594b36a3f7d5ae7f13",
+    "value": "CONCLUSIVE"
+   },
+   {
+    "id": "EV-RUN-MANIFEST-t3-20261001T070859Z-028f05b9",
+    "evidence_kind": "INFERENCE",
+    "source_role": "TOOL",
+    "authority_context": "OBSERVED",
+    "acquisition_mode": "RUN_MANIFEST",
+    "review_status": "AUTOMATIC",
+    "status": "VALID",
+    "run_id": "t3-20261001T070859Z-028f05b9",
+    "content_hash": "sha256:620f35e7ac548c21864a70d718fdeb294bb016b9998605c85fb4a14d58e0ef4a",
+    "value": "CONCLUSIVE"
+   }
+  ],
+  "evidence_gaps": [
+   {
+    "gap_id": "GAP-E07-RAM",
+    "requirement_id": "REQ-RAM",
+    "gap_type": "NOT_EXECUTABLE",
+    "reason": "Stack painting not run; linker region only",
+    "critical": false,
+    "requested_evidence": "E07 RAM/stack method beyond static linker region"
+   },
+   {
+    "gap_id": "GAP-E10-INTERRUPT",
+    "requirement_id": "INV-I4",
+    "gap_type": "UNKNOWN_FACT",
+    "reason": "T2 firmware update interruption not repeatable on frozen point",
+    "critical": true,
+    "requested_evidence": "E10 event-based interruption with stable UART"
+   },
+   {
+    "gap_id": "GAP-E12-NON-ATOMIC",
+    "requirement_id": "INV-I4",
+    "gap_type": "UNKNOWN_FACT",
+    "reason": "Non-atomic update window not observed; I4 remains UNKNOWN",
+    "critical": true,
+    "requested_evidence": "E12 interrupted update with observed recovery"
+   },
+   {
+    "gap_id": "GAP-O05-DUAL-POLICY",
+    "requirement_id": "INV-I3",
+    "gap_type": "UNKNOWN_FACT",
+    "reason": "Dual signature build failed; AND/OR not observed on frozen commit",
+    "critical": true,
+    "requested_evidence": "O05 behavioral dual signature matrix"
+   }
+  ],
+  "coverage_assertions": [],
+  "ruleset_ref": {
+   "id": "RULESET-V1.2",
+   "version": "1.2",
+   "hash": "version-pin:ruleset-v1.2"
+  }
+ },
+ "result": {
+  "assessment_id": "WP0-FREEZE-20261001",
+  "lifecycle": "COMPLETED",
+  "official": false,
+  "migration_verdict": "INCOMPATIBLE",
+  "candidate_verdict": "INDETERMINATE",
+  "transition_verdict": "INCOMPATIBLE",
+  "requirement_evaluation_results": [
+   {
+    "requirement_id": "REQ-LAYOUT",
+    "phase": "TARGET",
+    "subject_type": "STATE",
+    "subject_ref": "S2",
+    "state": "SATISFIED",
+    "critical_for_verdict": true,
+    "evidence_refs": [
+     "EV-E05-LAYOUT-G2",
+     "EV-LAYOUT-PARTITION"
+    ],
+    "gap_refs": [],
+    "rule_refs": [
+     "RULE-LAYOUT"
+    ],
+    "provenance": "MEASUREMENT",
+    "findings": []
+   },
+   {
+    "requirement_id": "REQ-LAYOUT",
+    "phase": "TRANSITION",
+    "subject_type": "PLAN",
+    "subject_ref": "PLAN-WP0-S0-S2",
+    "state": "SATISFIED",
+    "critical_for_verdict": true,
+    "evidence_refs": [
+     "EV-E05-LAYOUT-G2",
+     "EV-LAYOUT-PARTITION"
+    ],
+    "gap_refs": [],
+    "rule_refs": [
+     "RULE-LAYOUT"
+    ],
+    "provenance": "MEASUREMENT",
+    "findings": []
+   },
+   {
+    "requirement_id": "REQ-LAYOUT",
+    "phase": "TRANSITION",
+    "subject_type": "TRANSITION_STEP",
+    "subject_ref": "STEP-S0-S1",
+    "state": "SATISFIED",
+    "critical_for_verdict": true,
+    "evidence_refs": [
+     "EV-E05-LAYOUT-G2",
+     "EV-LAYOUT-PARTITION"
+    ],
+    "gap_refs": [],
+    "rule_refs": [
+     "RULE-LAYOUT"
+    ],
+    "provenance": "MEASUREMENT",
+    "findings": []
+   },
+   {
+    "requirement_id": "REQ-LAYOUT",
+    "phase": "TRANSITION",
+    "subject_type": "TRANSITION_STEP",
+    "subject_ref": "STEP-S1-S2",
+    "state": "SATISFIED",
+    "critical_for_verdict": true,
+    "evidence_refs": [
+     "EV-E05-LAYOUT-G2",
+     "EV-LAYOUT-PARTITION"
+    ],
+    "gap_refs": [],
+    "rule_refs": [
+     "RULE-LAYOUT"
+    ],
+    "provenance": "MEASUREMENT",
+    "findings": []
+   },
+   {
+    "requirement_id": "REQ-LAYOUT",
+    "phase": "TRANSITION",
+    "subject_type": "STATE",
+    "subject_ref": "S0",
+    "state": "SATISFIED",
+    "critical_for_verdict": true,
+    "evidence_refs": [
+     "EV-E05-LAYOUT-G2",
+     "EV-LAYOUT-PARTITION"
+    ],
+    "gap_refs": [],
+    "rule_refs": [
+     "RULE-LAYOUT"
+    ],
+    "provenance": "MEASUREMENT",
+    "findings": []
+   },
+   {
+    "requirement_id": "REQ-LAYOUT",
+    "phase": "TRANSITION",
+    "subject_type": "STATE",
+    "subject_ref": "S1",
+    "state": "SATISFIED",
+    "critical_for_verdict": true,
+    "evidence_refs": [
+     "EV-E05-LAYOUT-G2",
+     "EV-LAYOUT-PARTITION"
+    ],
+    "gap_refs": [],
+    "rule_refs": [
+     "RULE-LAYOUT"
+    ],
+    "provenance": "MEASUREMENT",
+    "findings": []
+   },
+   {
+    "requirement_id": "REQ-LAYOUT",
+    "phase": "TRANSITION",
+    "subject_type": "STATE",
+    "subject_ref": "S2",
+    "state": "SATISFIED",
+    "critical_for_verdict": true,
+    "evidence_refs": [
+     "EV-E05-LAYOUT-G2",
+     "EV-LAYOUT-PARTITION"
+    ],
+    "gap_refs": [],
+    "rule_refs": [
+     "RULE-LAYOUT"
+    ],
+    "provenance": "MEASUREMENT",
+    "findings": []
+   },
+   {
+    "requirement_id": "REQ-BOOT-S0S1",
+    "phase": "TRANSITION",
+    "subject_type": "TRANSITION_STEP",
+    "subject_ref": "STEP-S0-S1",
+    "state": "VIOLATED",
+    "critical_for_verdict": true,
+    "evidence_refs": [
+     "EV-E11-SELF-UPDATE"
+    ],
+    "gap_refs": [],
+    "rule_refs": [
+     "RULE-BOOT-S0S1"
+    ],
+    "provenance": "MEASUREMENT",
+    "findings": []
+   },
+   {
+    "requirement_id": "REQ-BOOT-S0S1",
+    "phase": "TRANSITION",
+    "subject_type": "TRANSITION_STEP",
+    "subject_ref": "STEP-S1-S2",
+    "state": "VIOLATED",
+    "critical_for_verdict": true,
+    "evidence_refs": [
+     "EV-E11-SELF-UPDATE"
+    ],
+    "gap_refs": [],
+    "rule_refs": [
+     "RULE-BOOT-S0S1"
+    ],
+    "provenance": "MEASUREMENT",
+    "findings": []
+   },
+   {
+    "requirement_id": "REQ-AUTH-NEGATIVE",
+    "phase": "TARGET",
+    "subject_type": "STATE",
+    "subject_ref": "S2",
+    "state": "SATISFIED",
+    "critical_for_verdict": false,
+    "evidence_refs": [
+     "EV-E03-PANIC"
+    ],
+    "gap_refs": [],
+    "rule_refs": [
+     "RULE-AUTH-NEGATIVE"
+    ],
+    "provenance": "MEASUREMENT",
+    "findings": []
+   },
+   {
+    "requirement_id": "REQ-RAM",
+    "phase": "TARGET",
+    "subject_type": "STATE",
+    "subject_ref": "S2",
+    "state": "UNKNOWN",
+    "critical_for_verdict": false,
+    "evidence_refs": [],
+    "gap_refs": [
+     "GAP-E07-RAM"
+    ],
+    "rule_refs": [
+     "RULE-RAM"
+    ],
+    "provenance": "GAP",
+    "findings": []
+   }
+  ],
+  "invariant_evaluation_results": [
+   {
+    "invariant_id": "INV-I1",
+    "phase": "TRANSITION",
+    "subject_type": "STATE",
+    "subject_ref": "S1",
+    "state": "SATISFIED",
+    "critical_for_verdict": true,
+    "evidence_refs": [
+     "EV-E01-BOOT",
+     "EV-E02-BOOT"
+    ],
+    "gap_refs": [],
+    "rule_refs": [
+     "INV-I1"
+    ],
+    "provenance": "CONSTRAINT",
+    "findings": []
+   },
+   {
+    "invariant_id": "INV-I2",
+    "phase": "TRANSITION",
+    "subject_type": "TRANSITION_STEP",
+    "subject_ref": "STEP-S0-S1",
+    "state": "UNKNOWN",
+    "critical_for_verdict": true,
+    "evidence_refs": [],
+    "gap_refs": [],
+    "rule_refs": [
+     "INV-I2"
+    ],
+    "provenance": "CONSTRAINT",
+    "findings": []
+   },
+   {
+    "invariant_id": "INV-I3",
+    "phase": "TRANSITION",
+    "subject_type": "PLAN",
+    "subject_ref": "PLAN-WP0-S0-S2",
+    "state": "UNKNOWN",
+    "critical_for_verdict": true,
+    "evidence_refs": [],
+    "gap_refs": [
+     "GAP-O05-DUAL-POLICY"
+    ],
+    "rule_refs": [
+     "INV-I3"
+    ],
+    "provenance": "CONSTRAINT",
+    "findings": []
+   },
+   {
+    "invariant_id": "INV-I3",
+    "phase": "TARGET",
+    "subject_type": "PLAN",
+    "subject_ref": "PLAN-WP0-S0-S2",
+    "state": "UNKNOWN",
+    "critical_for_verdict": true,
+    "evidence_refs": [],
+    "gap_refs": [
+     "GAP-O05-DUAL-POLICY"
+    ],
+    "rule_refs": [
+     "INV-I3"
+    ],
+    "provenance": "CONSTRAINT",
+    "findings": []
+   },
+   {
+    "invariant_id": "INV-I4",
+    "phase": "TRANSITION",
+    "subject_type": "TRANSITION_STEP",
+    "subject_ref": "STEP-S0-S1",
+    "state": "UNKNOWN",
+    "critical_for_verdict": true,
+    "evidence_refs": [],
+    "gap_refs": [
+     "GAP-E10-INTERRUPT",
+     "GAP-E12-NON-ATOMIC"
+    ],
+    "rule_refs": [
+     "INV-I4"
+    ],
+    "provenance": "CONSTRAINT",
+    "findings": []
+   }
+  ],
+  "explanation_graph": {
+   "nodes": [],
+   "edges": []
+  },
+  "findings": [],
+  "conditions": [],
+  "errors": [],
+  "canonical_hash": "sha256:0a4a6ecbfe034f4965fd7b0f01085226083f0574c2db18813e1eaa1039e73d31"
+ }
+}
