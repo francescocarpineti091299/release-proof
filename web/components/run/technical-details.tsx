@@ -3,7 +3,7 @@
 import { Download } from "lucide-react";
 import { formatTimestamp } from "@/lib/format";
 import type { ArtifactView, ResultView, RunView } from "@/lib/types";
-import { Button } from "@/components/ui/button";
+import { Button, buttonClass } from "@/components/ui/button";
 import { Collapsible, KeyValue } from "@/components/ui/card";
 import { Markdown } from "@/components/ui/markdown";
 import { ArtifactsTable } from "./evidence";
@@ -52,6 +52,11 @@ export function TechnicalDetails({ run, result, artifacts }: { run: RunView; res
         </div>
         {result ? (
           <div className="mt-4 flex flex-wrap gap-2">
+            {run.mode !== "REFERENCE" ? (
+              <a href={`/api/assessments/${encodeURIComponent(run.run_id)}/evidence-pack`} className={buttonClass("secondary", "sm")}>
+                <Download className="h-4 w-4" aria-hidden /> Evidence pack ZIP
+              </a>
+            ) : null}
             <Button variant="secondary" size="sm" onClick={() => download(`${run.run_id}-result.json`, result.result)}>
               <Download className="h-4 w-4" aria-hidden /> Result JSON
             </Button>
@@ -59,6 +64,9 @@ export function TechnicalDetails({ run, result, artifacts }: { run: RunView; res
               <Download className="h-4 w-4" aria-hidden /> Assessment JSON
             </Button>
           </div>
+        ) : null}
+        {result && run.mode !== "REFERENCE" ? (
+          <p className="mt-3 text-xs text-slate-600">The pack includes the original manifest, result, dossier, AI traces and byte-verified artifacts. Hashes establish integrity, not authenticity or certification. Review third-party licenses before sharing firmware binaries.</p>
         ) : null}
       </Collapsible>
       <Collapsible summary={`Source pins & tool versions (${Object.keys(run.source_pins).length + Object.keys(run.tool_versions).length})`}>

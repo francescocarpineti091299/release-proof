@@ -11,7 +11,6 @@ import { Empty } from "@/components/ui/card";
 import { Hint } from "@/components/ui/hint";
 import { OutcomeChip } from "@/components/ui/status";
 
-/** Long tool output is clamped to a few lines with a toggle. */
 function ObservedText({ text }: { text: string }) {
   const [open, setOpen] = useState(false);
   const long = text.length > 220;

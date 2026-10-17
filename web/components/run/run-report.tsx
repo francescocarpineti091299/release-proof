@@ -278,7 +278,7 @@ export function RunReport({ run, result, traces, artifacts, logs = [], conn = "c
           id="amd"
           eyebrow="AMD AI"
           title="AI calls for this run"
-          description="Every model call is traced: module, model, AMD hardware, endpoint, latency and tokens."
+          description="Every model call is traced: module, model, declared hardware label, endpoint, latency and tokens. Hardware labels are not remote attestation."
           actions={
             <Link href="/amd" className="text-sm font-semibold text-link hover:underline">
               All AMD AI evidence →

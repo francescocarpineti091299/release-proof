@@ -2,7 +2,6 @@ import type { ReactNode } from "react";
 import { Info } from "lucide-react";
 import { cn } from "@/lib/utils";
 
-/** Accessible hover/focus tooltip without JS. */
 export function Hint({ text, className, label = "More information" }: { text: string; className?: string; label?: string }) {
   return (
     <span className={cn("group relative inline-flex align-middle", className)}>

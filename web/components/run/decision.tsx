@@ -84,10 +84,15 @@ export function DecisionPanel({ run }: { run: RunView }) {
           </div>
           <p className="mt-3 text-lg font-semibold text-slate-950">{meta.answer}</p>
           <p className="mt-1 max-w-2xl text-sm text-slate-700">{meta.explain}</p>
+          {v.candidate === "COMPATIBLE" && v.transition !== "COMPATIBLE" ? (
+            <p className="mt-4 rounded-md border border-red-200 bg-white p-3 text-sm font-semibold text-red-900">
+              Works in the lab ≠ can migrate in the field. Candidate success does not authorize rollout to installed devices.
+            </p>
+          ) : null}
         </div>
         <div className="flex flex-col gap-3 border-t border-border p-5 lg:border-l lg:border-t-0">
-          <ScopeTile label="Candidate" help={SCOPE_HELP.candidate} verdict={v.candidate} subtitle="Is the new firmware state itself sound?" />
-          <ScopeTile label="Transition" help={SCOPE_HELP.transition} verdict={v.transition} subtitle="Can deployed devices get there?" />
+          <ScopeTile label="Candidate" help={SCOPE_HELP.candidate} verdict={v.candidate} subtitle="Target state on the supported configuration" />
+          <ScopeTile label="Transition" help={SCOPE_HELP.transition} verdict={v.transition} subtitle="Path from the deployed bootloader to that state" />
         </div>
       </div>
       <div className="flex flex-wrap items-center gap-2 border-t border-border bg-white px-5 py-3 text-xs">

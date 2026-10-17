@@ -25,7 +25,9 @@ try {
     try {
       const response = await fetch(base, { signal: AbortSignal.timeout(2000) });
       assert.equal(response.status, 200);
-      await response.text();
+      const home = await response.text();
+      assert.ok(home.includes("A preflight check for long-lived industrial sensors"));
+      assert.ok(home.includes("not support for NI firmware or a customer relationship"));
       ready = true;
       break;
     } catch {

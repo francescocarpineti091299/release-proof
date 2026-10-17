@@ -11,8 +11,6 @@ import type {
 } from "@/lib/types";
 import { uniq } from "@/lib/utils";
 
-// ------------------------------------------------------------------ verdicts
-
 export type Tone = "green" | "amber" | "slate" | "red" | "blue" | "neutral";
 
 export interface VerdictMeta {
@@ -74,8 +72,6 @@ export const SCOPE_HELP = {
   transition:
     "Transition: the path from what is deployed in the field today to the candidate. Can existing devices actually get there?",
 };
-
-// ------------------------------------------------------------------ stages / statuses
 
 export const STAGE_LABEL: Record<Stage, string> = {
   PREPARING: "Preparing configuration",
@@ -201,8 +197,6 @@ export const INVARIANT_MEANING: Record<string, string> = {
   "INV-I4": "The non-atomic update window is handled (interrupted update recovers)",
 };
 
-// ------------------------------------------------------------------ result derivations
-
 export function rowId(row: EvaluationRow): string {
   return row.requirement_id ?? row.invariant_id ?? "?";
 }
@@ -233,7 +227,7 @@ export interface DerivedCause {
 
 const STATE_RANK: Record<string, number> = { VIOLATED: 0, UNKNOWN: 1, OPEN_CONDITION: 2 };
 
-/** Deterministic causes: critical VIOLATED / UNKNOWN / OPEN_CONDITION rows, grouped by id. */
+/** Critical unmet checks, grouped by requirement or invariant ID. */
 export function deterministicCauses(result: ResultView | null, limit = 3): DerivedCause[] {
   const criteria = criterionIndex(result);
   const groups = new Map<string, EvaluationRow[]>();

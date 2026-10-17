@@ -9,7 +9,6 @@ export interface AsyncState<T> {
   reload: () => void;
 }
 
-/** Load data on mount and whenever `key` changes. */
 export function useApi<T>(key: string | null, load: () => Promise<T>): AsyncState<T> {
   const loadRef = useRef(load);
   const [nonce, setNonce] = useState(0);

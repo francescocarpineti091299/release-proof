@@ -1,12 +1,10 @@
 /**
- * Hand-written mirrors of the backend contracts. Field names are exact.
+ * Frontend types mirroring backend/releaseproof/contracts.
  *  - backend/releaseproof/contracts/runner.py   (enums, events, Observation)
  *  - backend/releaseproof/contracts/api.py      (view models)
  *  - backend/releaseproof/contracts/ai.py       (structured AI outputs)
  *  - backend/releaseproof/contracts/profile.py  (configuration registry)
  */
-
-// ------------------------------------------------------------------ runner.py
 
 export type Stage =
   | "PREPARING"
@@ -17,7 +15,7 @@ export type Stage =
   | "EVALUATION"
   | "NEXT_STEPS";
 
-/** Display order of stages shown to users (WORKSTREAMS.md). */
+/** Presentation order; the runner may emit stages in a different order. */
 export const STAGE_ORDER: Stage[] = [
   "PREPARING",
   "AI_PLAN",
@@ -140,8 +138,6 @@ export interface DoneEvent extends EventBase {
   source_pins: Record<string, string>;
 }
 
-// ------------------------------------------------------------------ ai.py
-
 export interface PlannedTemplate {
   template_id: string;
   priority: number;
@@ -193,8 +189,6 @@ export interface AlternativesProposal {
   proposals: ChangeProposal[];
   not_addressable: string[];
 }
-
-// ------------------------------------------------------------------ profile.py
 
 export type ProfileStatus = "SUPPORTED" | "EXPERIMENTAL" | "UNAVAILABLE";
 
@@ -276,8 +270,6 @@ export interface TestCatalog {
   tests: Record<string, string>;
   templates: TestTemplate[];
 }
-
-// ------------------------------------------------------------------ api.py
 
 export type RunStatus = "QUEUED" | "RUNNING" | "SUCCEEDED" | "FAILED" | "CANCELLED";
 export type RunMode = "LIVE" | "REEVALUATION" | "REFERENCE";
@@ -460,7 +452,6 @@ export interface SSEEvent {
   data: Record<string, unknown>;
 }
 
-// ------------------------------------------------------------------ V1.2 result documents
 // The API exposes these as dict[str, Any]; only the fields the UI reads are typed.
 
 export type RequirementState = "SATISFIED" | "VIOLATED" | "UNKNOWN" | "OPEN_CONDITION";
@@ -526,7 +517,7 @@ export interface AssessmentDoc {
   [key: string]: unknown;
 }
 
-// ------------------------------------------------------------------ endpoints beyond contracts/api.py (real backend, WS-C)
+// Additional API endpoints
 
 /** GET /api/configurations item. */
 export interface TemplateView {

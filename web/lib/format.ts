@@ -44,7 +44,6 @@ export function formatRelative(iso: string | null | undefined, now: number): str
   return formatTimestamp(iso);
 }
 
-/** sha256:abcdef… or bare hex → short display form. */
 export function shortHash(hash: string | null | undefined, head = 12): string {
   if (!hash) return "—";
   const [prefix, hex] = hash.includes(":") ? hash.split(":", 2) : ["", hash];

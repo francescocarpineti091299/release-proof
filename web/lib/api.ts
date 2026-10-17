@@ -49,8 +49,6 @@ export interface ApiClient {
   subscribe(runId: string, handlers: SubscribeHandlers): () => void;
 }
 
-
-
 const BASE = "/api";
 
 function enc(s: string): string {
@@ -73,7 +71,7 @@ async function errorFrom(res: Response): Promise<ApiError> {
       if (text) message = text.slice(0, 300);
     }
   } catch {
-    // ignore body read errors
+    // Keep the HTTP status if the response body cannot be read.
   }
   return new ApiError(message, res.status, detail);
 }

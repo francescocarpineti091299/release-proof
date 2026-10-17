@@ -5,7 +5,7 @@ import "./globals.css";
 export const metadata: Metadata = {
   title: { default: "ReleaseProof: firmware migration assurance", template: "%s · ReleaseProof" },
   description:
-    "A firmware can boot and still be impossible to upgrade safely. ReleaseProof checks the migration path, not just the new image.",
+    "Pre-deployment firmware migration assurance for industrial IoT teams. Verify the path from deployed bootloader to candidate on supported configurations, before rollout.",
 };
 
 export const viewport: Viewport = { width: "device-width", initialScale: 1, themeColor: "#020617" };
