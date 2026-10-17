@@ -66,23 +66,24 @@ log "waiting for cloud-init (Docker install)"
 remote 'cloud-init status --wait >/dev/null || true; test -f /var/lib/releaseproof-bootstrap-done && docker compose version'
 
 log "syncing ${REPO_ROOT} -> ${HOST}:${REMOTE_DIR}"
-rsync -az --delete \
-  -e "ssh ${SSH_OPTS[*]}" \
-  --include '/.env.example' \
-  --exclude '/.git/' \
-  --exclude '.env' \
-  --exclude '.env.*' \
-  --exclude '/data/' \
-  --exclude 'backend/.venv/' \
-  --exclude '**/__pycache__/' \
-  --exclude '**/.pytest_cache/' \
-  --exclude '**/.ruff_cache/' \
-  --exclude 'web/node_modules/' \
-  --exclude 'web/.next/' \
-  --exclude 'web/out/' \
-  --exclude 'runners/**/work/' \
-  --exclude '*.egg-info/' \
-  "${REPO_ROOT}/" "${TARGET}:${REMOTE_DIR}/"
+EXCLUDES=(
+  '/.git/' '.env' '.env.*' '/data/' 'backend/.venv/' '**/__pycache__/' '**/.pytest_cache/'
+  '**/.ruff_cache/' 'web/node_modules/' 'web/.next/' 'web/out/' 'runners/**/work/' '*.egg-info/'
+)
+if command -v rsync >/dev/null; then
+  RSYNC_EX=(--include '/.env.example')
+  for ex in "${EXCLUDES[@]}"; do RSYNC_EX+=(--exclude "$ex"); done
+  rsync -az --delete -e "ssh ${SSH_OPTS[*]}" "${RSYNC_EX[@]}" "${REPO_ROOT}/" "${TARGET}:${REMOTE_DIR}/"
+else
+  # Git Bash on Windows has no rsync: stream a tarball of the working tree instead.
+  TAR_EX=()
+  for ex in "${EXCLUDES[@]}"; do
+    ex="${ex#/}"; ex="${ex%/}"; ex="${ex#\*\*/}"
+    TAR_EX+=("--exclude=${ex}")
+  done
+  tar -C "$REPO_ROOT" "${TAR_EX[@]}" --exclude='.env' -czf - . \
+    | remote "find ${REMOTE_DIR} -mindepth 1 -maxdepth 1 ! -name .env -exec rm -rf {} + && tar -xzf - -C ${REMOTE_DIR}"
+fi
 
 log "uploading environment (SITE_ADDRESS=${SITE_ADDRESS})"
 TMP_ENV="$(mktemp)"

@@ -58,9 +58,17 @@ fi
 log "SSH allowed from ${SSH_CIDR}"
 
 # ------------------------------------------------------------------ AMI (Ubuntu 24.04, amd64, gp3)
-AMI_ID="$(aws_ ssm get-parameter \
+AMI_ID="$(MSYS_NO_PATHCONV=1 aws_ ssm get-parameter \
   --name /aws/service/canonical/ubuntu/server/24.04/stable/current/amd64/hvm/ebs-gp3/ami-id \
-  --query Parameter.Value --output text)"
+  --query Parameter.Value --output text 2>/dev/null || true)"
+if none "$AMI_ID"; then
+  # No ssm:GetParameter permission: fall back to Canonical's owner id + name pattern.
+  AMI_ID="$(aws_ ec2 describe-images --owners 099720109477 \
+    --filters 'Name=name,Values=ubuntu/images/hvm-ssd-gp3/ubuntu-noble-24.04-amd64-server-*' \
+              'Name=state,Values=available' \
+    --query 'sort_by(Images,&CreationDate)[-1].ImageId' --output text)"
+fi
+none "$AMI_ID" && { echo "could not resolve an Ubuntu 24.04 AMI" >&2; exit 1; }
 log "AMI ${AMI_ID} (Ubuntu 24.04 LTS)"
 
 # Instance type must be offered in at least one AZ of the region.
