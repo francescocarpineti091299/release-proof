@@ -190,6 +190,10 @@ def _execute(family: Family, ctx: RunContext, template_ids: list[str]) -> str:
                 build_errors[t.template_id] = exc
                 build_failed = True
                 sink.error("BUILD_FAILED", str(exc), test_id=t.test_id)
+            except EnvironmentFailure as exc:
+                sink.error("ENVIRONMENT_SETUP", str(exc), test_id=t.test_id)
+                sink.stage("BUILD_SIGN", "FAILED", str(exc))
+                return "FAILED"
         sink.stage("BUILD_SIGN", "FAILED" if build_failed else "SUCCEEDED")
 
         sink.stage("EMULATION_TESTS", "RUNNING")
