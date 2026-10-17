@@ -1,4 +1,4 @@
-# wolfBoot runner (WS-A)
+# wolfBoot runner
 
 HTTP runner for the `wolfboot` template family of `profiles/test_catalog.yaml`, used by profile
 `profiles/nrf52840-wolfboot-pqc.yaml` (change `ecdsa_p256_to_mldsa87`). Built on the shared
@@ -20,7 +20,7 @@ backend\.venv\Scripts\python.exe runners\wolfboot\smoke.py --data-dir C:\path\to
 `smoke.py` POSTs `/execute` with all 8 templates, validates every NDJSON event (as
 `{"event": ...}`) against `schemas/runner_event.schema.json`, checks seq/run_id/done invariants,
 that every template has a `test_result`, that every referenced observation/artifact exists, that
-each test emitted the facts of the WORKSTREAMS table, and (with `--data-dir`) that every artifact
+each test emitted the facts listed in `docs/RUNNER_PROTOCOL.md`, and (with `--data-dir`) that every artifact
 file on the host matches its announced sha256. `--save run.ndjson` keeps the raw stream.
 
 Offline unit tests of the UART/classification logic:

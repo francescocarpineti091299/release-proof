@@ -5,7 +5,7 @@ OpenAI-compatible endpoint running on AMD hardware**. There is no fallback provi
 endpoint is missing, not allow-listed or failing, the AI steps report `AI_UNAVAILABLE` and the
 deterministic pipeline continues without them.
 
-## Plan A: AMD Token Factory / AMD Developer Cloud managed API
+## Managed API: AMD Token Factory / AMD Developer Cloud (default)
 
 ```bash
 AMD_LLM_BASE_URL=https://developer.amd.com.cn/radeon/api/v1   # from the model card
@@ -48,11 +48,14 @@ IDs and capabilities were checked against `GET /models` on 2026-10-17; availabil
 ReleaseProof currently sends **text only**, even when the selected model supports images.
 The existing context budget remains bounded; a large model window does not send more data.
 
-`Gemma-4-31B-IT` (Google Gemma served on AMD) is the default, for the Google/Gemma partner
-award. In the 2-iteration Token Factory comparison
-(`docs/AMD_BENCHMARK_PRIOR_20261017T133903Z.json`) it produced 12 OK / 2 timeout traces with
-schema-valid rate 1.0, versus 0.75 for `DeepSeek-V4-Flash`; that is a small sample, not a
-completed benchmark. It answers directly when reasoning is omitted. For Qwen/GLM, the shared API may enable long reasoning by default. Use
+`Gemma-4-31B-IT` (Google Gemma served on AMD) is the default for all four modules. In a
+2-iteration Token Factory comparison
+(`docs/AMD_BENCHMARK_PRIOR_20261017T133903Z.json`) it produced 12 OK / 2 timeout traces with a
+schema-valid rate of 1.0, against 0.75 for `DeepSeek-V4-Flash`. That is a small sample, not a
+full benchmark. The Gemma smoke `docs/AMD_SMOKE_GEMMA.json` records 10/10 logical calls OK,
+and the strict live acceptance `docs/acceptance/20261017T154930Z.json` passes both profiles with
+Gemma. It answers directly when reasoning is omitted. For Qwen/GLM, the shared API may enable
+long reasoning by default. Use
 `AMD_LLM_EXTRA_BODY='{"reasoning_effort":"low"}'` and benchmark the token budgets before switching.
 `chat_template_kwargs.enable_thinking` is **not forwarded by the shared gateway**; it is only
 appropriate for dedicated vLLM/SGLang endpoints. All models still pass through local schema,
@@ -69,9 +72,9 @@ fallback, and persistent failures still report `AI_UNAVAILABLE` without changing
 
 API reference: [chat completions](https://amd-aim.github.io/radeon-cloud-docs/api/chat-completions/).
 
-## Plan B: self-hosted vLLM on an AMD Developer Cloud MI300X droplet
+## Self-hosted: vLLM on an AMD Developer Cloud MI300X droplet
 
-Use this if Token Factory has no quota or no suitable model.
+Use this for a dedicated endpoint with ROCm, for example when Token Factory quota is exhausted.
 
 1. Create an MI300X GPU droplet on AMD Developer Cloud (ROCm image with Docker preinstalled).
 2. Copy `vllm_mi300x.sh` to the droplet and run it:
@@ -150,6 +153,6 @@ latency, tokens, status, prompt template version). They never contain the API ke
 
 The retained `docs/AMD_SMOKE_TOKEN_FACTORY.json` records 9/10 successful logical calls and
 one upstream outage with the previous default `DeepSeek-V4-Flash`; it is not a completed
-benchmark and is not Gemma evidence. Re-run the smoke with Gemma before citing Gemma smoke counts. `docs/AMD_BENCHMARK.json` is a generated
+benchmark and is not Gemma evidence. The Gemma smoke is `docs/AMD_SMOKE_GEMMA.json` (10/10 OK). `docs/AMD_BENCHMARK.json` is a generated
 output, currently absent from version control. Do not report a schema-valid benchmark rate or
 specific managed GPU identity from the smoke alone.

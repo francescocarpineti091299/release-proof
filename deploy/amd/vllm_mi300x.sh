@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-# Plan B for ReleaseProof AI: serve an open-weight model with vLLM (ROCm) on an AMD Developer Cloud
+# Self-hosted ReleaseProof AI: serve an open-weight model with vLLM (ROCm) on an AMD Developer Cloud
 # MI300X droplet and expose an OpenAI-compatible endpoint. Run ON THE DROPLET.
 #
 #   export VLLM_API_KEY=$(openssl rand -hex 24)   # the key ReleaseProof will send as Bearer token

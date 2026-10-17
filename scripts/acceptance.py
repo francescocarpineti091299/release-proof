@@ -89,19 +89,38 @@ def runner_source_digest(family: str) -> str:
     return digest.hexdigest()
 
 
-def run_profile(api: Api, config: dict[str, Any], *, require_ai: bool, timeout: int) -> dict:
+def run_profile(
+    api: Api,
+    config: dict[str, Any],
+    *,
+    require_ai: bool,
+    timeout: int,
+    resume_run_id: str | None = None,
+    deployed_after: datetime | None = None,
+) -> dict:
     gates: list[dict[str, Any]] = []
     change = config["changes"][0]
     print(f"\n== {config['id']} / {change['change_id']}")
     started = datetime.now(UTC)
-    run = api.post(
-        "/api/assessments",
-        {
-            "configuration_id": config["id"],
-            "change_id": change["change_id"],
-            "idempotency_key": f"acceptance-{config['id']}-{uuid4().hex}",
-        },
-    )
+    if resume_run_id:
+        if deployed_after is None or deployed_after.tzinfo is None:
+            raise ValueError("Resuming requires a timezone-aware verified deployment timestamp")
+        run = api.get(f"/api/assessments/{resume_run_id}")
+        if (
+            run.get("mode") != "LIVE"
+            or run.get("configuration_id") != config["id"]
+            or run.get("change_id") != change["change_id"]
+        ):
+            raise ValueError("Resume run must be LIVE and match the selected configuration/change")
+    else:
+        run = api.post(
+            "/api/assessments",
+            {
+                "configuration_id": config["id"],
+                "change_id": change["change_id"],
+                "idempotency_key": f"acceptance-{config['id']}-{uuid4().hex}",
+            },
+        )
     run_id = run["run_id"]
     print(f"  run_id={run_id}")
     deadline = time.monotonic() + timeout
@@ -111,9 +130,20 @@ def run_profile(api: Api, config: dict[str, Any], *, require_ai: bool, timeout: 
     gate(gates, "run reached a terminal state", run["status"] in TERMINAL, run["status"])
     gate(gates, "run is LIVE (not replay)", run["mode"] == "LIVE", run["mode"])
     created = datetime.fromisoformat(run["created_at"].replace("Z", "+00:00"))
-    gate(
-        gates, "run created now", abs((created - started).total_seconds()) < 120, run["created_at"]
-    )
+    if resume_run_id:
+        gate(
+            gates,
+            "resumed LIVE run created after verified deployment",
+            deployed_after <= created and (created - started).total_seconds() < 120,
+            f"created {run['created_at']}; deployment {deployed_after.isoformat()}",
+        )
+    else:
+        gate(
+            gates,
+            "run created now",
+            abs((created - started).total_seconds()) < 120,
+            run["created_at"],
+        )
     gate(gates, "pipeline succeeded", run["status"] == "SUCCEEDED", str(run.get("failure")))
 
     tests = run.get("tests") or []
@@ -301,9 +331,27 @@ def main(argv: list[str] | None = None) -> int:
     parser.add_argument("--require-ai", action="store_true")
     parser.add_argument("--env-file", help="explicit dotenv file (never loaded implicitly)")
     parser.add_argument("--timeout", type=int, default=1800)
+    parser.add_argument(
+        "--resume-run-id", help="Verify an existing LIVE run after checker interruption"
+    )
+    parser.add_argument(
+        "--deployed-after", help="Verified deployment timestamp for resumed run, ISO UTC"
+    )
     args = parser.parse_args(argv)
     if args.timeout <= 0:
         parser.error("--timeout must be positive")
+    deployed_after = None
+    if args.resume_run_id:
+        if not args.profile or len(args.profile) != 1 or not args.deployed_after:
+            parser.error("Resume requires one --profile and --deployed-after")
+        try:
+            deployed_after = datetime.fromisoformat(args.deployed_after.replace("Z", "+00:00"))
+        except ValueError:
+            parser.error("--deployed-after must be an ISO timestamp")
+        if deployed_after.tzinfo is None:
+            parser.error("--deployed-after must include a timezone")
+    elif args.deployed_after:
+        parser.error("--deployed-after is only used with --resume-run-id")
     if args.env_file:
         from amd_common import load_env_file
 
@@ -322,7 +370,10 @@ def main(argv: list[str] | None = None) -> int:
     results = []
     for config in configs:
         try:
-            result = run_profile(api, config, require_ai=args.require_ai, timeout=args.timeout)
+            options = {"require_ai": args.require_ai, "timeout": args.timeout}
+            if args.resume_run_id:
+                options.update(resume_run_id=args.resume_run_id, deployed_after=deployed_after)
+            result = run_profile(api, config, **options)
         except (
             urllib.error.URLError,
             TimeoutError,

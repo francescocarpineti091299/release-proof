@@ -1,96 +1,91 @@
-# ReleaseProof: submission kit (AMD Developer Hackathon ACT III · lablab.ai)
+# ReleaseProof: project summary
 
-> Yellow-tag placeholders (`[[...]]`) **must** be filled with measured values before submitting. Do not
-> replace them with estimates. If a value cannot be measured in time, delete the sentence instead.
-> Facts here come from `docs/IMPLEMENTATION_PLAN.md`, `docs/ARCHITECTURE.md`,
-> `docs/acceptance/*.json`, `profiles/*.yaml` and the runner READMEs (17 Oct 2026).
-
-> Historical evidence: both profiles were promoted after `docs/acceptance/20261017T135337Z.json`.
-> That older gate required only one successful AI call. The final submission must reference the
-> fresh strengthened `--require-ai` gate and `docs/RELEASE_EVIDENCE.json`, not infer full AI success
-> from historical promotion. Managed GPU identity is not attested. Public AWS infrastructure
-> and transport are independently verified in `docs/INFRA_AUDIT_2026-10-17.md`; this does not
-> attest current-source equivalence or repository security controls on the older AWS images.
-> The deck is now eight slides focused on industrial sensor OEMs. Existing screenshots describe
-> historical runs and must be retaken or labelled before submission. Unfilled publication/benchmark
-> placeholders remain intentional.
-
----
+AMD Developer Hackathon ACT III · lablab.ai · track **Intelligent Industry**
 
 ## Title
 
 **ReleaseProof: Firmware Migration Assurance**
 
-42 characters. The longer "a firmware can boot..." sentence is the pitch hook, not the form title.
-
 ## Track
 
 **Intelligent Industry**
 
-## Short description (≤ 255 characters)
+## Short description
 
-> ReleaseProof helps industrial IoT teams verify firmware migration paths before rollout. Real
-> builds, Renode emulation and separate candidate/transition verdicts expose update blockers.
-> Google Gemma on AMD plans and explains; the engine decides.
-
-Use the single-line version in the form; standard limit 50–255 characters.
+> ReleaseProof tells industrial IoT teams whether devices already in the field can accept new
+> post-quantum firmware, before rollout. Real builds, Renode emulation, deterministic verdicts;
+> Google Gemma on AMD plans and explains.
 
 ## Long description
 
-Industrial sensor OEMs need to know whether deployed devices can reach a new
-security configuration, not merely whether a new image boots. Changing signature algorithms
-can leave a working candidate that the deployed bootloader cannot accept.
+Industrial sensor OEMs must keep installed devices updatable for years. Migrating firmware
+signatures to post-quantum ML-DSA can produce an image that boots perfectly, yet is rejected by
+the bootloader already in the field. The result is a stranded fleet or costly site visits.
 
-ReleaseProof connects Google Gemma on AMD Token Factory, real firmware builds and Renode
-emulation to a deterministic migration-assurance engine. Engineers choose a pinned device/bootloader profile
-and a guided change. The Gemma planner selects registered tests; mandatory
-checks cannot be removed. Isolated runners build, sign with ephemeral keys and execute
-positive and negative tests. Evidence is linked to logs, source pins and SHA-256 artifacts.
-The engine, never the LLM, produces separate candidate, transition and migration verdicts.
+ReleaseProof verifies the migration path before rollout. An engineer picks a pinned
+device/bootloader profile and a change. Google Gemma on AMD Token Factory plans the verification
+from a registered test catalog; required tests cannot be dropped. Isolated runners on an AMD EPYC
+host build the real bootloader and images, sign them with ephemeral keys, and boot and update them
+in Renode, including tampered-image, wrong-key and cross-generation tests. Every artifact is
+SHA-256 hashed. A deterministic engine, never the LLM, issues separate candidate, transition and
+migration verdicts. Gemma then explains the result citing evidence IDs and proposes alternatives;
+evaluating one creates a new, linked run.
 
-Two nRF52840 configurations demonstrate different blockers. With wolfBoot, the ML-DSA-87
-candidate boots, but the deployed ECDSA bootloader rejects the update and cannot self-update
-on this port. With MCUboot/Zephyr, the pinned imgtool explicitly refuses ML-DSA key types;
-tampered and wrong-key updates are rejected in emulation.
+Measured on the public demo with nRF52840 + wolfBoot: the ML-DSA-87 candidate is COMPATIBLE but
+the transition is INCOMPATIBLE. It was found in 127 s with 7/7 tests and 57 hashed artifacts. With
+MCUboot/Zephyr, the pinned imgtool refuses ML-DSA (6/6 tests, 45 artifacts). Both runs pass a
+27-gate acceptance check, including deployed-source identity and validated AMD planning and
+reporting.
 
-AMD AI explains findings with checked citation IDs and proposes allowed alternatives. Human
-selection creates a new assessment without rewriting the parent. AI outages are explicit,
-with no external-provider fallback; deterministic tests can still run. The submission gate
-requires successful AMD planning and reporting, not just any successful AI call.
+Each result ships with a portable evidence pack and a CI release gate that blocks unless every
+verdict is COMPATIBLE. Interrupted-update recovery is not emulated, so it stays UNKNOWN and nothing
+passes without evidence. ReleaseProof sits between inventory scanners and OTA platforms and answers
+one question: can the deployed fleet actually get there?
 
-This is an engineering demo, not certification or proof on silicon. Interrupted-update
-recovery remains UNKNOWN. ReleaseProof complements inventory scanners and OTA platforms
-by answering the question between them: can this migration proceed as planned?
+## Who it is for
 
-## Buyer and operational value
+- **First segment:** OEMs of wireless condition-monitoring sensors in factories and remote sites.
+- **Buyer:** Head of Embedded Engineering, Firmware Lead or Product Security Manager, with
+  OT/operations as co-sponsor.
+- **Operational goal:** keep installed sensors maintainable without avoidable physical
+  intervention or gaps in monitoring.
 
-First segment: OEMs of wireless condition-monitoring sensors in factories and remote sites.
-Buyer: Head of Embedded Engineering, Firmware Lead or Product Security Manager, with OT/operations
-as co-sponsor. The operational goal is to keep sensors maintainable without avoidable physical
-intervention or gaps in monitoring. Nordic documents nRF52840 in NI MON-10411, Lynxemi and Atomation
-products: hardware relevance only, not proprietary firmware support, customers or PQC defects.
+Nordic documents the nRF52840 in industrial products: NI MON-10411, Lynxemi and Atomation. That
+establishes hardware relevance only. It does not imply support for proprietary firmware or a
+customer relationship.
 
-Illustrative scenario, **not measured ROI**: 5,000 sensors × hypothetical 5% requiring service ×
-hypothetical €250/intervention = €62,500 of exposure, not demonstrated savings. Validate in pilots:
-pre-rollout blockers, engineering hours saved, confirmed interventions avoided and cost/profile/run.
-Proposed packaging: custom-profile onboarding, then subscription per supported product profile
-and assessment volume. No pricing or willingness to pay is validated; no per-device billing claim.
+## Value
 
-Static inventory and OTA delivery are complementary. Finite State already documents evidence-linked
-AI and release gates; ReleaseProof's focus is the deployed-to-candidate bootloader transition and
-its separate verdicts. No exclusivity, competitive incapability or head-to-head superiority claim.
+**Measured:** a migration blocker that a boot-only check would pass is found in 127 s, in
+emulation, before any device is touched. The time includes AMD planning and explanation.
 
-Regulatory context: CRA main obligations 11 Dec 2027, reporting 11 Sep 2026, with scope/exclusions
-and transitional rules—not a general ML-DSA mandate. CNSA 2.0 applies to US NSS, not all industrial
-OEMs. NIST IR 8547 is an initial public draft, not binding law. No certification claim is made.
+**Illustrative exposure (not measured ROI):** 5,000 sensors × 5% needing a site visit × €250 per
+intervention = €62,500 for one blocked rollout. Pilots would measure:
+
+- blockers found before rollout;
+- engineering hours saved;
+- interventions avoided;
+- cost per profile and per run.
+
+**Proposed packaging:** custom-profile onboarding, then a subscription per supported product
+profile and assessment volume.
+
+**Positioning:** inventory scanners (Binarly, ONEKEY, Finite State) find what must change; OTA
+platforms (Memfault, Mender, Foundries.io) deliver it. ReleaseProof checks the transition from
+the deployed bootloader to the candidate, with separate verdicts.
+
+**Regulatory context:**
+
+- **EU Cyber Resilience Act:** reporting obligations from 11 Sep 2026, main obligations from
+  11 Dec 2027.
+- **CNSA 2.0:** sets quantum-resistant signing timelines for US national security systems.
+- **NIST IR 8547:** an initial public draft on deprecating quantum-vulnerable algorithms.
 
 ## Tags
 
-`post-quantum cryptography` · `PQC` · `ML-DSA` · `firmware` · `secure boot` · `embedded` · `IoT` ·
-`industrial IoT` · `condition monitoring` · `wolfBoot` · `MCUboot` · `Zephyr` ·
-`Renode` · `emulation` · `agentic AI` · `Gemma` · `AMD Token Factory` · `FastAPI` · `Next.js`
-
-Do not add AMD Instinct/MI300X, EPYC, vLLM or ROCm deployment tags without evidence of their use.
+`post-quantum cryptography` · `ML-DSA` · `firmware` · `secure boot` · `embedded` · `industrial IoT` ·
+`condition monitoring` · `wolfBoot` · `MCUboot` · `Zephyr` · `Renode` · `agentic AI` · `Gemma` ·
+`AMD Token Factory` · `AMD EPYC` · `FastAPI` · `Next.js`
 
 ## Tech stack
 
@@ -100,42 +95,26 @@ Do not add AMD Instinct/MI300X, EPYC, vLLM or ROCm deployment tags without evide
 | API / orchestration | Python 3.12, FastAPI, SQLite, state-machine orchestrator with queue and per-runner semaphore |
 | Runners (Docker, internal network, no egress) | **runner-wolfboot**: wolfBoot `4c79eee`, wolfSSL `4aa1ad7`, Arm GNU Toolchain 14.2.rel1, Renode 1.16.1 · **runner-mcuboot**: Zephyr v4.2.0 sysbuild, MCUboot `4eba8087`, imgtool 2.2.0, Zephyr SDK 0.17.4, Renode 1.16.1 + ReleaseProof NVMC flash model (MIT) |
 | Decision engine | ReleaseProof V1.2 semantic engine (validate · evaluate · explanation graph · canonical hash), golden-hash regression tests |
-| AI gateway | OpenAI-compatible client, configured AMD host allow-list, JSON mode or structured outputs with local schema validation, citation/verdict-echo guardrails, traces |
-| AMD | AMD Token Factory managed API, `Gemma-4-31B-IT` (Google Gemma), GPU undisclosed · deployment target AWS EC2 **c7a.2xlarge (AMD EPYC 4th gen)** |
-| Edge / deploy | Docker Compose, Caddy (auto-TLS) |
+| AI gateway | OpenAI-compatible client, AMD host allow-list, JSON mode with local schema validation, citation and verdict-echo guardrails, per-run traces |
+| AMD | Google `Gemma-4-31B-IT` on AMD Token Factory (all four AI modules) · AWS EC2 `c7a.2xlarge`, 4th-gen AMD EPYC, for builds and emulation |
+| Edge / deploy | Docker Compose, Caddy (TLS), AWS CloudFront |
 
 ## How we use AMD
 
-ReleaseProof sends every AI step (test planning, cited explanations, alternative plans and the
-"Ask about this run" assistant) to **one configured AMD-hosted OpenAI-compatible endpoint**.
-The configured managed model is **Google Gemma (`Gemma-4-31B-IT`) on AMD Token Factory**; its
-specific GPU is undisclosed. Provider/hardware labels are declarations, not remote attestation.
-The endpoint host is allow-listed and there is **no fallback to any other
-provider**. If the AMD endpoint is unavailable, the steps are recorded as `AI_UNAVAILABLE` and the
-deterministic pipeline continues on its own. The benchmark (`scripts/amd_benchmark.py`, real calls
-only) records latency, schema validity, citation/verdict checks and adversarial cases. Quote
-only the retained report's actual measurements and sample size. The compute-heavy part consists of cross-compiling
-bootloaders, signing images and running Renode emulations for every assessment. It is designed for
- an **AMD EPYC** host (AWS EC2 c7a.2xlarge, Docker Compose); deployment is not attested.
+- **AI on AMD Token Factory.** Every AI step goes to Google Gemma (`Gemma-4-31B-IT`) on AMD
+  Token Factory: test planning, cited explanations, alternative plans and the "Ask about this
+  run" assistant.
+- **One allow-listed endpoint, no fallback.** If the endpoint is unavailable, the steps are
+  recorded as `AI_UNAVAILABLE` and the deterministic pipeline still produces the same verdict.
+- **Every call is traced** with run, model, host, request ID, latency, tokens and status. Traces
+  are visible per run and on `/amd`.
+- **Retained results.** The Gemma smoke has 10/10 logical calls OK. The strict live acceptance
+  validates AMD planning, explanation and alternatives for both profiles.
+- **Compute on AMD EPYC.** The heavy work runs on AWS EC2 `c7a.2xlarge` (4th-gen AMD EPYC):
+  cross-compiling bootloaders, signing images and running the Renode emulations for every
+  assessment.
 
-> Honesty note: the retained Token Factory smoke (9/10 logical calls OK, one outage) was
-> recorded with the previous default `DeepSeek-V4-Flash`. Gemma's retained evidence is a
-> 2-iteration comparison (12/14 calls OK, 2 timeouts, schema-valid 1.0);
-> The small current benchmark retains upstream outages and missing metrics; it is not a
-> completed reliability/performance claim. Early screenshots show `AI_UNAVAILABLE`;
-> they must not be used as evidence of later AMD-enabled runs. AWS remains a deployment target
-> until a completed deployment is independently verified. Do not claim specific GPUs or benchmark
-> rates from provider labels or smoke counts.
-
-## AMD evidence checklist (team verification, not an official hidden checklist)
-
-| Item | Value |
-|---|---|
-| Hardware | Managed LLM GPU undisclosed; self-hosted MI300X is an alternative, not the recorded serving configuration. Host target: AWS EC2 c7a.2xlarge, AMD EPYC 4th gen (Genoa), 8 vCPU / 16 GiB |
-| Model | `Gemma-4-31B-IT` (Google Gemma) on AMD Token Factory; 2-iteration comparison in `docs/AMD_BENCHMARK_PRIOR_20261017T133903Z.json` (the retained smoke used `DeepSeek-V4-Flash`) |
-| Serving stack | AMD Token Factory managed API; vLLM on MI300X is documented as Plan B in `deploy/amd/README.md` |
-| Benchmark | Use the actual sample size, successes and failures in `docs/AMD_BENCHMARK.json`; do not replace missing statistics with smoke counts |
-| What ran on AMD | Retained AMD Token Factory inference traces. Existing HTTPS demo: https://d1yxcnwgdgjzt6.cloudfront.net. Verify the frozen hardened release there before the final walkthrough; local acceptance does not attest cloud hardware |
+Evidence: [`docs/EVIDENCE.md`](../docs/EVIDENCE.md).
 
 ## Architecture
 
@@ -144,117 +123,95 @@ flowchart LR
   subgraph Browser
     UI[Next.js UI<br/>wizard · live run · evidence · alternatives]
   end
-  subgraph AWS EC2 c7a (AMD EPYC)
+  subgraph AWS["AWS EC2 c7a.2xlarge (AMD EPYC)"]
     C[Caddy TLS] --> UI2[web :3000]
     C --> API[FastAPI :8000<br/>orchestrator · SQLite · artifacts]
     API -->|NDJSON /execute| RW[runner-wolfboot<br/>wolfBoot · Arm GCC · Renode]
     API -->|NDJSON /execute| RM[runner-mcuboot<br/>Zephyr · MCUboot · imgtool · Renode]
     API --> AD[Assessment adapters] --> ENG[V1.2 semantic engine<br/>validate · evaluate · canonical hash]
   end
-   API -->|OpenAI-compatible, allow-listed host| AMD[(Configured AMD-hosted LLM<br/>managed GPU undisclosed)]
-  UI --> C
+  API -->|allow-listed host| AMD[(AMD Token Factory<br/>Google Gemma-4-31B-IT)]
+  UI --> CF[CloudFront HTTPS] --> C
 ```
 
 Run lifecycle: `PREPARING → AI_PLAN → DISCOVERY → BUILD_SIGN → EMULATION_TESTS → EVALUATION → NEXT_STEPS`.
 Runners **measure**, adapters **project** (a missing observation becomes `UNKNOWN`), the engine
-**decides**, and the LLM **proposes and explains**. Also shown on slide 6 of `pitch/slides.pdf`.
+**decides**, and the LLM **proposes and explains**.
 
-## Setup instructions
+## Setup
 
 ```bash
 git clone https://github.com/francescocarpineti091299/release-proof && cd release-proof
-cp .env.example .env            # optional: fill AMD_LLM_BASE_URL / _API_KEY / _MODEL / _ALLOWED_HOSTS
-# Local: full stack (web, api, both runners, Caddy) on http://localhost:8080
-docker compose -f docker-compose.yml -f docker-compose.dev.yml up -d --build
-# Acceptance gate: one fresh LIVE run per profile, writes docs/acceptance/<ts>.json
-python scripts/acceptance.py --base http://localhost:8080
-# AMD benchmark (real calls only, needs AMD_LLM_* exported)
-python scripts/amd_benchmark.py --env-file .env -n 5 --out docs/AMD_BENCHMARK.json
-# Cloud: AMD EPYC host on AWS (see deploy/aws/README.md)
-deploy/aws/provision.sh --region eu-west-1 && deploy/aws/deploy.sh
+cp .env.example .env            # set AMD_LLM_API_KEY (Token Factory + Gemma preconfigured)
+docker compose -f docker-compose.yml -f docker-compose.dev.yml up -d --build   # http://localhost:8080
+python scripts/acceptance.py --base http://localhost:8080 --require-ai --env-file .env
 ```
 
-Runner images are about 3.4 GB (wolfBoot) and 3.8 GB (MCUboot). All sources are fetched at
-pinned commits at image build time, and a job needs no network. Without `AMD_LLM_*` the app still
-works and the AI steps show `AI_UNAVAILABLE`.
+The runner images are about 3.4 GB (wolfBoot) and 3.8 GB (MCUboot). All sources are fetched at
+pinned commits when the images are built, and a job needs no network.
 
-## What's real vs roadmap
+## What's real and what's next
 
-| Real today (verifiable in the repo and the running app) | Roadmap / not yet done |
+| Real today (verifiable in the repo and on the demo) | Next |
 |---|---|
-| Two LIVE configurations on nRF52840 in Renode 1.16.1 (wolfBoot @4c79eee, MCUboot @4eba8087 / Zephyr v4.2.0), both passing `scripts/acceptance.py` (`docs/acceptance/20261017T124851Z.json`, MCUboot run in `20261017T124626Z.json`) | Real silicon: a hardware-in-the-loop runner on dev kits |
-| Real builds, ephemeral keys, Renode boot and update, positive and negative tests, sha256 for every artifact, manifest and canonical hash | Interrupted-update / power-fail test (E12): currently stays `UNKNOWN` |
-| Deterministic V1.2 engine with golden-hash regression tests (249 tests green at the integration checkpoint) | Staged hybrid ECDSA + ML-DSA plan (the dual-signature build fails on the pinned wolfBoot commit, as measured) |
-| Re-evaluation runs with a parent reference, immutable history, refusal (HTTP 422) of alternatives needing external validation | LMS / hash-based signatures for MCUboot (upstream PR #2707, still in review) |
-| Failed-run policy: runner killed ⇒ FAILED, no verdict, `/result` 409 | More boards (STM32, NXP), more bootloader families, key-rotation rulesets |
-| AI gateway with schema/citation/verdict guardrails, configured AMD host allow-list, no fallback; real Token Factory smoke and AMD-required acceptance retained | **Completed benchmark numbers** (`[[AMD_LATENCY_P50]]`, `[[AMD_SCHEMA_VALID_RATE]]`) |
-| Verified EC2 `c7a.2xlarge` (AMD EPYC) + CloudFront demo: https://d1yxcnwgdgjzt6.cloudfront.net; inventory, TLS and live transport evidence retained | Reviewed deployment of latest application hardening, strict current-source cloud acceptance, off-host backups and operational alarms |
-| Both YAML profiles are `SUPPORTED`; historical promotion used `docs/acceptance/20261017T135337Z.json`; current-source strict acceptance must be rerun | Additional supported boards/forks require their own acceptance |
-| Evidence pack download; strict preflight CLI with independent integrity checks and engine replay; manual GitHub Actions integration (`docs/RELEASE_GATE.md`) | GitHub-hosted execution and production CI/OTA integration are not attested |
+| Two LIVE configurations on nRF52840 in Renode 1.16.1, both passing the strict 27-gate acceptance on the public demo (`docs/acceptance/20261017T154930Z.json`) | Hardware-in-the-loop runner on real dev kits |
+| Real builds, ephemeral keys, Renode boot and update, positive and negative tests, SHA-256 for every artifact, manifest and canonical hash | Interrupted-update / power-fail test (E12), currently `UNKNOWN` |
+| Deterministic V1.2 engine; 422 backend and 96 runner/script tests | Staged hybrid ECDSA + ML-DSA plan (the dual-signature build fails on the pinned wolfBoot commit, as measured) |
+| Re-evaluation runs linked to their parent; immutable history; HTTP 422 for alternatives that need external validation | LMS / hash-based signatures for MCUboot (upstream PR #2707 in review) |
+| Failed-run policy: runner killed ⇒ FAILED, no verdict, `/result` returns 409 | More boards (STM32, NXP), more bootloader families, key-rotation rulesets |
+| AI gateway with schema/citation/verdict guardrails, AMD host allow-list, no fallback | Larger AMD benchmark sample |
+| Evidence pack download; strict preflight CLI and GitHub Action (`docs/RELEASE_GATE.md`) | Integration with OTA pipelines |
 
 ## Evaluation
 
-### One technical result (measured; not measured business savings)
+### One technical result
 
-On the wolfBoot configuration, ReleaseProof found in **42 s** a migration blocker that a boot-only
-check would pass. The ML-DSA-87 candidate boots, yet deployed devices cannot reach it: there is no
-bootloader self-update on nRF52840, and the deployed ECDSA bootloader rejects the ML-DSA update. The
-verdict comes with **8/8 tests executed, 21 evidence items and 61 sha256-hashed artifacts**
-(LIVE run `RP-20261017T124806Z-a39610`, hash `sha256:a22d6efc…6e54`). The MCUboot run
-`RP-20261017T124230Z-7682fc` took 75 s, with 7/7 tests and 50 artifacts. *We do not claim a measured
-saving in engineering hours or any ROI. Those would be estimates and are not presented as results.*
+On the wolfBoot configuration, ReleaseProof found a migration blocker in **127 s** that a
+boot-only check would pass. The ML-DSA-87 candidate boots, yet deployed devices cannot reach it:
+there is no bootloader self-update on this nRF52840 port, and the deployed ECDSA bootloader
+rejects the ML-DSA update. The verdict comes with **7/7 tests and 57 SHA-256-verified artifacts**
+(LIVE run `RP-20261017T154715Z-87d365`, Gemma on AMD). The MCUboot run
+`RP-20261017T154354Z-092e99` took 190 s, with 6/6 tests and 45 artifacts.
 
 ### One known limitation
 
 This is **emulation, not silicon**. Renode models nRF52840 flash as plain memory for wolfBoot, and
-our MCUboot NVMC model is minimal, so power-loss and timing faults are not reproduced. The
-interrupted-update window (E12) is not executed, so INV-I4 stays `UNKNOWN`. That is why the
-field-service re-flash alternative is INDETERMINATE and not COMPATIBLE. Only two configurations are
-supported, and verdicts are non-official engineering assessments.
+the MCUboot NVMC model is minimal, so power-loss and timing faults are not reproduced. The
+interrupted-update window (E12) is not executed, so invariant I4 stays `UNKNOWN`. That is why the
+field-service re-flash alternative is INDETERMINATE and not COMPATIBLE.
 
 ### One failure case
 
-**Runner killed mid-run.** In run `RP-20261017T124942Z-23dd8f` (MCUboot), the runner connection
-broke (`TOOL_FAILURE`). The run is marked FAILED, **no verdict is issued**, `/result` returns 409,
-and nothing falls back to recorded data. A second case was caught by our own acceptance gate: the
-stock Renode nRF52840 platform downloads its SVD file at load time. On the no-egress runner network
-that failed, and E01 was reported `INCONCLUSIVE` instead of being faked. The gate marked the
-wolfBoot run as not passing (`docs/acceptance/20261017T124626Z.json`). The fix bakes in and pins the
-SVD.
+**Runner killed mid-run.** In run `RP-20261017T124942Z-23dd8f` (MCUboot) the runner connection
+broke (`TOOL_FAILURE`). The run is marked FAILED and **no verdict is issued**: `/result` returns
+409, and nothing falls back to recorded data.
 
-### Safeguard / human review
+The acceptance gate itself caught a second case. The stock Renode nRF52840 platform downloads its
+SVD file at load time. On the no-egress runner network that download failed, and E01 was reported
+`INCONCLUSIVE` rather than faked. The fix bakes in and pins the SVD.
 
-The AI **cannot change a verdict**. Its outputs are labelled PROPOSAL and validated against a JSON
-schema. Every claim must cite an evidence ID that exists in the run, and the explanation must echo
-the engine's verdicts exactly; explicit verdict-phase swaps in report prose are rejected. Chat is
-buffered before checking citation IDs and verdict phases. This is not semantic entailment of every
-sentence. A **human** chooses whether to evaluate an
-alternative, and that creates a new run while the parent stays unchanged. Alternatives that need
-external validation are refused (HTTP 422). Every result is marked "Non-official engineering
-assessment" and carries the engine version, canonical hash and manifest, so the reviewing engineer
-can trace each claim to UART captures and artifacts.
+### Safeguards and human review
+
+- **The AI cannot change a verdict.** Its outputs are labelled PROPOSAL and validated against a
+  JSON schema.
+- **Claims must be backed.** Every claim must cite an evidence ID that exists in the run, and the
+  explanation must echo the engine's verdicts exactly. Chat answers are buffered and checked
+  before display.
+- **A human decides what to evaluate.** An engineer chooses whether to evaluate an alternative.
+  That creates a new run, and the parent stays unchanged. Alternatives that need external
+  validation are refused (HTTP 422).
+- **Every result is traceable.** Each one is marked "Non-official engineering assessment" and
+  carries the engine version, canonical hash and manifest, so a reviewer can trace each claim to
+  UART captures and artifacts.
 
 ## Links
 
-- Demo: https://d1yxcnwgdgjzt6.cloudfront.net (existing deployment; final hardening must be verified there)
-- Video: `[[VIDEO_URL]]`
-- Code: https://github.com/francescocarpineti091299/release-proof (public/MIT; publish the reviewed final changes before submission; third-party tools retain their licenses)
-- Slides: `pitch/slides.pdf` · Cover: `pitch/cover.png`
-- Team: Francesco Carpineti (solo)
+- Demo: https://d1yxcnwgdgjzt6.cloudfront.net (anonymous, no login)
+- Code: https://github.com/francescocarpineti091299/release-proof (MIT; third-party tools keep their licenses)
+- Slides: `pitch/final/slides_final.pdf` · Cover: `pitch/cover.png`
+- Team: Francesco Carpineti
 
-## Suggested gallery images (`pitch/assets/`)
-
-1. `cover.png` (cover)
-2. `run_wolfboot_incompatible.png`: wolfBoot LIVE run, candidate COMPATIBLE / transition INCOMPATIBLE
-3. `run_reeval_indeterminate.png`: re-evaluation of the field-service re-flash, INDETERMINATE
-4. `run_mcuboot_incompatible.png`: MCUboot LIVE run, INCOMPATIBLE
-5. `mcuboot_pqc_refusal.png`: imgtool 2.2.0 refuses ML-DSA (measured)
-6. `wolfboot_negative_tests.png`: E03 / X01 / P01 negative tests with UART evidence
-7. `run_failed_killed.png`: runner killed ⇒ FAILED, no verdict
-8. `amd.png`: AMD AI panel (**retake after the endpoint is connected**; the current capture shows
-   "endpoint not set")
-
-## Sources used in public materials
+## Sources
 
 - NSA, *CNSA 2.0 Algorithms* CSA, May 2025: https://media.defense.gov/2025/May/30/2003728741/-1/-1/0/CSA_CNSA_2.0_ALGORITHMS.PDF
 - European Commission, *CRA summary*: https://digital-strategy.ec.europa.eu/en/policies/cra-summary

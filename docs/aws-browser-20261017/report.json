@@ -1,0 +1,23 @@
+{
+  "base": "https://d1yxcnwgdgjzt6.cloudfront.net",
+  "checked_at": "2026-10-17T15:43:55.554Z",
+  "browser": "Chrome/155.0.8059.40",
+  "checks": [
+    {
+      "family": "MCUboot",
+      "anonymous": true,
+      "steps": 3,
+      "run_button_enabled": true
+    },
+    {
+      "family": "wolfBoot",
+      "anonymous": true,
+      "steps": 3,
+      "run_button_enabled": true
+    }
+  ],
+  "network_errors": [],
+  "expected_navigation_aborts": [],
+  "mutation_count": 0,
+  "passed": true
+}

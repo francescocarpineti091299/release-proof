@@ -2,6 +2,7 @@
 import { spawn } from "node:child_process";
 import { existsSync } from "node:fs";
 import { mkdir, mkdtemp, writeFile } from "node:fs/promises";
+import os from "node:os";
 import path from "node:path";
 
 const base = process.argv[2]?.replace(/\/$/, "");
@@ -16,14 +17,14 @@ const browser = process.env.RELEASEPROOF_BROWSER || [
   "/usr/bin/chromium", "/usr/bin/google-chrome",
 ].find(existsSync);
 if (!browser) throw new Error("Set RELEASEPROOF_BROWSER to an installed Chromium browser.");
-const temp = process.platform === "win32"
-  ? path.join(process.env.LOCALAPPDATA, "Temp", "opencode") : process.env.TMPDIR || "/tmp";
+const temp = os.tmpdir();
 await mkdir(output, { recursive: true });
 const profile = await mkdtemp(path.join(temp, "releaseproof-browser-"));
 const child = spawn(browser, ["--headless=new", "--no-first-run", "--no-default-browser-check",
   "--remote-debugging-port=0", `--user-data-dir=${profile}`], { stdio: ["ignore", "ignore", "pipe"] });
 const pending = new Map();
 const problems = [];
+const navigationAborts = [];
 const requests = [];
 let socket;
 let nextId = 0;
@@ -55,7 +56,11 @@ try {
   });
   socket.addEventListener("message", event => {
     const message = JSON.parse(event.data);
-    if (message.method === "Network.loadingFailed") problems.push(message.params.errorText);
+    if (message.method === "Network.loadingFailed") {
+      if (message.params.canceled || message.params.errorText === "net::ERR_ABORTED") {
+        navigationAborts.push(message.params.errorText);
+      } else problems.push(message.params.errorText);
+    }
     if (message.method === "Runtime.exceptionThrown") {
       problems.push(message.params.exceptionDetails.text);
     }
@@ -116,7 +121,8 @@ try {
   if (problems.length || mutations.length) throw new Error(JSON.stringify({ problems, mutations }));
   const report = { base, checked_at: new Date().toISOString(),
     browser: (await call("Browser.getVersion")).product, checks,
-    network_errors: problems, mutation_count: mutations.length, passed: true };
+    network_errors: problems, expected_navigation_aborts: navigationAborts,
+    mutation_count: mutations.length, passed: true };
   await writeFile(path.join(output, "report.json"), JSON.stringify(report, null, 2) + "\n");
   console.log(JSON.stringify(report, null, 2));
 } finally {

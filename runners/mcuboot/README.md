@@ -1,4 +1,4 @@
-# MCUboot runner (WS-B) — `releaseproof/runner-mcuboot:0.1.0`
+# MCUboot runner — `releaseproof/runner-mcuboot:0.1.0`
 
 HTTP runner (shared `rp_runner` framework) for the **`mcuboot`** template family of
 `profiles/test_catalog.yaml`, used by profile `profiles/nrf52840-mcuboot-pqc.yaml`.
@@ -24,7 +24,7 @@ per-run build (new key every run) takes ~20 s. A job needs no network (verified 
 
 `smoke.py` POSTs `/execute` with all templates, validates every NDJSON event against
 `schemas/runner_event.schema.json` (`jsonschema` if importable — the backend venv has it — else a
-built-in validator), checks the fact vocabulary of `docs/WORKSTREAMS.md`, observation/artifact
+built-in validator), checks the fact vocabulary of `docs/RUNNER_PROTOCOL.md`, observation/artifact
 references and artifact SHA-256 on the host, and prints a summary. Exit 0 only if clean.
 
 ## How a run works
@@ -55,7 +55,7 @@ is therefore the one of the image actually booted, and the key prefix identifies
 equals the first 16 hex chars of `public_key_sha256`). One application binary is built; v1/v2 are
 the same binary signed with different header versions.
 
-## Templates and facts (per `docs/WORKSTREAMS.md`, MCUboot table)
+## Templates and facts (see `docs/RUNNER_PROTOCOL.md`, MCUboot table)
 
 | Template | test | Observations | Outcome rule |
 |---|---|---|---|
@@ -102,8 +102,8 @@ Configuration: board `nrf52840dk/nrf52840`, `SB_CONFIG_BOOTLOADER_MCUBOOT`,
 
 ## Decision log
 
-1. **Board nRF52840 kept, swap-using-move works — no fallback needed.** Spike passed on the first
-   attempt (MCUboot swap in ~12 s wall time). `direct-xip` / `overwrite-only` / STM32F4 fallbacks
+1. **Board nRF52840 kept, swap-using-move works — no fallback needed.** The first emulation
+   attempt passed (MCUboot swap in ~12 s wall time). `direct-xip` / `overwrite-only` / STM32F4 fallbacks
    were not used.
 2. **NVMC model written from scratch (MIT)** — `renode/rp_nrf52840_nvmc.cs`, compiled ad-hoc by
    Renode (`include @…cs`). Not derived from snhobbs/renode-nrf52840_flash (its license was not

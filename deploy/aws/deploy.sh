@@ -80,7 +80,7 @@ remote 'cloud-init status --wait >/dev/null || true; test -f /var/lib/releasepro
 
 log "syncing ${REPO_ROOT} -> ${HOST}:${REMOTE_DIR}"
 EXCLUDES=(
-  '/.git/' '.env' '.env.*' '/data/' '/general_docs/' 'backend/.venv/' '**/__pycache__/' '**/.pytest_cache/'
+  '/.git/' '.env' '.env.*' '/data/' '/general_docs/' '/demo-video/' 'backend/.venv/' '**/__pycache__/' '**/.pytest_cache/'
   '**/.ruff_cache/' 'web/node_modules/' 'web/.next/' 'web/out/' 'runners/**/work/' '*.egg-info/'
 )
 if command -v rsync >/dev/null; then
@@ -111,17 +111,17 @@ chmod 600 "$TMP_ENV"
 scp "${SSH_OPTS[@]}" -q "$TMP_ENV" "${TARGET}:${REMOTE_DIR}/.env"
 remote "chmod 600 ${REMOTE_DIR}/.env"
 
+COMPOSE_ARGS="-f docker-compose.yml"
+[[ "$PUBLIC" == 0 ]] || COMPOSE_ARGS+=" -f docker-compose.public.yml"
 if [[ "$BUILD" == 1 ]]; then
-  log "docker compose up -d --build (first build of the runner images takes a while)"
-  COMPOSE_ARGS="-f docker-compose.yml"
-  [[ "$PUBLIC" == 0 ]] || COMPOSE_ARGS+=" -f docker-compose.public.yml"
-  remote "cd ${REMOTE_DIR} && docker compose ${COMPOSE_ARGS} up -d --build --remove-orphans"
-else
-  log "docker compose up -d"
-  COMPOSE_ARGS="-f docker-compose.yml"
-  [[ "$PUBLIC" == 0 ]] || COMPOSE_ARGS+=" -f docker-compose.public.yml"
-  remote "cd ${REMOTE_DIR} && docker compose ${COMPOSE_ARGS} up -d --remove-orphans"
+  log "building images without restarting the running demo"
+  remote "cd ${REMOTE_DIR} && docker compose ${COMPOSE_ARGS} build"
 fi
+# Check immediately before replacement, not just before a potentially long build.
+# A busy demo aborts deployment rather than interrupting an assessment started meanwhile.
+remote "if docker ps --format '{{.Names}}' | grep -qx releaseproof-api-1; then docker exec releaseproof-api-1 python -c \"import json,urllib.request; runs=json.load(urllib.request.urlopen('http://localhost:8000/api/assessments?limit=200')); assert not any(r['status'] in ['RUNNING','QUEUED'] for r in runs), 'Active assessments: retry deployment after they finish'\"; fi"
+log "docker compose up -d (no active assessments)"
+remote "cd ${REMOTE_DIR} && docker compose ${COMPOSE_ARGS} up -d --remove-orphans"
 remote "cd ${REMOTE_DIR} && docker compose ps"
 
 if [[ "$SITE_ADDRESS" == :* ]]; then

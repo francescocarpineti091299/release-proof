@@ -455,7 +455,7 @@
   <div class="body">
     <div class="arch">
       <div class="zone">
-        <div class="zt"><span>Docker Compose · cloud target: AWS c7a / AMD EPYC</span><span class="chip warn" style="font-size:14px">Cloud deployment not attested</span></div>
+        <div class="zt"><span>Docker Compose · cloud: AWS c7a / AMD EPYC</span><span class="chip ok" style="font-size:14px">Live behind CloudFront</span></div>
         <div class="arow" style="grid-template-columns: 1fr 1fr 1fr">
           <div class="bx dk"><b>Browser · Next.js UI</b><span style="color:#94a3b8">wizard · live run (SSE) · evidence · alternatives · AMD panel</span></div>
           <div class="bx"><b>Caddy</b><span>auto-TLS edge · /api → api · / → web</span></div>
@@ -480,11 +480,11 @@
         <div class="zt"><span>AMD evidence</span></div>
          <div class="bx vi" style="margin-bottom:14px"><b>AMD Token Factory · managed GPU undisclosed</b><span>OpenAI-compatible, operator allow-listed host, reached through API egress only</span></div>
         <div class="evid">
-           <div class="r"><div class="kk">Host CPU</div><div>Deployment target: AMD EPYC 4th gen (EC2 c7a.2xlarge, 8 vCPU); cloud deployment not yet evidenced</div></div>
+           <div class="r"><div class="kk">Host CPU</div><div>AMD EPYC 4th gen (EC2 c7a.2xlarge, 8 vCPU) runs builds and Renode emulation for the public demo</div></div>
            <div class="r"><div class="kk">GPU</div><div>Managed GPU undisclosed; labels are not attestation</div></div>
            <div class="r"><div class="kk">Model</div><div>Google Gemma-4-31B-IT on AMD</div></div>
            <div class="r"><div class="kk">Serving</div><div>AMD Token Factory managed API</div></div>
-           <div class="r"><div class="kk">Sample</div><div>2-iteration run: 12/14 calls OK, 2 timeouts, schema-valid 1.0. Not a performance benchmark.</div></div>
+           <div class="r"><div class="kk">Smoke sample</div><div>10/10 logical calls OK with Gemma. Not a performance benchmark.</div></div>
            <div class="r"><div class="kk">Trust boundary</div><div>Buffered chat and reports check citation IDs and explicit verdict phases. This is not semantic proof of every sentence.</div></div>
            <div class="r"><div class="kk">Unknowns</div><div>Emulation ≠ silicon. Interrupted-update recovery stays UNKNOWN; no power-loss safety claim.</div></div>
         </div>

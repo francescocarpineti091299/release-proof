@@ -1,10 +1,10 @@
 # Deploy ReleaseProof on AWS (single host)
 
-**Live demo:** https://d1yxcnwgdgjzt6.cloudfront.net — distribution `EYOV800QNV3V`.
-The existing AWS runtime and scoped cleanup were independently checked on 2026-10-17:
-[`../../docs/INFRA_AUDIT_2026-10-17.md`](../../docs/INFRA_AUDIT_2026-10-17.md).
-It is operational but still uses older images: new API quotas
-and non-root/`runs/`-only runner controls in this repository are **not yet deployed**.
+**Live demo:** https://d1yxcnwgdgjzt6.cloudfront.net (CloudFront distribution `EYOV800QNV3V`).
+It runs the current release: the deployed source fingerprints, runner isolation and the
+live acceptance results are recorded in [`../../docs/EVIDENCE.md`](../../docs/EVIDENCE.md).
+Actual public browser, budgets, backup and deployment-safety checks:
+[`../../docs/DEPLOYMENT.md`](../../docs/DEPLOYMENT.md).
 
 One EC2 **c7a.2xlarge** (AMD EPYC 4th gen "Genoa", 8 vCPU, 16 GiB) running Ubuntu 24.04 LTS,
 60 GB encrypted gp3 root volume, an Elastic IP, and the whole stack under Docker Compose with
@@ -68,11 +68,10 @@ and every AI stage reports `AI_UNAVAILABLE` (verdicts are unaffected).
 
 ## 3. Deploy
 
-Internet judging defaults to the anonymous `docker-compose.public.yml` override.
-The owner requires no login/password for judges. HTTPS, supported-only fixtures and API
-job/request budgets remain required. `--trusted-local` bypasses the public demo settings
-for private debugging only; do not use it for the internet-facing release.
-The public health check requires anonymous HTTP 200 and rejects a login gate.
+Internet deployments default to the anonymous `docker-compose.public.yml` override: no viewer
+login, HTTPS only, supported fixtures only and bounded API jobs/requests. `--trusted-local`
+bypasses the public settings for private debugging only; never use it for an internet-facing
+release. The post-deploy health check requires an anonymous HTTP 200.
 
 ```bash
 deploy/aws/deploy.sh                                   # https://A-B-C-D.sslip.io

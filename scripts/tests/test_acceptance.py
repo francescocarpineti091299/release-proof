@@ -3,7 +3,7 @@ from __future__ import annotations
 import hashlib
 import json
 import urllib.error
-from datetime import UTC, datetime
+from datetime import UTC, datetime, timedelta
 
 import acceptance
 import pytest
@@ -116,6 +116,64 @@ def test_complete_run_passes_without_ai_and_uses_fresh_keys():
     for _ in range(2):
         assert acceptance.run_profile(api, CONFIG, require_ai=False, timeout=1)["passed"]
     assert len(set(api.keys)) == 2
+
+
+class ResumedApi(RecordedApi):
+    def __init__(self, *, mode="LIVE", configuration="profile", age_minutes=0):
+        super().__init__()
+        self.run = super().post("/api/assessments", {"idempotency_key": "fixture-only"})
+        self.run.update(mode=mode, configuration_id=configuration, change_id="change")
+        self.run["created_at"] = (datetime.now(UTC) - timedelta(minutes=age_minutes)).isoformat()
+        self.keys.clear()
+
+    def post(self, path, body):
+        raise AssertionError("Resuming must not create an assessment")
+
+    def get(self, path):
+        return self.run if path == "/api/assessments/run" else super().get(path)
+
+
+def test_resume_keeps_all_proof_checks_without_creating_duplicate_run():
+    api = ResumedApi()
+    report = acceptance.run_profile(
+        api,
+        CONFIG,
+        require_ai=False,
+        timeout=1,
+        resume_run_id="run",
+        deployed_after=datetime.now(UTC) - timedelta(minutes=1),
+    )
+    assert report["passed"]
+    assert not api.keys
+    assert any(
+        g["gate"] == "resumed LIVE run created after verified deployment" for g in report["gates"]
+    )
+    assert not any(g["gate"] == "run created now" for g in report["gates"])
+
+
+@pytest.mark.parametrize("kwargs", [{"mode": "REFERENCE"}, {"configuration": "wrong"}])
+def test_resume_refuses_reference_or_mismatched_configuration(kwargs):
+    with pytest.raises(ValueError, match="LIVE and match"):
+        acceptance.run_profile(
+            ResumedApi(**kwargs),
+            CONFIG,
+            require_ai=False,
+            timeout=1,
+            resume_run_id="run",
+            deployed_after=datetime.now(UTC) - timedelta(minutes=1),
+        )
+
+
+def test_resume_refuses_evidence_from_before_deployment():
+    report = acceptance.run_profile(
+        ResumedApi(age_minutes=20),
+        CONFIG,
+        require_ai=False,
+        timeout=1,
+        resume_run_id="run",
+        deployed_after=datetime.now(UTC) - timedelta(minutes=1),
+    )
+    assert not report["passed"]
 
 
 @pytest.mark.parametrize("kwargs", [{"missing_required": True}, {"empty_result": True}])

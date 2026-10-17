@@ -1,4 +1,4 @@
-# ReleaseProof web UI (WS-F)
+# ReleaseProof web UI
 
 Next.js 16 (App Router), React 19, TypeScript strict, Tailwind 4. English, API-driven, no per-run hardcoded text.
 
@@ -42,7 +42,7 @@ In production, Caddy routes `/api/*` to the API and everything else to `web:3000
 - `lib/semantics.ts`: verdict wording and colours, stage labels, deterministic causes/unknowns derived from the V1.2 result.
 - `components/run/use-live-run.ts`: live state (REST snapshot + SSE patches + polling fallback).
 
-## API used (aligned with the running backend, WS-C)
+## API used
 
 `GET /api/configurations` (ConfigurationView: changes → templates[required], alternatives, est_seconds_total) ·
 `GET /api/catalog/tests` · `GET|POST /api/assessments` (`Idempotency-Key` header + body key) · `GET /api/assessments/{id}` ·
@@ -64,4 +64,4 @@ Live views retry when the initial REST load fails, subscribe after recovery, ign
 
 Run path parameters are already decoded by App Router and are not decoded a second time. Assistant histories are scoped to each run; cancelled/empty replies do not leave a permanent loading placeholder. Raw HTML is not enabled in Markdown, and artifact URLs from API payloads cannot activate `javascript:`, `data:` or `file:` schemes.
 
-This is not an authentication or authorization boundary. Deploy behind access controls/rate limits appropriate to the backend and AI costs. Network integration with the real runner/AMD endpoint and browser-level focus/layout/accessibility testing are separate from these unit tests and production builds; they require a running backend and browser tooling.
+The UI is not an authentication or authorization boundary; job and request budgets are enforced by the API. Network integration with the real runner/AMD endpoint and browser-level focus/layout/accessibility testing are separate from these unit tests and production builds; they require a running backend and browser tooling.

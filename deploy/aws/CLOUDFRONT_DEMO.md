@@ -33,23 +33,19 @@ distribution, not the dynamic-DNS origin hostname.
 - A 60-second origin idle-read timeout accommodates the live event stream.
 - No application, database, runner, origin certificate or existing distribution is replaced.
 
-## Origin network and latest infrastructure check
+## Origin network
 
-See [`../../docs/INFRA_AUDIT_2026-10-17.md`](../../docs/INFRA_AUDIT_2026-10-17.md).
-Origin TCP/443 now accepts only AWS's CloudFront origin-facing prefix list; operator SSH
-is unchanged, public HTTP/80 remains for ACME HTTP-01, and unused origin IPv6/QUIC ingress
-was removed. This does not disable viewer HTTP/3. Direct HTTPS origin checks from the
-operator's workstation are intentionally blocked: use the viewer URL or loopback over SSH.
-The prefix list allows CloudFront generally, not exclusively this distribution.
+Origin TCP/443 accepts only AWS's CloudFront origin-facing prefix list. Operator SSH is limited
+to one address, public HTTP/80 remains for ACME HTTP-01, and there is no origin IPv6/QUIC
+ingress. Viewer HTTP/3 is unaffected. Direct HTTPS origin checks from a workstation are
+intentionally blocked: use the viewer URL, or loopback over SSH.
+The prefix list admits CloudFront generally, not exclusively this distribution.
 
 Provisioning supports `--cloudfront-origin` and preserves an existing CloudFront-only rule.
-Use `deploy.sh --viewer-url https://d1yxcnwgdgjzt6.cloudfront.net` for future deployment checks.
+Use `deploy.sh --viewer-url https://d1yxcnwgdgjzt6.cloudfront.net` for deployment checks.
 The source `SITE_ADDRESS` must remain the origin hostname, not the viewer hostname.
-
-Post-cleanup read-only UI/API/result/manifest checks passed. Private research copies and
-893.9 MB of superseded build cache were removed; persistent data/current images were retained.
-The older AWS runtime is still anonymous, lacks new API budget limits and uses root runners
-with the full data volume. Do not infer repository hardening from CloudFront's presence.
+The current release's transport check is
+[`../../docs/acceptance/aws-release-transport-20261017.json`](../../docs/acceptance/aws-release-transport-20261017.json).
 
 ## Create and verify
 
@@ -84,9 +80,8 @@ retry, live SSE, the resulting verdict and the manifest download/hash. Without
 `--live`, it performs read-only UI/API checks and checks an existing run if present.
 This is an access/transport smoke test, not the full profile acceptance gate.
 
-CloudFront does not add or remove application authentication. Keep the public
-gateway and API capacity limits appropriate for the demo; do not upload sensitive
-firmware or credentials. Corporate policies can still block a viewer hostname;
+CloudFront does not add or remove application authentication. The API's job and
+request budgets apply behind it; do not upload sensitive firmware or credentials. Corporate policies can still block a viewer hostname;
 request approval from the network administrator in that case rather than disabling
 browser or network security.
 

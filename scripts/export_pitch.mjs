@@ -3,6 +3,7 @@ import { spawn } from "node:child_process";
 import { createHash } from "node:crypto";
 import { existsSync } from "node:fs";
 import { mkdir, mkdtemp, readFile, writeFile } from "node:fs/promises";
+import os from "node:os";
 import path from "node:path";
 import { fileURLToPath, pathToFileURL } from "node:url";
 
@@ -13,9 +14,7 @@ const browser = process.env.RELEASEPROOF_BROWSER || [
   "/usr/bin/chromium", "/usr/bin/google-chrome",
 ].find(existsSync);
 if (!browser) throw new Error("Set RELEASEPROOF_BROWSER to an installed Chromium browser.");
-const tempRoot = process.platform === "win32"
-  ? path.join(process.env.LOCALAPPDATA, "Temp", "opencode")
-  : process.env.TMPDIR || "/tmp";
+const tempRoot = os.tmpdir();
 await mkdir(tempRoot, { recursive: true });
 const profile = await mkdtemp(path.join(tempRoot, "releaseproof-pitch-"));
 const child = spawn(browser, ["--headless=new", "--no-first-run", "--no-default-browser-check",

@@ -42,46 +42,53 @@ flowchart LR
 
 ## Trust boundaries
 
-The bullets below describe the hardened repository configuration. The existing AWS demo
-still runs older images: it is anonymous, lacks the new API quotas and has root runners
-mounting the full data volume. See the independently checked
-[`INFRA_AUDIT_2026-10-17.md`](INFRA_AUDIT_2026-10-17.md) for deployed controls and outstanding drift.
+These controls are deployed on the public demo; see [`EVIDENCE.md`](EVIDENCE.md) §2 for the
+container inspection collected from the running host.
 
-- LLM output is untrusted: JSON-schema validation, allow-lists, citation checks, verdict echo check.
-- Tool output (logs/UART) passed to the LLM is wrapped as untrusted data (prompt-injection defense).
-- Runner network is `internal`; secrets only in the API container.
-- The endpoint allow-list is an operator configuration, not GPU attestation. The managed
-  Token Factory smoke records an undisclosed GPU; MI300X is a separate self-hosted option.
-- The owner requires anonymous public judging: the UI/API have no login or password gate.
-  HTTPS, active-job and POST request limits remain enabled. There is no customer/tenant boundary:
-  only pinned open fixtures are accepted. Anonymous access is intentional, not customer authorization.
-- The final target is AWS only, behind CloudFront; the abandoned Azure scaffolding was removed.
-  Judges need no token, password or cloud account.
-- Runners run as UID 10001 with all capabilities dropped. They mount only the `runs/` volume
-  subpath, never SQLite. They still share a trusted artifact namespace; this is not a hostile
-  multi-tenant sandbox or a general uploaded-firmware service.
-- New manifests record LF-normalized source fingerprints for backend, core, adapters and runner
-  code/assets. Historical results keep their original hashes and implementation limitations.
-- Assistant text is buffered through upstream completion and validated for citation IDs and
-  phase-specific verdict labels before any generated text is shown. This is not a formal proof
-  of natural-language entailment; human engineering review remains necessary.
-- Run one API process/worker per data volume. Runner slot coordination and restart recovery are
-  process-local; multiple uvicorn workers or API replicas are not supported on the same SQLite store.
-- Graceful shutdown drains active runner/AI operations before closing SQLite. It can take as long
-  as those operations; a forced container/process kill interrupts the run. Restart recovery marks
-  interrupted work failed, never successful or replayed from reference data.
-- Artifact paths are confined to their owner's run directory, and downloads verify size/hash.
-  Invalid runner IDs/paths fail the protocol; changed artifacts return HTTP 409. The shared volume
-  must be trusted: verification and file serving are not an atomic snapshot against hostile writers.
-- The AI gateway rejects credential-bearing/query/fragment endpoint URLs, malformed responses,
-  and streams lacking the terminal OpenAI-compatible `[DONE]` marker. SSE cursors must fit a
-  non-negative signed 64-bit SQLite integer; invalid `after` query values return HTTP 422.
-- The public viewer URL is `https://d1yxcnwgdgjzt6.cloudfront.net`. CloudFront connects to
-  Caddy over HTTPS using the origin Host/SNI; it forwards viewer headers except Host and
-  disables caching for API results, SSE and UI. Local development bypasses CloudFront.
-- Origin HTTPS ingress uses AWS's CloudFront origin-facing prefix list; HTTP/80 remains for
-  ACME HTTP-01, and SSH remains operator-only. Shared prefix-list admission is not viewer
-  authentication or a per-distribution origin secret.
-- Local acceptance alone does not establish cloud deployment/source identity. See
-  [`CODE_AUDIT.md`](CODE_AUDIT.md) for historical offline verification and the separate
-  [`INFRA_AUDIT_2026-10-17.md`](INFRA_AUDIT_2026-10-17.md) for actual cloud/transport checks.
+### AI boundary
+
+- **LLM output is untrusted.** It passes JSON-schema validation, template allow-lists, a check
+  that every cited evidence ID exists, and an exact echo of the engine verdicts.
+- **Tool output is wrapped as untrusted data** before it reaches the LLM (logs and UART
+  captures), as a defence against prompt injection.
+- **Assistant text is held back until checked.** It is buffered until the upstream stream
+  completes, then citation IDs and phase-specific verdict labels are validated before anything
+  is shown. This is not a formal proof of natural-language entailment; engineering review
+  remains part of the workflow.
+- **Endpoint restrictions.** The AI gateway rejects endpoint URLs that carry credentials, a
+  query or a fragment. It also rejects malformed responses and streams without the terminal
+  `[DONE]` marker.
+- **The allow-list is configuration, not attestation.** The endpoint allow-list is operator
+  configuration; it does not attest which GPU serves the model. AMD Token Factory does not
+  disclose its GPU. MI300X is a separate self-hosted option.
+
+### Execution boundary
+
+- **Runners are isolated and unprivileged.** They sit on an `internal` Docker network with no
+  internet route, and API secrets stay in the API container only. They run as UID 10001 with all
+  capabilities dropped and mount only the `runs/` volume subpath, never SQLite.
+- **Runners share one trusted artifact namespace.** That suits pinned open-source fixtures; it
+  is not a sandbox for hostile uploaded firmware.
+- **Artifact paths are confined to their owner run's directory.** Downloads verify size and
+  hash, and a changed artifact returns HTTP 409.
+- **Manifests record implementation identity.** Each one holds LF-normalized source
+  fingerprints for the backend, engine, adapters and runner code. The acceptance gate compares
+  them with the repository.
+
+### Public access
+
+- **The demo is deliberately anonymous.** Viewers need no account, token or password. HTTPS is
+  enforced, and the API bounds concurrent jobs (`RELEASEPROOF_MAX_ACTIVE_RUNS`) and POST rate
+  (`RELEASEPROOF_MUTATION_RPM`). Only pinned open-source fixtures can be assessed.
+- **CloudFront is a pass-through.** It serves `https://d1yxcnwgdgjzt6.cloudfront.net` and
+  connects to Caddy over validated HTTPS. It forwards viewer headers except Host and has caching
+  disabled for the UI, API and SSE.
+- **The origin accepts HTTPS only from CloudFront.** It uses AWS's origin-facing prefix list.
+  HTTP/80 stays open for ACME renewal, and SSH is limited to the operator address.
+
+### Operations
+
+- **One API process per data volume.** Runner slot coordination and restart recovery are
+  process-local.
+- **Graceful shutdown drains active work** before closing SQLite. Restart recovery marks
+  interrupted runs `FAILED`; they are never marked successful or replayed from reference data.

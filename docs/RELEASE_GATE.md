@@ -33,10 +33,10 @@ backend/.venv/Scripts/python.exe scripts/release_gate.py `
 ```
 
 Use the actual change and plan IDs returned by `/api/configurations`; do not select the latest
-run implicitly. Pin these CI expectations to the product line being assessed. Public access uses
-HTTPS and credentials from `RELEASEPROOF_DEMO_USER` / `RELEASEPROOF_DEMO_PASSWORD` environment
-variables, never command-line arguments. Redirects are refused. Never use public demo credentials
-in untrusted pull-request workflows.
+run implicitly. Pin these CI expectations to the product line being assessed. Remote access
+requires HTTPS and refuses redirects. For a protected private deployment, optional Basic
+credentials are read from `RELEASEPROOF_DEMO_USER` / `RELEASEPROOF_DEMO_PASSWORD`, never from
+command-line arguments. The public demo needs none.
 
 Offline verification of the same immutable pack:
 
@@ -75,8 +75,7 @@ supported emulated configuration, not fleet-wide or power-loss safety.
 `.github/workflows/release-preflight.yml` is a manually invoked integration for an existing trusted
 run. It downloads the pack, evaluates the policy and uploads the report even when BLOCK/ERROR.
 Pin the trusted HTTPS origin in repository variable `RELEASEPROOF_BASE_URL`; it is not a dispatch
-input that could redirect downloads to an arbitrary service. The judging demo is intentionally
-anonymous; no demo username/password secrets are required by the workflow.
-The service must already be deployed; this workflow does not provision
-cloud resources, create a firmware release or deliver OTA. It has offline regression coverage,
-but no execution on GitHub or public production deployment is attested by its presence.
+input that could redirect downloads to an arbitrary service. No secrets are required against the
+public demo. The service must already be deployed: this workflow does not provision cloud
+resources, create a firmware release or deliver OTA. Its behaviour is covered by offline
+regression tests.

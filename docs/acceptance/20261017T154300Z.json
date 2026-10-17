@@ -1,0 +1,164 @@
+[
+  {
+    "profile": "nrf52840-mcuboot-pqc",
+    "change": "ecdsa_p256_to_mldsa",
+    "run_id": "RP-20261017T153852Z-f70898",
+    "verdict": {
+      "lifecycle": "COMPLETED",
+      "migration": "INCOMPATIBLE",
+      "candidate": "INCOMPATIBLE",
+      "transition": "INCOMPATIBLE",
+      "canonical_hash": "sha256:1c5a638aec2c897c3f86e2430f391531011d31ce0d6d8e54e6a27cc4ed885bcc",
+      "official": false
+    },
+    "gates": [
+      {
+        "gate": "run reached a terminal state",
+        "ok": true,
+        "detail": "SUCCEEDED"
+      },
+      {
+        "gate": "run is LIVE (not replay)",
+        "ok": true,
+        "detail": "LIVE"
+      },
+      {
+        "gate": "run created now",
+        "ok": true,
+        "detail": "2026-10-17T15:38:52.304Z"
+      },
+      {
+        "gate": "pipeline succeeded",
+        "ok": true,
+        "detail": "None"
+      },
+      {
+        "gate": "tests executed",
+        "ok": true,
+        "detail": "6/6"
+      },
+      {
+        "gate": "required templates executed",
+        "ok": true,
+        "detail": ""
+      },
+      {
+        "gate": "at least one negative test observed",
+        "ok": true,
+        "detail": "mcuboot.tampered_image_rejected, mcuboot.cross_key_update"
+      },
+      {
+        "gate": "positive boot observed (E01)",
+        "ok": true,
+        "detail": ""
+      },
+      {
+        "gate": "build/sign stage succeeded",
+        "ok": true,
+        "detail": ""
+      },
+      {
+        "gate": "deterministic verdict issued",
+        "ok": true,
+        "detail": "INCOMPATIBLE (cand INCOMPATIBLE, trans INCOMPATIBLE)"
+      },
+      {
+        "gate": "official flag is false",
+        "ok": true,
+        "detail": ""
+      },
+      {
+        "gate": "result available",
+        "ok": true,
+        "detail": ""
+      },
+      {
+        "gate": "canonical result hash recomputed",
+        "ok": false,
+        "detail": ""
+      },
+      {
+        "gate": "result hash matches run verdict",
+        "ok": true,
+        "detail": ""
+      },
+      {
+        "gate": "evidence belongs to this run",
+        "ok": true,
+        "detail": "14/16"
+      },
+      {
+        "gate": "manifest hash recorded",
+        "ok": true,
+        "detail": ""
+      },
+      {
+        "gate": "artifacts recorded",
+        "ok": true,
+        "detail": "45"
+      },
+      {
+        "gate": "manifest artifact matches result digest",
+        "ok": true,
+        "detail": ""
+      },
+      {
+        "gate": "artifact sha256 verified (all)",
+        "ok": true,
+        "detail": ""
+      },
+      {
+        "gate": "manifest identifies this run and assessment",
+        "ok": true,
+        "detail": ""
+      },
+      {
+        "gate": "deployed backend matches current source",
+        "ok": false,
+        "detail": ""
+      },
+      {
+        "gate": "runner code identity recorded",
+        "ok": false,
+        "detail": ""
+      },
+      {
+        "gate": "deployed runner matches current source",
+        "ok": false,
+        "detail": ""
+      },
+      {
+        "gate": "AMD LLM called for this run",
+        "ok": true,
+        "detail": "planner:self-dploy/Gemma-4-31B-IT@developer.amd.com.cn, explainer:self-dploy/Gemma-4-31B-IT@developer.amd.com.cn, alternatives:self-dploy/Gemma-4-31B-IT@developer.amd.com.cn"
+      },
+      {
+        "gate": "accepted AMD plan was executed",
+        "ok": true,
+        "detail": ""
+      },
+      {
+        "gate": "AMD explainer validated for this run",
+        "ok": true,
+        "detail": ""
+      },
+      {
+        "gate": "AMD alternatives validated for this run",
+        "ok": true,
+        "detail": ""
+      }
+    ],
+    "passed": false
+  },
+  {
+    "profile": "nrf52840-wolfboot-pqc",
+    "passed": false,
+    "gates": [
+      {
+        "gate": "API response available and valid",
+        "ok": false,
+        "detail": "HTTP Error 502: Bad Gateway"
+      }
+    ]
+  }
+]

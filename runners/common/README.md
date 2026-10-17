@@ -1,7 +1,6 @@
-# Runner safety audit — 2026-10-17
+# Runner safety model
 
-Changes are confined to `runners/`; no backend contracts, source pins or historical
-artifacts were changed.
+Shared rules that every runner (`rp_runner`) follows when reporting execution and evidence.
 
 ## Corrected evidence boundaries
 

@@ -169,3 +169,41 @@ def test_read_only_smoke_uses_completed_history_during_an_active_run(monkeypatch
     assert report["passed"] is True
     assert report["run_id"] == "completed"
     assert not any("/active/result" in path for path in called)
+
+
+@requires_bash
+def test_deploy_refuses_jobs_started_during_the_build(tmp_path):
+    key = tmp_path / "key.pem"
+    key.write_text("test-key-not-a-real-secret")
+    log = tmp_path / "remote.log"
+    command = """
+ssh() {
+  printf '%s\\n' "$*" >> "$REMOTE_LOG"
+  if [[ "$*" == *'Active assessments: retry deployment'* ]]; then
+    echo 'Active assessments' >&2; return 23
+  fi
+}
+scp() { return 0; }
+rsync() { return 0; }
+curl() { return 0; }
+export -f ssh scp rsync curl
+bash "$1" --host 127.0.0.1 --key "$2" --env-file "$3" \\
+  --site-address :80 --trusted-local
+"""
+    result = subprocess.run(
+        [
+            BASH,
+            "-c",
+            command,
+            "test",
+            (ROOT / "deploy/aws/deploy.sh").as_posix(),
+            key.as_posix(),
+            (ROOT / ".env.example").as_posix(),
+        ],
+        env={**os.environ, "HOME": tmp_path.as_posix(), "REMOTE_LOG": log.as_posix()},
+        capture_output=True,
+        text=True,
+    )
+    assert result.returncode == 23
+    assert "docker-compose.yml build" in log.read_text()
+    assert " up -d" not in log.read_text()
