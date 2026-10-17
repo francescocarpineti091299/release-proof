@@ -19,6 +19,7 @@ import secrets
 import threading
 from collections import deque
 from collections.abc import Callable, Iterator
+from concurrent.futures import ThreadPoolExecutor
 from dataclasses import dataclass, field
 from datetime import UTC, datetime
 from functools import lru_cache
@@ -1153,10 +1154,11 @@ class Orchestrator:
             tests = [t.model_dump(mode="json") for t in self.run_view(ctx.run_id).tests]
             ai = self.deps.ai(self.trace_sink)
             reason = self.deps.ai_error or "AI service unavailable"
-            if ai is None:
-                report = AIReportView(status=AIStatus.AI_UNAVAILABLE, message=reason)
-            else:
-                report = self._safe_ai(
+
+            def _explain() -> AIReportView:
+                if ai is None:
+                    return AIReportView(status=AIStatus.AI_UNAVAILABLE, message=reason)
+                return self._safe_ai(
                     AIReportView,
                     lambda: ai.explain(
                         run_id=ctx.run_id,
@@ -1168,6 +1170,19 @@ class Orchestrator:
                         test_results=tests,
                     ),
                 )
+
+            def _alternatives() -> AIAlternativesView:
+                return self._alternatives_view(
+                    ctx.run_id, ctx.profile, ctx.change, ctx.plan_id, ctx.assessment, ctx.result
+                )
+
+            # Both calls are independent: run them concurrently (each takes tens of seconds on
+            # the hosted endpoint); results are persisted on this thread, in a fixed order.
+            with ThreadPoolExecutor(max_workers=2, thread_name_prefix="rp-ai") as pool:
+                report_future = pool.submit(_explain)
+                alternatives_future = pool.submit(_alternatives)
+                report = report_future.result()
+                alternatives = alternatives_future.result()
             self.store.update_run(ctx.run_id, ai_report=report.model_dump(mode="json"))
             self._emit(
                 ctx.run_id,
@@ -1178,9 +1193,6 @@ class Orchestrator:
                     "status": report.status.value,
                     "view": report.model_dump(mode="json"),
                 },
-            )
-            alternatives = self._alternatives_view(
-                ctx.run_id, ctx.profile, ctx.change, ctx.plan_id, ctx.assessment, ctx.result
             )
             self.store.update_run(ctx.run_id, ai_alternatives=alternatives.model_dump(mode="json"))
             self._emit(
