@@ -4,6 +4,15 @@ from __future__ import annotations
 
 from typing import Any
 
+# Engine finding texts are part of the V1.2 golden hash and stay untouched in the result;
+# the dossier renders them in English.
+_FINDING_EN = {
+    "Violazione non critica: non modifica il verdict": (
+        "Non-critical violation: recorded, does not change the verdict"
+    ),
+    "Azione fuori dall'AllowedChangeSet": "Action outside the allowed change set",
+}
+
 
 def render_dossier_markdown(
     assessment: dict[str, Any],
@@ -16,7 +25,7 @@ def render_dossier_markdown(
     lines: list[str] = [
         "# Assessment dossier",
         "",
-        "> **official=false** — vista del risultato automatico, non un dossier ufficiale.",
+        "> **official=false** — automated engineering assessment, not an official certification.",
         "",
         "## 1. Assessment identity",
         "",
@@ -28,17 +37,32 @@ def render_dossier_markdown(
         "",
         "## 2. Target and versions",
         "",
-        f"- **board**: {meta.get('board', '—')}",
-        f"- **freeze_at**: {meta.get('freeze_at', '—')}",
-        f"- **wolfboot_commit**: `{meta.get('wolfboot_commit', '—')}`",
-        "",
-        "## 3. Declared change",
-        "",
-        f"- **plan_id**: {(assessment.get('transition_plan') or {}).get('plan_id', '—')}",
     ]
+    if meta:
+        for key, value in meta.items():
+            lines.append(f"- **{key}**: `{value if value not in (None, '') else '—'}`")
+    else:
+        lines.append("- (no target metadata)")
+    lines.extend(
+        [
+            "",
+            "## 3. Declared change",
+            "",
+            f"- **plan_id**: {(assessment.get('transition_plan') or {}).get('plan_id', '—')}",
+        ]
+    )
     allowed = assessment.get("allowed_change_set") or {}
     lines.append(f"- **modifiable_components**: {allowed.get('modifiable_components', [])}")
-    lines.extend(["", "## 4. Scope and limitations", "", "- Valutazione automatica V1.2.", ""])
+    lines.extend(
+        [
+            "",
+            "## 4. Scope and limitations",
+            "",
+            "- Automated evaluation under semantic contract V1.2, limited to the modelled target,",
+            "  the emulated platform and the evidence listed below.",
+            "",
+        ]
+    )
     lines.extend(
         [
             "## 5. Executive verdict",
@@ -52,9 +76,10 @@ def render_dossier_markdown(
         ]
     )
     for finding in result.get("findings") or []:
-        lines.append(f"- **{finding.get('requirement_id')}**: {finding.get('observation')}")
+        text = str(finding.get("observation"))
+        lines.append(f"- **{finding.get('requirement_id')}**: {_FINDING_EN.get(text, text)}")
     if not result.get("findings"):
-        lines.append("- (nessun finding strutturato)")
+        lines.append("- (no structured findings)")
     lines.extend(["", "## 7. Requirements and invariants", ""])
     for row in result.get("requirement_evaluation_results") or []:
         if not row.get("critical_for_verdict"):
@@ -88,7 +113,7 @@ def render_dossier_markdown(
         for item in contrary:
             lines.append(f"- `{item.get('id')}`")
     else:
-        lines.append("- Nessuna prova contraria nel risultato.")
+        lines.append("- No contrary evidence in the result.")
     if gap_plan:
         lines.extend(["", "## 11. Gap planner", ""])
         for plan in gap_plan:
@@ -99,12 +124,10 @@ def render_dossier_markdown(
     lines.extend(
         [
             "",
-            "## 12. Reproduction metadata",
+            "## 12. Reproduction",
             "",
-            "```text",
-            "python -m src.demo.verify",
-            "python -m src.demo.export_catalog",
-            "```",
+            "Re-run the same configuration from the ReleaseProof UI or API; compare the",
+            "`manifest.json` of both runs (pins, artifact sha256, result canonical hash).",
             "",
         ]
     )

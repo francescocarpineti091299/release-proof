@@ -1096,13 +1096,9 @@ class Orchestrator:
     ) -> str:
         pins = run_row.get("source_pins") or {}
         bootloader = ctx.profile.bootloader
-        if bootloader.family == "wolfboot":
-            commit = next(
-                (v for k, v in pins.items() if "wolfboot" in k.lower()), bootloader.commit
-            )
-        else:
-            pin = next((v for k, v in pins.items() if "mcuboot" in k.lower()), bootloader.commit)
-            commit = f"n/a ({bootloader.name} {pin})"
+        family_pin = next(
+            (v for k, v in pins.items() if bootloader.family in k.lower()), bootloader.commit
+        )
         evidence_label = (
             f"live run {ctx.run_id} ({ctx.created_at})"
             if ctx.mode == RunMode.LIVE
@@ -1114,8 +1110,8 @@ class Orchestrator:
             gap_plan=gap_plan,
             meta={
                 "board": ctx.profile.board.name,
-                "freeze_at": evidence_label,
-                "wolfboot_commit": commit,
+                "bootloader": f"{bootloader.name} {family_pin}",
+                "evidence": evidence_label,
             },
         )
         lines = [

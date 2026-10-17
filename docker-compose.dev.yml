@@ -1,6 +1,10 @@
-# Local development override: exposes the API on the host and enables experimental profiles.
-#   docker compose -f docker-compose.yml -f docker-compose.dev.yml up -d --build api runner-wolfboot runner-mcuboot
+# Local development override: exposes the API on the host, enables experimental profiles and
+# serves the full stack through Caddy on http://localhost:8080.
+#   docker compose -f docker-compose.yml -f docker-compose.dev.yml up -d --build
 services:
+  caddy:
+    ports: !override
+      - "8080:80"
   api:
     ports:
       - "8000:8000"
