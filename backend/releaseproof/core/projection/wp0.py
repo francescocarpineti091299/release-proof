@@ -7,7 +7,11 @@ import json
 from pathlib import Path
 from typing import Any
 
-from releaseproof.core.evidence.map import evidence_from_wp0_runs, evidence_gaps_for_wp0, layout_measurement
+from releaseproof.core.evidence.map import (
+    evidence_from_wp0_runs,
+    evidence_gaps_for_wp0,
+    layout_measurement,
+)
 from releaseproof.core.paths import CONTRACT_PACK
 
 _PACK = CONTRACT_PACK

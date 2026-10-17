@@ -50,14 +50,38 @@ releaseproof/
 
 Legend: ☐ todo · ◐ in progress · ☑ done · ✖ blocked
 
-### Phase 0 — Foundations (13:50 → 15:30)
-- ☐ Scaffold repo, LICENSE (MIT), CODE_PROVENANCE, THIRD_PARTY_NOTICES
-- ☐ Port `src/` → `backend/releaseproof/core`, contract pack → `contract/`; all ported tests + golden hashes green
-- ☐ D05 additive patch + regression test
-- ☐ Shared contracts: RunnerEvent/Observation schema, profile schema, test catalog, AI schemas (TestPlanProposal, NarrativeReport, ChangeProposal), API models
-- DoD: `pytest` green, golden baseline/signer-bound hashes unchanged.
+### Phase 0 — Foundations (13:50 → 15:30) — ☑ DONE 15:10
+- ☑ Scaffold repo (git, LF), LICENSE (MIT), CODE_PROVENANCE, THIRD_PARTY_NOTICES
+- ☑ Port `src/` → `backend/releaseproof/core` (paths centralised in `core/paths.py`), contract pack → `contract/`, freeze run records → `reference/wp0-freeze-20261001/`; 55 ported tests + golden hashes green
+- ☑ D05 additive patch (`test_id` E03/A4 fallback) + regression tests (golden unchanged)
+- ☑ Shared contracts: `contracts/{runner,ai,profile,api,services}.py`, JSON Schemas in `schemas/`, registry loader, `profiles/*.yaml`, `test_catalog.yaml`
+- ☑ Runner framework `runners/common/rp_runner` (events, proc w/ process-group kill, template engine, HTTP NDJSON server) + protocol test
+- ☑ `docs/WORKSTREAMS.md`: ownership, fact vocabulary, orchestration rules
+- Result: 64 tests green.
+- As-is notes: POC tests excluded from port (demo/export/catalog/wp0-harness: replaced by new modules); engine Italian finding strings kept (part of golden hash).
+- Plan delta: AI_PLAN runs before DISCOVERY (single runner call); profiles start `EXPERIMENTAL` and are promoted to `SUPPORTED` only by the acceptance gate.
 
-### Phase 1 — Parallel workstreams (15:30 → 19:00)
+### Phase 1 — Parallel workstreams (15:10 → 19:00) — ◐ launched 15:15 (6 agents)
+- ☑ WS-D AI gateway (111 tests at merge) — note: `AMD_LLM_ALLOWED_HOSTS` must be set explicitly to the real AMD endpoint host
+- ☑ WS-A wolfBoot runner — image 3.4 GB, full run ≈64 s; all 8 templates reproduce frozen facts (840 / 12876 B, E11 UNSUPPORTED, O05 BUILD_FAILED); X01 REJECTED and P01 REJECT observed live
+- ☑ WS-E adapters — 66 tests; coverage-gated requirements so missing facts ⇒ UNKNOWN; live verdict expectation A: candidate COMPATIBLE (with P01) / transition INCOMPATIBLE; field_service_reflash ⇒ transition INDETERMINATE (I4 unknown)
+- Tech-lead decisions on WS-E open questions:
+  - REQ-AUTH-NEGATIVE as TRANSITION + critical: **accepted** (deployed verifier must reject tampered images).
+  - No HYBRID_OR derivation from P01 ACCEPT: **accepted**.
+  - X01/E08 informational (shown as evidence, not requirements): **accepted** for V1.2.
+  - S1 (ML-DSA bootloader + ECDSA firmware) is not bootable per P01 — real hazard, invisible to I1. **Open**: surface as a finding in the UI/AI explanation; engine change deferred (would be V1.3).
+- ☑ WS-B MCUboot runner — Zephyr v4.2.0 + MCUboot 4eba8087, own MIT NVMC model, swap-using-move works first try (no fallback); full run ≈66 s; offline (`--network none`) verified; E02 imgtool 2.2.0 refuses ml-dsa (measured)
+- ☑ **Real-stream integration check (17:30)**: recorded NDJSON from both live containers → adapters → `evaluate()`:
+
+| Profile / plan | Candidate | Transition | Migration |
+|---|---|---|---|
+| wolfBoot / bootloader_self_update | COMPATIBLE | INCOMPATIBLE (REQ-BOOT-S0S1) | INCOMPATIBLE |
+| wolfBoot / field_service_reflash | COMPATIBLE | INDETERMINATE (I4, maintenance condition) | INDETERMINATE |
+| wolfBoot / staged_hybrid | COMPATIBLE | INCOMPATIBLE (O05 build failed) | INCOMPATIBLE |
+| MCUboot / mcuboot_field_update | INCOMPATIBLE (REQ-PQC-VERIFIER) | INCOMPATIBLE (REQ-BL-FIELD-UPDATE) | INCOMPATIBLE |
+| MCUboot / depot_reflash | INCOMPATIBLE | INDETERMINATE | INCOMPATIBLE |
+
+  Frozen as regression fixtures `backend/tests/fixtures/runner_streams/` (249 tests green).
 - ☐ WS-A wolfBoot runner (Docker, isolated workdir, G1/G2/E03/X01/T1/layout)
 - ☐ WS-B MCUboot spike → runner (**go/no-go 18:00**)
 - ☐ WS-C API + orchestrator (jobs, SSE, artifacts, idempotency, queue)

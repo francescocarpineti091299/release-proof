@@ -4,7 +4,10 @@ from __future__ import annotations
 
 from releaseproof.core.assurance.service import evaluate
 from releaseproof.core.planner.service import build_gap_plan, load_planner_mapping
-from releaseproof.core.projection.scenarios import build_scenario_compatible, build_scenario_conditional
+from releaseproof.core.projection.scenarios import (
+    build_scenario_compatible,
+    build_scenario_conditional,
+)
 from releaseproof.core.projection.wp0 import build_wp0_baseline_assessment
 
 

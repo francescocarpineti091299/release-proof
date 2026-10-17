@@ -4,7 +4,6 @@ from __future__ import annotations
 
 import json
 from functools import lru_cache
-from pathlib import Path
 from typing import Any
 
 import jsonschema
@@ -24,9 +23,9 @@ from releaseproof.core.explanation.service import (
     provenance_errors,
     sanitize_explanation_graph,
 )
+from releaseproof.core.paths import CONTRACT_PACK
 from releaseproof.core.rules.service import run_evaluator
 from releaseproof.core.validation.service import validate_assessment
-from releaseproof.core.paths import CONTRACT_PACK
 
 _PACK = CONTRACT_PACK
 _MISSING = object()

@@ -1,0 +1,204 @@
+#!/usr/bin/env bash
+# Provision (or reuse) the ReleaseProof AWS host: key pair, security group, one EC2
+# c7a.2xlarge (AMD EPYC) Ubuntu 24.04 with a 60 GB gp3 root volume, and an Elastic IP.
+#
+# Idempotent-ish: every resource is looked up by name/tag first and reused when present.
+# State (ids, IP, hostname) is written to ~/.releaseproof-aws/<name>.env for deploy.sh.
+#
+# Usage:
+#   deploy/aws/provision.sh [--region eu-west-1] [--name releaseproof] [--profile default]
+#                           [--instance-type c7a.2xlarge] [--volume-gb 60]
+#                           [--ssh-cidr 203.0.113.7/32] [--key-name releaseproof]
+set -euo pipefail
+
+REGION="${AWS_REGION:-eu-west-1}"
+NAME="releaseproof"
+INSTANCE_TYPE="c7a.2xlarge"
+VOLUME_GB=60
+SSH_CIDR=""
+KEY_NAME=""
+PROFILE_ARGS=()
+
+while [[ $# -gt 0 ]]; do
+  case "$1" in
+    --region) REGION="$2"; shift 2 ;;
+    --name) NAME="$2"; shift 2 ;;
+    --instance-type) INSTANCE_TYPE="$2"; shift 2 ;;
+    --volume-gb) VOLUME_GB="$2"; shift 2 ;;
+    --ssh-cidr) SSH_CIDR="$2"; shift 2 ;;
+    --key-name) KEY_NAME="$2"; shift 2 ;;
+    --profile) PROFILE_ARGS=(--profile "$2"); shift 2 ;;
+    -h|--help) sed -n '2,14p' "$0"; exit 0 ;;
+    *) echo "unknown argument: $1" >&2; exit 2 ;;
+  esac
+done
+
+[[ "$NAME" =~ ^[A-Za-z0-9-]{1,40}$ ]] || { echo "--name must match [A-Za-z0-9-]{1,40}" >&2; exit 2; }
+KEY_NAME="${KEY_NAME:-$NAME}"
+SG_NAME="${NAME}-sg"
+SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+STATE_DIR="${HOME}/.releaseproof-aws"
+STATE_FILE="${STATE_DIR}/${NAME}.env"
+KEY_FILE="${STATE_DIR}/${KEY_NAME}.pem"
+
+aws_() { aws "${PROFILE_ARGS[@]}" --region "$REGION" "$@"; }
+log() { printf '\033[1;34m[provision]\033[0m %s\n' "$*"; }
+none() { [[ -z "$1" || "$1" == "None" || "$1" == "null" ]]; }
+
+command -v aws >/dev/null || { echo "AWS CLI v2 is required" >&2; exit 1; }
+mkdir -p "$STATE_DIR" && chmod 700 "$STATE_DIR"
+
+ACCOUNT="$(aws "${PROFILE_ARGS[@]}" sts get-caller-identity --query Account --output text)"
+log "account ${ACCOUNT}, region ${REGION}, name ${NAME}"
+
+if [[ -z "$SSH_CIDR" ]]; then
+  MY_IP="$(curl -fsS https://checkip.amazonaws.com | tr -d '[:space:]')"
+  SSH_CIDR="${MY_IP}/32"
+fi
+log "SSH allowed from ${SSH_CIDR}"
+
+# ------------------------------------------------------------------ AMI (Ubuntu 24.04, amd64, gp3)
+AMI_ID="$(aws_ ssm get-parameter \
+  --name /aws/service/canonical/ubuntu/server/24.04/stable/current/amd64/hvm/ebs-gp3/ami-id \
+  --query Parameter.Value --output text)"
+log "AMI ${AMI_ID} (Ubuntu 24.04 LTS)"
+
+# Instance type must be offered in at least one AZ of the region.
+OFFERED_AZ="$(aws_ ec2 describe-instance-type-offerings --location-type availability-zone \
+  --filters "Name=instance-type,Values=${INSTANCE_TYPE}" \
+  --query 'InstanceTypeOfferings[0].Location' --output text)"
+none "$OFFERED_AZ" && { echo "${INSTANCE_TYPE} is not offered in ${REGION}" >&2; exit 1; }
+
+# ------------------------------------------------------------------ key pair
+if aws_ ec2 describe-key-pairs --key-names "$KEY_NAME" >/dev/null 2>&1; then
+  log "key pair ${KEY_NAME} exists"
+  [[ -f "$KEY_FILE" ]] || log "WARNING: ${KEY_FILE} not found locally; pass --key to deploy.sh"
+else
+  log "creating key pair ${KEY_NAME} -> ${KEY_FILE}"
+  umask 077
+  aws_ ec2 create-key-pair --key-name "$KEY_NAME" --key-type ed25519 \
+    --tag-specifications "ResourceType=key-pair,Tags=[{Key=Name,Value=${NAME}},{Key=app,Value=releaseproof}]" \
+    --query KeyMaterial --output text > "$KEY_FILE"
+  chmod 600 "$KEY_FILE"
+fi
+
+# ------------------------------------------------------------------ network (default VPC)
+VPC_ID="$(aws_ ec2 describe-vpcs --filters Name=is-default,Values=true --query 'Vpcs[0].VpcId' --output text)"
+none "$VPC_ID" && { echo "no default VPC in ${REGION}; create one (aws ec2 create-default-vpc)" >&2; exit 1; }
+SUBNET_ID="$(aws_ ec2 describe-subnets \
+  --filters "Name=vpc-id,Values=${VPC_ID}" "Name=default-for-az,Values=true" "Name=availability-zone,Values=${OFFERED_AZ}" \
+  --query 'Subnets[0].SubnetId' --output text)"
+none "$SUBNET_ID" && { echo "no default subnet in ${OFFERED_AZ}" >&2; exit 1; }
+log "VPC ${VPC_ID}, subnet ${SUBNET_ID} (${OFFERED_AZ})"
+
+SG_ID="$(aws_ ec2 describe-security-groups \
+  --filters "Name=vpc-id,Values=${VPC_ID}" "Name=group-name,Values=${SG_NAME}" \
+  --query 'SecurityGroups[0].GroupId' --output text)"
+if none "$SG_ID"; then
+  SG_ID="$(aws_ ec2 create-security-group --group-name "$SG_NAME" --vpc-id "$VPC_ID" \
+    --description "ReleaseProof: SSH (restricted), HTTP, HTTPS" \
+    --tag-specifications "ResourceType=security-group,Tags=[{Key=Name,Value=${SG_NAME}},{Key=app,Value=releaseproof}]" \
+    --query GroupId --output text)"
+  log "created security group ${SG_ID}"
+else
+  log "security group ${SG_ID} exists"
+fi
+
+authorize() {  # proto port cidr-json-key cidr
+  local proto="$1" port="$2" key="$3" cidr="$4" out
+  local range="IpRanges=[{CidrIp=${cidr}}]"
+  [[ "$key" == "v6" ]] && range="Ipv6Ranges=[{CidrIpv6=${cidr}}]"
+  if out="$(aws_ ec2 authorize-security-group-ingress --group-id "$SG_ID" \
+      --ip-permissions "IpProtocol=${proto},FromPort=${port},ToPort=${port},${range}" 2>&1)"; then
+    log "ingress ${proto}/${port} from ${cidr}"
+  elif grep -q InvalidPermission.Duplicate <<<"$out"; then
+    :
+  else
+    echo "$out" >&2; exit 1
+  fi
+}
+authorize tcp 22 v4 "$SSH_CIDR"
+for port in 80 443; do
+  authorize tcp "$port" v4 0.0.0.0/0
+  authorize tcp "$port" v6 ::/0
+done
+authorize udp 443 v4 0.0.0.0/0   # HTTP/3
+
+# ------------------------------------------------------------------ instance
+INSTANCE_ID="$(aws_ ec2 describe-instances \
+  --filters "Name=tag:Name,Values=${NAME}" "Name=tag:app,Values=releaseproof" \
+            "Name=instance-state-name,Values=pending,running,stopping,stopped" \
+  --query 'Reservations[0].Instances[0].InstanceId' --output text)"
+if none "$INSTANCE_ID"; then
+  log "launching ${INSTANCE_TYPE} (${VOLUME_GB} GB gp3)"
+  INSTANCE_ID="$(aws_ ec2 run-instances \
+    --image-id "$AMI_ID" \
+    --instance-type "$INSTANCE_TYPE" \
+    --key-name "$KEY_NAME" \
+    --subnet-id "$SUBNET_ID" \
+    --security-group-ids "$SG_ID" \
+    --associate-public-ip-address \
+    --block-device-mappings "DeviceName=/dev/sda1,Ebs={VolumeSize=${VOLUME_GB},VolumeType=gp3,DeleteOnTermination=true,Encrypted=true}" \
+    --metadata-options "HttpTokens=required,HttpEndpoint=enabled,HttpPutResponseHopLimit=1" \
+    --user-data "file://${SCRIPT_DIR}/cloud-init.yaml" \
+    --tag-specifications \
+      "ResourceType=instance,Tags=[{Key=Name,Value=${NAME}},{Key=app,Value=releaseproof}]" \
+      "ResourceType=volume,Tags=[{Key=Name,Value=${NAME}-root},{Key=app,Value=releaseproof}]" \
+    --query 'Instances[0].InstanceId' --output text)"
+  log "instance ${INSTANCE_ID} launched"
+else
+  STATE="$(aws_ ec2 describe-instances --instance-ids "$INSTANCE_ID" \
+    --query 'Reservations[0].Instances[0].State.Name' --output text)"
+  log "instance ${INSTANCE_ID} exists (${STATE})"
+  if [[ "$STATE" == "stopped" || "$STATE" == "stopping" ]]; then
+    aws_ ec2 wait instance-stopped --instance-ids "$INSTANCE_ID"
+    aws_ ec2 start-instances --instance-ids "$INSTANCE_ID" >/dev/null
+    log "starting ${INSTANCE_ID}"
+  fi
+fi
+aws_ ec2 wait instance-running --instance-ids "$INSTANCE_ID"
+log "instance running"
+
+# ------------------------------------------------------------------ Elastic IP
+ALLOC_ID="$(aws_ ec2 describe-addresses --filters "Name=tag:Name,Values=${NAME}" \
+  --query 'Addresses[0].AllocationId' --output text)"
+if none "$ALLOC_ID"; then
+  ALLOC_ID="$(aws_ ec2 allocate-address --domain vpc \
+    --tag-specifications "ResourceType=elastic-ip,Tags=[{Key=Name,Value=${NAME}},{Key=app,Value=releaseproof}]" \
+    --query AllocationId --output text)"
+  log "allocated Elastic IP ${ALLOC_ID}"
+fi
+ASSOCIATED="$(aws_ ec2 describe-addresses --allocation-ids "$ALLOC_ID" \
+  --query 'Addresses[0].InstanceId' --output text)"
+if [[ "$ASSOCIATED" != "$INSTANCE_ID" ]]; then
+  aws_ ec2 associate-address --allocation-id "$ALLOC_ID" --instance-id "$INSTANCE_ID" \
+    --allow-reassociation >/dev/null
+  log "associated ${ALLOC_ID} with ${INSTANCE_ID}"
+fi
+PUBLIC_IP="$(aws_ ec2 describe-addresses --allocation-ids "$ALLOC_ID" \
+  --query 'Addresses[0].PublicIp' --output text)"
+SSLIP_HOST="${PUBLIC_IP//./-}.sslip.io"
+
+cat > "$STATE_FILE" <<EOF
+# written by deploy/aws/provision.sh on $(date -u +%Y-%m-%dT%H:%M:%SZ)
+RP_NAME=${NAME}
+RP_REGION=${REGION}
+RP_INSTANCE_ID=${INSTANCE_ID}
+RP_SECURITY_GROUP_ID=${SG_ID}
+RP_ALLOCATION_ID=${ALLOC_ID}
+RP_PUBLIC_IP=${PUBLIC_IP}
+RP_SSLIP_HOST=${SSLIP_HOST}
+RP_KEY_FILE=${KEY_FILE}
+EOF
+chmod 600 "$STATE_FILE"
+
+log "done"
+cat <<EOF
+
+  Elastic IP : ${PUBLIC_IP}
+  Hostname   : ${SSLIP_HOST}   (or point a DNS A record of your domain to ${PUBLIC_IP})
+  SSH        : ssh -i ${KEY_FILE} ubuntu@${PUBLIC_IP}
+  State      : ${STATE_FILE}
+
+  Next: deploy/aws/deploy.sh --name ${NAME}            # https://${SSLIP_HOST}
+EOF

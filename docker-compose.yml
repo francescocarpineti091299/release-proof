@@ -1,0 +1,123 @@
+# ReleaseProof runtime topology (see docs/WORKSTREAMS.md "Runtime topology").
+#
+#   caddy :80/:443 ─┬─ /api/*  → api:8000   (edge network)
+#                   └─ /*      → web:3000   (edge network)
+#   api → runner-wolfboot:8080, runner-mcuboot:8080   (runners network, internal: no egress)
+#   shared volume rpdata at /data (SQLite + /data/runs/<run_id>/artifacts)
+#
+# Secrets (AMD_LLM_*) come from .env and are given to the api only, never to the runners.
+#   cp .env.example .env && docker compose up -d --build
+name: releaseproof
+
+services:
+  caddy:
+    image: caddy:2.8-alpine
+    restart: unless-stopped
+    ports:
+      - "80:80"
+      - "443:443"
+      - "443:443/udp"
+    environment:
+      SITE_ADDRESS: ${SITE_ADDRESS:-:80}
+    volumes:
+      - ./Caddyfile:/etc/caddy/Caddyfile:ro
+      - caddy_data:/data
+      - caddy_config:/config
+    depends_on:
+      - web
+      - api
+    networks:
+      - edge
+
+  web:
+    build:
+      context: ./web
+      dockerfile: Dockerfile
+      args:
+        NEXT_PUBLIC_MOCK: "0"
+    image: releaseproof/web:0.1.0
+    restart: unless-stopped
+    expose:
+      - "3000"
+    networks:
+      - edge
+
+  api:
+    build:
+      context: .
+      dockerfile: backend/Dockerfile
+    image: releaseproof/api:0.1.0
+    restart: unless-stopped
+    env_file:
+      - path: .env
+        required: false
+    environment:
+      RELEASEPROOF_DATA_DIR: /data
+      RELEASEPROOF_RUNNER_DATA_DIR: /data
+      RUNNER_URL_WOLFBOOT: http://runner-wolfboot:8080
+      RUNNER_URL_MCUBOOT: http://runner-mcuboot:8080
+    expose:
+      - "8000"
+    volumes:
+      - rpdata:/data
+    security_opt:
+      - no-new-privileges:true
+    networks:
+      - edge      # reaches caddy and the AMD LLM endpoint (egress)
+      - runners   # reaches the runners
+
+  runner-wolfboot:
+    build:
+      context: .
+      dockerfile: runners/wolfboot/Dockerfile
+    image: releaseproof/runner-wolfboot:0.1.0
+    restart: unless-stopped
+    environment:
+      RELEASEPROOF_DATA_DIR: /data
+      RUNNER_PORT: "8080"
+    expose:
+      - "8080"
+    volumes:
+      - rpdata:/data
+    depends_on:
+      - api   # api initialises the volume ownership first
+    security_opt:
+      - no-new-privileges:true
+    pids_limit: 2048
+    cpus: 3
+    mem_limit: 6g
+    networks:
+      - runners
+
+  runner-mcuboot:
+    build:
+      context: .
+      dockerfile: runners/mcuboot/Dockerfile
+    image: releaseproof/runner-mcuboot:0.1.0
+    restart: unless-stopped
+    environment:
+      RELEASEPROOF_DATA_DIR: /data
+      RUNNER_PORT: "8080"
+    expose:
+      - "8080"
+    volumes:
+      - rpdata:/data
+    depends_on:
+      - api
+    security_opt:
+      - no-new-privileges:true
+    pids_limit: 2048
+    cpus: 3
+    mem_limit: 6g
+    networks:
+      - runners
+
+volumes:
+  rpdata:
+  caddy_data:
+  caddy_config:
+
+networks:
+  edge: {}
+  runners:
+    internal: true   # untrusted firmware/tooling runs here: no route to the internet

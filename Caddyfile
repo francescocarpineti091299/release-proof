@@ -1,0 +1,28 @@
+# ReleaseProof edge proxy.
+# SITE_ADDRESS (env): ":80" for plain HTTP (local / first boot), or a hostname such as
+# "203-0-113-10.sslip.io" / "releaseproof.example.com" to get automatic HTTPS (Let's Encrypt/ZeroSSL).
+{$SITE_ADDRESS::80} {
+	header {
+		-Server
+		X-Content-Type-Options nosniff
+		Referrer-Policy strict-origin-when-cross-origin
+	}
+
+	# API (REST + SSE). flush_interval -1 streams server-sent events and the assistant
+	# text stream immediately; never compress them.
+	handle /api/* {
+		reverse_proxy api:8000 {
+			flush_interval -1
+		}
+	}
+
+	handle {
+		encode zstd gzip
+		reverse_proxy web:3000
+	}
+
+	log {
+		output stdout
+		format console
+	}
+}

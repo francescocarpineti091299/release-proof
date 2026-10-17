@@ -7,8 +7,11 @@ from pathlib import Path
 from typing import Any
 
 from releaseproof.core.assurance.service import evaluate
-from releaseproof.core.projection.wp0 import build_a4_signer_bound_assessment, build_wp0_baseline_assessment
 from releaseproof.core.paths import CONTRACT_PACK
+from releaseproof.core.projection.wp0 import (
+    build_a4_signer_bound_assessment,
+    build_wp0_baseline_assessment,
+)
 
 _PACK = CONTRACT_PACK
 GOLDEN_HASH_PATH = _PACK / "examples" / "golden" / "wp0_result_hashes_v1_2.json"

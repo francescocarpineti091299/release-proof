@@ -1,0 +1,8 @@
+*
+!backend/pyproject.toml
+!backend/releaseproof/**
+!contract/**
+!profiles/**
+!reference/**
+**/__pycache__
+**/*.pyc

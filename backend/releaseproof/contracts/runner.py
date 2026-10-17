@@ -79,7 +79,9 @@ class RunnerRequest(_Strict):
     profile_id: str
     change_id: str
     tests: list[PlannedTest]
-    artifact_dir: str = Field(description="Absolute path (shared volume) for this run's artifacts")
+    artifact_dir: str = Field(
+        description="Absolute path (shared volume) for this run's artifacts"
+    )
     timeout_seconds: int = Field(default=900, ge=30, le=3600)
 
 
@@ -113,7 +115,9 @@ class ArtifactEvent(_EventBase):
     path: str = Field(description="Relative to the run artifact_dir")
     sha256: str = Field(pattern=r"^[0-9a-f]{64}$")
     size_bytes: int = Field(ge=0)
-    kind: Literal["elf", "bin", "signed_image", "log", "uart", "script", "config", "manifest", "other"]
+    kind: Literal[
+        "elf", "bin", "signed_image", "log", "uart", "script", "config", "manifest", "other"
+    ]
     test_id: str | None = None
 
 

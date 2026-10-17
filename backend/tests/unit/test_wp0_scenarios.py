@@ -13,7 +13,10 @@ from releaseproof.core.projection.scenarios import (
     build_scenario_indeterminate,
     list_scenario_descriptors,
 )
-from releaseproof.core.projection.wp0 import build_a4_signer_bound_assessment, build_wp0_baseline_assessment
+from releaseproof.core.projection.wp0 import (
+    build_a4_signer_bound_assessment,
+    build_wp0_baseline_assessment,
+)
 from releaseproof.core.validation.service import validate_assessment
 
 

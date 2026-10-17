@@ -8,7 +8,10 @@ from releaseproof.core.golden.baseline import (
     verify_baseline_golden,
     verify_signer_bound_golden,
 )
-from releaseproof.core.projection.wp0 import build_a4_signer_bound_assessment, build_wp0_baseline_assessment
+from releaseproof.core.projection.wp0 import (
+    build_a4_signer_bound_assessment,
+    build_wp0_baseline_assessment,
+)
 
 
 def test_baseline_golden_hash() -> None:
