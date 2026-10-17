@@ -31,3 +31,6 @@ build/
 dist/
 runners/**/work/
 .DS_Store
+
+# Private research notes (not for the public repo)
+general_docs/
