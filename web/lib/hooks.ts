@@ -1,0 +1,58 @@
+"use client";
+
+import { useCallback, useEffect, useRef, useState } from "react";
+
+export interface AsyncState<T> {
+  data: T | undefined;
+  error: Error | undefined;
+  loading: boolean;
+  reload: () => void;
+}
+
+/** Load data on mount and whenever `key` changes. */
+export function useApi<T>(key: string | null, load: () => Promise<T>): AsyncState<T> {
+  const loadRef = useRef(load);
+  const [nonce, setNonce] = useState(0);
+  const [state, setState] = useState<{ key: string | null; data?: T; error?: Error; done: boolean }>({ key: null, done: false });
+
+  useEffect(() => {
+    loadRef.current = load;
+  });
+
+  useEffect(() => {
+    if (key === null) return;
+    let alive = true;
+    loadRef.current().then(
+      (data) => alive && setState({ key, data, done: true }),
+      (error: unknown) => alive && setState({ key, error: error instanceof Error ? error : new Error(String(error)), done: true }),
+    );
+    return () => {
+      alive = false;
+    };
+  }, [key, nonce]);
+
+  const reload = useCallback(() => setNonce((n) => n + 1), []);
+  const fresh = state.key === key;
+  return {
+    data: fresh ? state.data : undefined,
+    error: fresh ? state.error : undefined,
+    loading: key !== null && (!fresh || !state.done),
+    reload,
+  };
+}
+
+/** Current time, updated every `ms` while `active`. Returns 0 before mount (SSR-safe). */
+export function useNow(ms = 1000, active = true): number {
+  const [now, setNow] = useState(0);
+  useEffect(() => {
+    const tick = () => setNow(Date.now());
+    const first = setTimeout(tick, 0);
+    if (!active) return () => clearTimeout(first);
+    const id = setInterval(tick, ms);
+    return () => {
+      clearTimeout(first);
+      clearInterval(id);
+    };
+  }, [ms, active]);
+  return now;
+}
