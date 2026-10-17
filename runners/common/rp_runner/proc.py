@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import os
+import math
 import signal
 import subprocess
 import threading
@@ -44,6 +45,10 @@ def run_cmd(
     ``echo_every`` > 1 forwards only every n-th line to the sink (the log file keeps all).
     """
     argv = [str(a) for a in argv]
+    if not math.isfinite(timeout_s) or timeout_s <= 0:
+        raise ValueError("timeout_s must be finite and positive")
+    if echo_every < 1:
+        raise ValueError("echo_every must be positive")
     log_path.parent.mkdir(parents=True, exist_ok=True)
     full_env = {**os.environ, **(env or {})}
     started = time.monotonic()
@@ -79,8 +84,12 @@ def run_cmd(
             proc.wait()
         finally:
             timer.cancel()
-            if proc.poll() is None:
-                kill_group(proc)
+            timer.join()
+            # Also reap descendants when the parent has already exited. They
+            # may retain the output pipe or survive a sink/read exception.
+            kill_group(proc)
+            proc.wait()
+            proc.stdout.close()
         if timed_out.is_set():
             log.write(f"\n[releaseproof] TIMEOUT after {timeout_s}s; process group killed\n")
     return CmdResult(
@@ -93,26 +102,42 @@ def run_cmd(
 
 
 def kill_group(proc: subprocess.Popen) -> None:
+    if os.name == "nt":
+        # taskkill /T addresses descendants as well as the immediate child.
+        subprocess.run(
+            ["taskkill", "/PID", str(proc.pid), "/T", "/F"],
+            stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL, check=False,
+        )
+        if proc.poll() is None:
+            proc.kill()
+        return
     try:
         os.killpg(proc.pid, signal.SIGTERM)
     except (ProcessLookupError, PermissionError):
         return
-    try:
-        proc.wait(timeout=5)
-    except subprocess.TimeoutExpired:
+    # Waiting only for the leader is insufficient: a descendant can ignore
+    # SIGTERM and keep stdout open even after the leader exits.
+    deadline = time.monotonic() + 0.5
+    while time.monotonic() < deadline:
         try:
-            os.killpg(proc.pid, signal.SIGKILL)
+            os.killpg(proc.pid, 0)
         except ProcessLookupError:
-            pass
+            return
+        time.sleep(0.02)
+    try:
+        os.killpg(proc.pid, signal.SIGKILL)
+    except ProcessLookupError:
+        pass
 
 
 def tool_version(argv: Sequence[str], *, first_line_only: bool = True) -> str:
     try:
-        out = subprocess.run(
+        completed = subprocess.run(
             list(argv), capture_output=True, text=True, timeout=30, check=False
-        ).stdout.strip()
+        )
+        out = completed.stdout.strip()
     except (OSError, subprocess.TimeoutExpired):
         return "UNAVAILABLE"
-    if not out:
+    if completed.returncode != 0 or not out:
         return "UNAVAILABLE"
     return out.splitlines()[0].strip() if first_line_only else out

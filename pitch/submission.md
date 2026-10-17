@@ -5,6 +5,13 @@
 > Facts here come from `docs/IMPLEMENTATION_PLAN.md`, `docs/ARCHITECTURE.md`,
 > `docs/acceptance/*.json`, `profiles/*.yaml` and the runner READMEs (17 Oct 2026).
 
+> Current evidence: both profiles are `SUPPORTED`; the AMD-required acceptance report is
+> `docs/acceptance/20261017T135337Z.json`. Token Factory smoke recorded 9/10 successful calls,
+> not a completed benchmark. Managed GPU identity and public AWS deployment are not attested.
+> HTML deck sources and the 10-page PDF have been refreshed. Existing screenshots still describe
+> historical runs and must be retaken or labelled before submission. Unfilled publication/benchmark
+> placeholders remain intentional.
+
 ---
 
 ## Title
@@ -55,7 +62,8 @@ ML-DSA-87), then clicks *Run assessment*. A LIVE run then:
    **V1.2 semantic engine**. The engine issues three separate verdicts (candidate, transition,
    migration) with an explanation graph, a canonical result hash and a manifest.
 
-A run takes about a minute (42–75 s measured today). Two configurations run end to end and pass our
+Build/emulation-only runs took 42–75 s in the retained local recordings. Full AI-enabled runs also
+include provider latency. Two configurations run end to end and pass our
 acceptance gate:
 
 - **wolfBoot @4c79eee (ECDSA P-256 → ML-DSA-87):** the candidate is **COMPATIBLE** (the ML-DSA-87
@@ -101,16 +109,17 @@ against `[[AMD_SERVING_STACK]]`.)
 | API / orchestration | Python 3.12, FastAPI, SQLite, state-machine orchestrator with queue and per-runner semaphore |
 | Runners (Docker, internal network, no egress) | **runner-wolfboot**: wolfBoot `4c79eee`, wolfSSL `4aa1ad7`, Arm GNU Toolchain 14.2.rel1, Renode 1.16.1 · **runner-mcuboot**: Zephyr v4.2.0 sysbuild, MCUboot `4eba8087`, imgtool 2.2.0, Zephyr SDK 0.17.4, Renode 1.16.1 + ReleaseProof NVMC flash model (MIT) |
 | Decision engine | ReleaseProof V1.2 semantic engine (validate · evaluate · explanation graph · canonical hash), golden-hash regression tests |
-| AI gateway | OpenAI-compatible client, AMD-hosted endpoint only (host allow-list), JSON-schema structured outputs, citation and verdict-echo guardrails, traces |
-| AMD | AMD Instinct-hosted LLM on AMD Developer Cloud (`[[AMD_MODEL]]` on `[[AMD_HARDWARE]]`, `[[AMD_SERVING_STACK]]`) · deployment target AWS EC2 **c7a.2xlarge (AMD EPYC 4th gen)** |
+| AI gateway | OpenAI-compatible client, configured AMD host allow-list, JSON mode or structured outputs with local schema validation, citation/verdict-echo guardrails, traces |
+| AMD | AMD Token Factory managed API, `DeepSeek-V4-Flash`, GPU undisclosed · deployment target AWS EC2 **c7a.2xlarge (AMD EPYC 4th gen)** |
 | Edge / deploy | Docker Compose, Caddy (auto-TLS) |
 
 ## How we use AMD
 
 ReleaseProof sends every AI step (test planning, cited explanations, alternative plans and the
-"Ask about this run" assistant) to **one OpenAI-compatible endpoint running on AMD Instinct
-hardware on AMD Developer Cloud**: `[[AMD_MODEL]]` served with `[[AMD_SERVING_STACK]]` on
-`[[AMD_HARDWARE]]`. The endpoint host is allow-listed and there is **no fallback to any other
+"Ask about this run" assistant) to **one configured AMD-hosted OpenAI-compatible endpoint**.
+The recorded managed configuration is AMD Token Factory with `DeepSeek-V4-Flash`; its specific
+GPU is undisclosed. Provider/hardware labels are declarations, not remote attestation.
+The endpoint host is allow-listed and there is **no fallback to any other
 provider**. If the AMD endpoint is unavailable, the steps are recorded as `AI_UNAVAILABLE` and the
 deterministic pipeline continues on its own. Our benchmark (`scripts/amd_benchmark.py`, real calls
 only) measured a p50 latency of `[[AMD_LATENCY_P50]]` and a schema-valid response rate of
@@ -119,20 +128,21 @@ prompt-injection leaks. The compute-heavy part of the product consists of cross-
 bootloaders, signing images and running Renode emulations for every assessment. It is designed for
 an **AMD EPYC** host (AWS EC2 c7a.2xlarge, Docker Compose) reachable at `[[DEMO_URL]]`.
 
-> Honesty note (delete once filled): when this kit was written, the AMD API key was still pending
-> and the AWS deployment was blocked on IAM permissions. All runs in the screenshots executed on
-> the developer laptop (Docker Desktop) with `AI_UNAVAILABLE` and the deterministic fallback plan.
-> Do not claim "ran on AMD" for any number that was not measured on AMD.
+> Honesty note: the retained Token Factory smoke has 9/10 logical calls OK and one outage;
+> `docs/AMD_BENCHMARK.json` is not currently retained. Early screenshots show `AI_UNAVAILABLE`;
+> they must not be used as evidence of later AMD-enabled runs. AWS remains a deployment target
+> until a completed deployment is independently verified. Do not claim specific GPUs or benchmark
+> rates from provider labels or smoke counts.
 
 ## AMD evidence checklist (lablab hidden checklist)
 
 | Item | Value |
 |---|---|
-| Hardware | LLM: `[[AMD_HARDWARE]]` (AMD Developer Cloud) · Host: AWS EC2 c7a.2xlarge, AMD EPYC 4th gen (Genoa), 8 vCPU / 16 GiB |
-| Model | `[[AMD_MODEL]]` |
-| Serving stack | `[[AMD_SERVING_STACK]]` (Plan A: AMD Token Factory managed API · Plan B: vLLM `vllm/vllm-openai-rocm` on MI300X, see `deploy/amd/README.md`) |
+| Hardware | Managed LLM GPU undisclosed; self-hosted MI300X is an alternative, not the recorded serving configuration. Host target: AWS EC2 c7a.2xlarge, AMD EPYC 4th gen (Genoa), 8 vCPU / 16 GiB |
+| Model | `DeepSeek-V4-Flash` in the retained Token Factory smoke |
+| Serving stack | AMD Token Factory managed API; vLLM on MI300X is documented as Plan B in `deploy/amd/README.md` |
 | Benchmark | p50 latency `[[AMD_LATENCY_P50]]` · schema-valid rate `[[AMD_SCHEMA_VALID_RATE]]` · report `docs/AMD_BENCHMARK.json` (generated by `scripts/amd_benchmark.py -n 5`) |
-| What ran on AMD | Every LLM call (planner, explainer, alternatives, assistant) on AMD Instinct. The whole stack (builds, Renode, engine, UI) on the EPYC host once deployed at `[[DEMO_URL]]` |
+| What ran on AMD | Retained AMD Token Factory inference traces. Local acceptance does not attest an EPYC deployment; fill `[[DEMO_URL]]` only after verification |
 
 ## Architecture
 
@@ -148,7 +158,7 @@ flowchart LR
     API -->|NDJSON /execute| RM[runner-mcuboot<br/>Zephyr · MCUboot · imgtool · Renode]
     API --> AD[Assessment adapters] --> ENG[V1.2 semantic engine<br/>validate · evaluate · canonical hash]
   end
-  API -->|OpenAI-compatible, allow-listed host| AMD[(LLM on AMD Instinct<br/>AMD Developer Cloud)]
+   API -->|OpenAI-compatible, allow-listed host| AMD[(Configured AMD-hosted LLM<br/>managed GPU undisclosed)]
   UI --> C
 ```
 
@@ -166,7 +176,7 @@ docker compose -f docker-compose.yml -f docker-compose.dev.yml up -d --build
 # Acceptance gate: one fresh LIVE run per profile, writes docs/acceptance/<ts>.json
 python scripts/acceptance.py --base http://localhost:8080
 # AMD benchmark (real calls only, needs AMD_LLM_* exported)
-python scripts/amd_benchmark.py -n 5 --out docs/AMD_BENCHMARK.json
+python scripts/amd_benchmark.py --env-file .env -n 5 --out docs/AMD_BENCHMARK.json
 # Cloud: AMD EPYC host on AWS (see deploy/aws/README.md)
 deploy/aws/provision.sh --region eu-west-1 && deploy/aws/deploy.sh
 ```
@@ -184,9 +194,9 @@ works and the AI steps show `AI_UNAVAILABLE`.
 | Deterministic V1.2 engine with golden-hash regression tests (249 tests green at the integration checkpoint) | Staged hybrid ECDSA + ML-DSA plan (the dual-signature build fails on the pinned wolfBoot commit, as measured) |
 | Re-evaluation runs with a parent reference, immutable history, refusal (HTTP 422) of alternatives needing external validation | LMS / hash-based signatures for MCUboot (upstream PR #2707, still in review) |
 | Failed-run policy: runner killed ⇒ FAILED, no verdict, `/result` 409 | More boards (STM32, NXP), more bootloader families, key-rotation rulesets |
-| AI gateway with schema, citation and verdict-echo guardrails, AMD-only host allow-list, no fallback provider, prompt-injection wrapping (unit-tested with a stub) | **Live AMD endpoint and benchmark numbers** (`[[AMD_MODEL]]`, `[[AMD_LATENCY_P50]]`, `[[AMD_SCHEMA_VALID_RATE]]`) |
+| AI gateway with schema/citation/verdict guardrails, configured AMD host allow-list, no fallback; real Token Factory smoke and AMD-required acceptance retained | **Completed benchmark numbers** (`[[AMD_LATENCY_P50]]`, `[[AMD_SCHEMA_VALID_RATE]]`) |
 | AWS deploy scripts for EC2 c7a (AMD EPYC) | **Public deployment** (`[[DEMO_URL]]`), which was blocked on IAM permissions when this was written |
-| Both profiles are still flagged `EXPERIMENTAL` in `profiles/*.yaml` (promotion to `SUPPORTED` is a manual step after the gate) | CI integration (GitHub/GitLab action) and evidence-pack export |
+| Both profiles are `SUPPORTED`, promoted after `docs/acceptance/20261017T135337Z.json`; promotion is a manual reviewed edit | CI integration (GitHub/GitLab action) |
 
 ## Evaluation
 

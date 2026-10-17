@@ -242,7 +242,9 @@ class _Staged(Template):
         staged = self.staged_image(ctx, b)
         flash, _ = compose_flash(ctx, b, v1, "v1", tid)
         r = run_scenario(ctx, f"{tid}-{self.scenario}", test_id=tid, flash_image=flash,
-                         staged_slot1=staged.path, slot1_address=b.part("slot1_partition").address)
+                          staged_slot1=staged.path, slot1_address=b.part("slot1_partition").address)
+        if not r.completed:
+            return "UNKNOWN", "emulator did not complete; partial UART is not decisive evidence", r, []
         p1, p2 = r.phases
         dep = b.key.public_sha256[:16]
         ok1, loc1 = _phase_ok(p1, 1, dep)
@@ -292,6 +294,8 @@ class BootCurrent(Template):
         v1 = _v1(ctx, b, tid)
         flash, flash_aid = compose_flash(ctx, b, v1, "v1", tid)
         r = run_scenario(ctx, f"{tid}-boot-current", test_id=tid, flash_image=flash)
+        if not r.completed:
+            return _undecided("boot emulation did not complete", [], r)
         p = r.phases[0]
         dep = b.key.public_sha256[:16]
         jump = p.find(JUMP)
@@ -414,6 +418,8 @@ class CrossKeyUpdate(_Staged):
 
 
 def _result(value: str, mapping: dict[str, str], text: str, ids: list[str], r: ScenarioResult) -> TemplateResult:
+    if not r.completed:
+        return _undecided(text, ids, r)
     if value in mapping:
         return TemplateResult(mapping[value], text, ids)
     return _undecided(text, ids, r)
@@ -423,7 +429,7 @@ def _undecided(text: str, ids: list[str], r: ScenarioResult) -> TemplateResult:
     """No decisive observation. A UART/emulation timeout is INCONCLUSIVE, never a rejection."""
     if r.timed_out:
         return TemplateResult("INCONCLUSIVE", text + "; emulation wall-clock timeout", ids, "TIMEOUT")
-    if r.returncode not in (0, None):
+    if r.returncode != 0:
         return TemplateResult("ERROR", text + f"; renode exited with rc={r.returncode}", ids, "TOOL_FAILURE")
     return TemplateResult("INCONCLUSIVE", text, ids, "INCONCLUSIVE")
 

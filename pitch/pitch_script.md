@@ -72,12 +72,13 @@ with no fallback, and log text treated as untrusted."
 
 ## Slide 6 · Architecture + AMD · [2:55–3:25]
 
-"The architecture is one AMD EPYC host on AWS c7a running everything under Docker Compose: the UI,
-the API and orchestrator, two isolated runners with no network, and the engine. All the reasoning
-goes to an LLM on **AMD Instinct** through AMD Developer Cloud.
+"The deployment target is one AMD EPYC host on AWS c7a running everything under Docker Compose:
+the UI, API/orchestrator, two isolated runners with no internet egress, and the engine. The
+recorded inference configuration is AMD Token Factory with DeepSeek-V4-Flash; the specific
+managed GPU is undisclosed. Public AWS deployment must be verified separately.
 *(If measured:)* `[[AMD_MODEL]]` on `[[AMD_HARDWARE]]`, p50 `[[AMD_LATENCY_P50]]`,
 `[[AMD_SCHEMA_VALID_RATE]]` schema-valid.
-*(If not yet connected, say:)* the AMD endpoint key was still pending, so the runs you saw used the
+*(If not connected in the recording, say:)* the AMD endpoint was unavailable, so the runs you saw used the
 deterministic fallback. The panel shows that openly, and no other provider was ever called."
 
 ## Slide 7 · Evidence & safeguards · [3:25–3:55]
@@ -137,8 +138,9 @@ as such.
 There are two workloads. The runners compile cross-toolchains and run Renode emulation for every
 assessment. That is x86-64, CPU-bound and parallel per run, so it fits an AMD EPYC host (EC2 c7a).
 The reasoning steps need an open model with reliable structured output, served on high-memory GPUs
-we control. AMD Instinct on AMD Developer Cloud gives us that without sending firmware evidence to a
-closed API. *(Add measured numbers only if available: `[[AMD_LATENCY_P50]]`,
+with bounded, validated responses. The recorded configuration uses the managed AMD Token Factory
+API; dedicated vLLM on MI300X is an optional deployment, not the recorded one. Selected evidence
+context is sent to the configured provider. *(Add measured numbers only if available: `[[AMD_LATENCY_P50]]`,
 `[[AMD_SCHEMA_VALID_RATE]]`.)* We also enforce AMD-only at code level: the host allow-list has no
 fallback provider.
 

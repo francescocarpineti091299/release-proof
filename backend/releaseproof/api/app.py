@@ -10,6 +10,7 @@ from typing import Annotated
 from fastapi import Depends, FastAPI, Header, HTTPException, Query, Request, Response
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import FileResponse, JSONResponse, StreamingResponse
+from starlette.concurrency import run_in_threadpool
 
 from releaseproof.api.models import (
     AmdView,
@@ -19,7 +20,7 @@ from releaseproof.api.models import (
     ReferenceView,
     configuration_view,
 )
-from releaseproof.api.sse import event_stream, parse_last_event_id
+from releaseproof.api.sse import MAX_EVENT_ID, event_stream, parse_last_event_id
 from releaseproof.contracts.api import (
     AIAlternativesView,
     AITraceView,
@@ -33,7 +34,12 @@ from releaseproof.contracts.api import (
 )
 from releaseproof.contracts.profile import TestCatalog
 from releaseproof.orchestrator.deps import Deps
-from releaseproof.orchestrator.evaluation import artifact_view, resolve_artifact_path
+from releaseproof.orchestrator.evaluation import (
+    EvaluationFailure,
+    artifact_view,
+    resolve_artifact_path,
+    verify_artifacts,
+)
 from releaseproof.orchestrator.reference import (
     NOTICE,
     RECORDED_AT,
@@ -74,15 +80,20 @@ def create_app(settings: Settings | None = None, deps: Deps | None = None) -> Fa
     @asynccontextmanager
     async def lifespan(app: FastAPI) -> AsyncIterator[None]:
         store = Store(settings.db_path)
-        orchestrator = Orchestrator(store=store, settings=settings, deps=deps)
-        orchestrator.start()
-        app.state.settings = settings
-        app.state.store = store
-        app.state.orchestrator = orchestrator
+        orchestrator: Orchestrator | None = None
         try:
+            orchestrator = Orchestrator(store=store, settings=settings, deps=deps)
+            orchestrator.start()
+            app.state.settings = settings
+            app.state.store = store
+            app.state.orchestrator = orchestrator
             yield
         finally:
-            orchestrator.shutdown()
+            if orchestrator is not None:
+                # Shutdown returns only once all run workers (including their AI calls) exit.
+                # Keep the event loop responsive while draining, and never close SQLite if
+                # the drain raises or is interrupted.
+                await run_in_threadpool(orchestrator.shutdown)
             store.close()
 
     app = FastAPI(
@@ -168,7 +179,7 @@ def create_app(settings: Settings | None = None, deps: Deps | None = None) -> Fa
     async def events(
         run_id: str,
         request: Request,
-        after: Annotated[int | None, Query(ge=0)] = None,
+        after: Annotated[int | None, Query(ge=0, le=MAX_EVENT_ID)] = None,
         last_event_id: Annotated[str | None, Header(alias="Last-Event-ID")] = None,
     ) -> StreamingResponse:
         o: Orchestrator = request.app.state.orchestrator
@@ -223,6 +234,10 @@ def create_app(settings: Settings | None = None, deps: Deps | None = None) -> Fa
         path = resolve_artifact_path(o.settings.runs_dir, row)
         if path is None or not path.is_file():
             raise HTTPException(404, "artifact not available")
+        try:
+            verify_artifacts(o.settings.runs_dir, [row])
+        except (EvaluationFailure, OSError) as exc:
+            raise HTTPException(409, "artifact integrity check failed") from exc
         headers = {"X-Content-Type-Options": "nosniff", "X-Artifact-Sha256": row["sha256"]}
         if row["kind"] in _TEXT_KINDS:
             return FileResponse(

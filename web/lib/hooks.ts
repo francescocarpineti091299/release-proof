@@ -13,7 +13,7 @@ export interface AsyncState<T> {
 export function useApi<T>(key: string | null, load: () => Promise<T>): AsyncState<T> {
   const loadRef = useRef(load);
   const [nonce, setNonce] = useState(0);
-  const [state, setState] = useState<{ key: string | null; data?: T; error?: Error; done: boolean }>({ key: null, done: false });
+  const [state, setState] = useState<{ key: string | null; nonce: number; data?: T; error?: Error; done: boolean }>({ key: null, nonce: -1, done: false });
 
   useEffect(() => {
     loadRef.current = load;
@@ -22,9 +22,9 @@ export function useApi<T>(key: string | null, load: () => Promise<T>): AsyncStat
   useEffect(() => {
     if (key === null) return;
     let alive = true;
-    loadRef.current().then(
-      (data) => alive && setState({ key, data, done: true }),
-      (error: unknown) => alive && setState({ key, error: error instanceof Error ? error : new Error(String(error)), done: true }),
+    Promise.resolve().then(() => loadRef.current()).then(
+      (data) => alive && setState({ key, nonce, data, done: true }),
+      (error: unknown) => alive && setState({ key, nonce, error: error instanceof Error ? error : new Error(String(error)), done: true }),
     );
     return () => {
       alive = false;
@@ -32,7 +32,7 @@ export function useApi<T>(key: string | null, load: () => Promise<T>): AsyncStat
   }, [key, nonce]);
 
   const reload = useCallback(() => setNonce((n) => n + 1), []);
-  const fresh = state.key === key;
+  const fresh = state.key === key && state.nonce === nonce;
   return {
     data: fresh ? state.data : undefined,
     error: fresh ? state.error : undefined,

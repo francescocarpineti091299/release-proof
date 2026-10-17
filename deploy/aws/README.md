@@ -21,10 +21,13 @@ Internet ─► EIP :80/:443 ─► caddy ─┬─ /api/* ─► api:8000 ─�
 
 ## Prerequisites
 
-- AWS CLI v2 configured (`aws configure` or `--profile`), `bash`, `ssh`, `rsync`, `curl`.
-  On Windows run the scripts from WSL (Ubuntu) or Git Bash with rsync.
+- AWS CLI v2 configured (`aws configure` or `--profile`), `bash`, `ssh`, `scp`, `curl`, and
+  either `rsync` or `tar`. On Windows use WSL (Ubuntu) or Git Bash; when rsync is absent,
+  deployment streams a tar archive instead.
 - IAM permissions: `ec2:*` on instances/volumes/addresses/security groups/key pairs/tags in the
   target region, `ssm:GetParameter` (Ubuntu AMI lookup), `sts:GetCallerIdentity`.
+  Without SSM permission, AMI discovery falls back to Canonical-owned EC2 images and requires
+  `ec2:DescribeImages`. See `iam-policy.json` for the concrete action list.
 - A region that offers c7a (e.g. `eu-west-1`, `eu-central-1`, `us-east-1`, `us-east-2`,
   `us-west-2`). `provision.sh` checks the offering and fails clearly otherwise.
 - A default VPC in that region (`aws ec2 create-default-vpc` if it was deleted).
@@ -98,9 +101,25 @@ with `provision.sh` (it starts a stopped instance) and `deploy.sh --no-build`.
 - SSH is limited to the CIDR given at provisioning; IMDSv2 is required; the root volume is
   encrypted. The API container runs as an unprivileged user.
 - `.env` is never synced by `rsync`; it is uploaded separately with mode 600.
+- The API does not implement authentication, tenant isolation or usage quotas. Protect the
+  public site with an authenticated gateway before giving access to untrusted users.
+- Deployment synchronizes `/opt/releaseproof` as a managed application directory. Do not keep
+  unrelated files there: rsync uses `--delete`, and the tar fallback replaces its contents
+  except `.env`. Database/artifacts and Caddy state are kept in Docker volumes, not that tree.
+- Existing local acceptance reports are not proof of a completed AWS deployment.
+- Keep the API single-worker/single-replica per data volume: in-memory runner semaphores and
+  restart recovery do not coordinate multiple processes. Do not add `uvicorn --workers` to this
+  deployment without implementing shared job ownership first.
+- Wait for active runs before updating/restarting the stack. The API's graceful shutdown drains
+  workers before closing SQLite and may exceed Docker's default stop timeout; a forced kill
+  interrupts the run, which restart recovery marks FAILED rather than inventing a result.
 
 ## Teardown
 
 ```bash
 deploy/aws/destroy.sh               # asks for confirmation; add --delete-key to remove the key pair
 ```
+
+Permission/API failures stop teardown and retain the local state file instead of claiming
+success. Already-removed EIP/security-group/key resources are tolerated on a retry. Back up the
+data first: terminating the instance deletes its root volume and the Docker volumes on it.

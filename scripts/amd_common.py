@@ -100,6 +100,15 @@ def assistant_context_for(b: dict[str, Any], case: dict[str, Any]) -> dict[str, 
     return {"mode": "REFERENCE", "assessment_id": case["result"]["assessment_id"], **ctx.data}
 
 
+def assistant_unavailable(text: str) -> bool:
+    """Recognize service failure markers, including failures after partial streamed text."""
+    return (
+        not text.strip()
+        or text.startswith("AI unavailable")
+        or text.rstrip().endswith("[AI unavailable: the AMD stream was interrupted]")
+    )
+
+
 def percentile(values: list[int], pct: float) -> int | None:
     if not values:
         return None

@@ -304,7 +304,7 @@ export function RunReport({ run, result, traces, artifacts, logs = [], conn = "c
               <Bot className="h-5 w-5 text-violet-300" aria-hidden /> Ask about this run
             </button>
           ) : null}
-          <AssistantDrawer runId={run.run_id} open={assistantOpen} onClose={() => setAssistantOpen(false)} citations={known} />
+          <AssistantDrawer key={run.run_id} runId={run.run_id} open={assistantOpen} onClose={() => setAssistantOpen(false)} citations={known} />
         </>
       ) : null}
     </div>

@@ -2,8 +2,9 @@ from __future__ import annotations
 
 import json
 
+from rp_llm_stub import StubLLM, StubMode
+
 from releaseproof.ai import AIService
-from releaseproof.ai.stub import StubLLM, StubMode
 from releaseproof.contracts.api import AIStatus
 
 

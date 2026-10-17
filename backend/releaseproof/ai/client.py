@@ -199,8 +199,8 @@ class AMDChatClient:
     def _apply_usage(stats: CallStats, usage: Any) -> None:
         if isinstance(usage, dict):
             pt, ct = usage.get("prompt_tokens"), usage.get("completion_tokens")
-            stats.prompt_tokens = pt if isinstance(pt, int) else stats.prompt_tokens
-            stats.completion_tokens = ct if isinstance(ct, int) else stats.completion_tokens
+            stats.prompt_tokens = pt if type(pt) is int and pt >= 0 else stats.prompt_tokens
+            stats.completion_tokens = ct if type(ct) is int and ct >= 0 else stats.completion_tokens
 
     def _http_error(self, response: httpx.Response) -> AIUnavailableError:
         code = response.status_code
@@ -345,6 +345,9 @@ class AMDChatClient:
             except ValueError as exc:
                 stats.request_id = self._request_id(response, None)
                 raise AIUnavailableError("AMD endpoint returned a non-JSON body") from exc
+            if not isinstance(payload, dict):
+                stats.request_id = self._request_id(response, None)
+                raise AIUnavailableError("AMD endpoint response is not a JSON object")
             stats.request_id = self._request_id(response, payload)
             if isinstance(payload.get("model"), str) and payload["model"]:
                 stats.model = payload["model"]
@@ -357,6 +360,8 @@ class AMDChatClient:
                 content = payload["choices"][0]["message"].get("content")
             except (KeyError, IndexError, TypeError, AttributeError) as exc:
                 raise AIUnavailableError("AMD endpoint response has no choices[0].message") from exc
+            if content is not None and not isinstance(content, str):
+                raise AIUnavailableError("AMD endpoint message content is not text")
             return ChatResult(content=content or "", stats=stats)
         raise AIUnavailableError("no response_format accepted by the AMD endpoint")
 
@@ -419,13 +424,13 @@ class AMDChatClient:
                 continue
             data = line[5:].strip()
             if data == "[DONE]":
-                break
+                return
             try:
                 chunk = json.loads(data)
-            except json.JSONDecodeError:
-                continue
+            except json.JSONDecodeError as exc:
+                raise AIUnavailableError("AMD stream returned invalid JSON") from exc
             if not isinstance(chunk, dict):
-                continue
+                raise AIUnavailableError("AMD stream chunk is not a JSON object")
             if stats.request_id is None and isinstance(chunk.get("id"), str):
                 stats.request_id = chunk["id"][:120]
             if isinstance(chunk.get("model"), str) and chunk["model"]:
@@ -433,11 +438,21 @@ class AMDChatClient:
             self._apply_usage(stats, chunk.get("usage"))
             if "error" in chunk:
                 raise AIUnavailableError(self.scrub(f"AMD stream error: {chunk['error']}"))
-            for choice in chunk.get("choices") or []:
-                delta = (choice or {}).get("delta") or {}
+            choices = chunk.get("choices") or []
+            if not isinstance(choices, list):
+                raise AIUnavailableError("AMD stream choices is not a list")
+            for choice in choices:
+                if not isinstance(choice, dict):
+                    raise AIUnavailableError("AMD stream choice is not a JSON object")
+                delta = choice.get("delta") or {}
+                if not isinstance(delta, dict):
+                    raise AIUnavailableError("AMD stream delta is not a JSON object")
                 text = delta.get("content")
+                if text is not None and not isinstance(text, str):
+                    raise AIUnavailableError("AMD stream content is not text")
                 if isinstance(text, str) and text:
                     yield text
+        raise AIUnavailableError("AMD stream ended without a [DONE] marker")
 
 
 __all__ = ["AIUnavailableError", "AMDChatClient", "CallStats", "ChatResult", "new_trace_id"]

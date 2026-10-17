@@ -90,13 +90,20 @@ def _run(tmp_path, template_ids):
 
 def test_all_events_match_backend_contract(tmp_path):
     status, events = _run(tmp_path, ["fake.discover", "fake.boot", "fake.broken"])
-    assert status == "SUCCEEDED"
+    assert status == "FAILED"
     assert [e.seq for e in events] == list(range(len(events)))
     results = {e.template_id: e for e in events if e.type == "test_result"}
     assert results["fake.boot"].outcome == "PASS"
     assert results["fake.broken"].outcome == "ERROR"
     assert results["fake.broken"].failure_class == "BUILD_FAILED"
     assert events[-1].type == "done"
+
+
+def test_successful_templates_succeed_the_run(tmp_path):
+    status, events = _run(tmp_path, ["fake.discover", "fake.boot"])
+    assert status == "SUCCEEDED"
+    assert events[-1].type == "done"
+    assert all(event.outcome == "PASS" for event in events if event.type == "test_result")
 
 
 def test_unregistered_template_fails_run(tmp_path):

@@ -122,6 +122,10 @@ def run_scenario(
     uart1 = sdir / "uart-phase1-power-on.log"
     uart2 = sdir / "uart-phase2-after-reset.log"
     rlog = sdir / "renode.log"
+    # Renode failing before opening its backends must not expose an old capture.
+    for previous in (uart1, uart2, rlog):
+        if previous.exists():
+            previous.unlink()
     phase2_block = ""
     if staged_slot1 is not None:
         phase2_block = "\n".join(

@@ -139,6 +139,13 @@ and `docs/AMD_BENCHMARK.json`. These commands make real, potentially billable in
 A successful `GET /models` alone does not prove inference authentication; the smoke test must
 complete real chat requests. HTTP 401 means the key was rejected; HTTP 429 means quota/rate limit.
 
-Exit codes: `0` all OK, `1` some calls not OK (or a prompt injection leaked), `2` endpoint
+Benchmark iterations must be positive. Exit codes: `0` all logical calls OK with no detected
+injection leak or verdict-falsification obedience, `1` some calls not OK or an adversarial
+check failed, `2` endpoint
 unavailable for every call. The JSON files contain traces (model, endpoint host, request id,
 latency, tokens, status, prompt template version). They never contain the API key.
+
+The retained `docs/AMD_SMOKE_TOKEN_FACTORY.json` records 9/10 successful logical calls and
+one upstream outage; it is not a completed benchmark. `docs/AMD_BENCHMARK.json` is a generated
+output, currently absent from version control. Do not report a schema-valid benchmark rate or
+specific managed GPU identity from the smoke alone.

@@ -5,10 +5,10 @@ from pathlib import Path
 import httpx
 import pytest
 from dotenv import dotenv_values
+from rp_llm_stub import STUB_HOST, StubLLM, StubMode, StubRefusedError
 
 from releaseproof.ai import AIService, AISettings, InjectedTransportRefused
 from releaseproof.ai.client import AMDChatClient
-from releaseproof.ai.stub import STUB_HOST, StubLLM, StubMode, StubRefusedError
 from releaseproof.contracts.api import AIStatus
 
 
@@ -58,6 +58,12 @@ def test_default_allowlist_rejects_unknown_hosts() -> None:
     )
     assert not s.configured
     assert "example.com" in (s.unavailable_reason() or "")
+
+
+def test_default_hardware_label_does_not_claim_a_specific_gpu() -> None:
+    settings = AISettings.from_env({})
+    assert "not disclosed" in settings.hardware_label
+    assert "MI300X" not in settings.hardware_label
 
 
 @pytest.mark.parametrize(

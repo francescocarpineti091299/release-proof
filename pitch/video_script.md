@@ -55,7 +55,7 @@ Run IDs to overlay (fill in after recording): `[[RUN_ID_WOLFBOOT]]`, `[[RUN_ID_R
 - **Screen:** stage timeline: *Preparing → AI verification plan → Discovering → Building & signing →
   Running emulator tests*. The first 8 s run in real time, the rest at **⏩ ×4** (badge).
 - **Point at** the AI verification plan card.
-- **Say (AMD connected):** "The AI plan comes from `[[AMD_MODEL]]` on AMD Instinct. It ordered the
+- **Say (AMD connected):** "The AI plan comes from `[[AMD_MODEL]]` on the configured AMD-hosted endpoint. It ordered the
   optional checks and explained why. Now the runner builds both bootloaders, signs the images with
   fresh keys and boots them in Renode, including the negative tests: a tampered image, and the
   deployed bootloader receiving the new ML-DSA update."
@@ -147,3 +147,7 @@ Use the already-recorded runs (overlay their real IDs). Recording date: 17 Oct 2
 - **Don't** say "certified", "compliant" or "proves the firmware is secure". The UI says
   "Non-official engineering assessment" and the narration must match.
 - **Don't** show `.env`, API keys or the AMD endpoint URL with credentials.
+- **Don't** call the managed GPU MI300X/Instinct unless AMD supplies that evidence. The retained
+  Token Factory configuration reports GPU undisclosed; labels in `/amd` are not attestation.
+- **Don't** reuse early AI-unavailable screenshots as proof of AMD-enabled execution or report
+  smoke latency/counts as a completed benchmark. Verify the actual run's traces before recording.

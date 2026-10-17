@@ -3,6 +3,25 @@
 > Owner: tech lead · Started: 2026-10-17 13:50 CEST · Update this file at the end of every phase.
 > Source brief: `../general_docs/ReleaseProof_AMD_ACT_III_Engineering_Brief.md` (private, git-ignored) · POC: `../../firmware-migration-assurance` (HEAD `ef408b8`).
 
+## Current implementation snapshot — 2026-10-17
+
+- Both runner profiles are `SUPPORTED`, with retained live acceptance including AMD traces:
+  `docs/acceptance/20261017T135337Z.json`. Promotion is manual after review of the gate report.
+- API/orchestrator/store, both adapters, web wizard/SSE/evidence, alternatives/re-evaluation,
+  grounded assistant and AMD tracing are implemented. Live runner failures never yield a verdict.
+- AMD Token Factory inference was exercised with `DeepSeek-V4-Flash`:
+  `docs/AMD_SMOKE_TOKEN_FACTORY.json` records 9/10 logical calls OK and one outage. The managed
+  GPU is undisclosed. A completed `docs/AMD_BENCHMARK.json` is not retained yet.
+- Browser mock mode and runtime synthetic helpers have been removed; test-only helpers remain
+  under `backend/tests/`. See `docs/MOCK_AUDIT.md`.
+- AWS scripts target EC2 c7a, but no public deployment completion is evidenced in this repository.
+- Interrupted-update recovery and runtime RAM measurement remain unobserved. The API still needs
+  an authenticated gateway before untrusted public use.
+- Current code review, fixes and reproducible offline checks: `docs/CODE_AUDIT.md`.
+
+The phase notes below are historical implementation checkpoints, not a current to-do list.
+Checkpoint test counts, pending-key notes and original deadlines describe their recorded phase.
+
 ## 0. Deadlines
 
 | Item | Time (CEST) | Note |
@@ -40,7 +59,7 @@ Runners **measure** (build, sign, Renode, discovery). Backend **projects + evalu
 releaseproof/
   contract/PQC_Engineering_Pack_V1_2/   verbatim copy (normative)
   backend/releaseproof/{core,adapters,orchestrator,api,store,profiles,ai}
-  backend/tests/{unit,contract,integration}
+  backend/tests/{unit,adapters,api,orchestrator,ai,fixtures}
   runners/{common,wolfboot,mcuboot}
   profiles/*.yaml, profiles/test_catalog.yaml
   web/  scripts/  docs/  deploy/aws/
@@ -61,7 +80,7 @@ Legend: ☐ todo · ◐ in progress · ☑ done · ✖ blocked
 - As-is notes: POC tests excluded from port (demo/export/catalog/wp0-harness: replaced by new modules); engine Italian finding strings kept (part of golden hash).
 - Plan delta: AI_PLAN runs before DISCOVERY (single runner call); profiles start `EXPERIMENTAL` and are promoted to `SUPPORTED` only by the acceptance gate.
 
-### Phase 1 — Parallel workstreams (15:10 → 19:00) — ◐ launched 15:15 (6 agents)
+### Phase 1 — Parallel workstreams (historical checkpoint, launched with 6 agents)
 - ☑ WS-D AI gateway (111 tests at merge) — note: `AMD_LLM_ALLOWED_HOSTS` must be set explicitly to the real AMD endpoint host
 - ☑ WS-A wolfBoot runner — image 3.4 GB, full run ≈64 s; all 8 templates reproduce frozen facts (840 / 12876 B, E11 UNSUPPORTED, O05 BUILD_FAILED); X01 REJECTED and P01 REJECT observed live
 - ☑ WS-E adapters — 66 tests; coverage-gated requirements so missing facts ⇒ UNKNOWN; live verdict expectation A: candidate COMPATIBLE (with P01) / transition INCOMPATIBLE; field_service_reflash ⇒ transition INDETERMINATE (I4 unknown)
@@ -82,12 +101,9 @@ Legend: ☐ todo · ◐ in progress · ☑ done · ✖ blocked
 | MCUboot / depot_reflash | INCOMPATIBLE | INDETERMINATE | INCOMPATIBLE |
 
   Frozen as regression fixtures `backend/tests/fixtures/runner_streams/` (249 tests green).
-- ☐ WS-A wolfBoot runner (Docker, isolated workdir, G1/G2/E03/X01/T1/layout)
-- ☐ WS-B MCUboot spike → runner (**go/no-go 18:00**)
-- ☐ WS-C API + orchestrator (jobs, SSE, artifacts, idempotency, queue)
-- ☐ WS-D AI gateway (planner, explainer, alternatives, analyst; stub only in tests)
-- ☐ WS-E adapters A/B → V1.2 assessments
-- ☐ WS-F web UI (wizard, live job, result, evidence, alternatives, AMD panel, reference run)
+- ☑ WS-A/WS-B runners and WS-E adapters integrated.
+- ☑ WS-C API/orchestrator and WS-D AI gateway integrated.
+- ☑ WS-F web UI integrated (see Phase 2).
 
 ### Phase 2 — Integration (started 14:40, ahead of schedule)
 - ☑ Full stack in Docker (api + both real runners, `docker-compose.dev.yml`): `scripts/acceptance.py` **PASSED for both profiles** (reports in `docs/acceptance/`)
@@ -98,10 +114,11 @@ Legend: ☐ todo · ◐ in progress · ☑ done · ✖ blocked
 - ☑ README (quickstart, live results, AMD usage placeholders, limitations, licenses)
 - ◐ Pitch kit agent (slides/cover/submission/video+pitch scripts) → `pitch/`
 - ✖ AWS deploy blocked: IAM user `programmatic-ettore-caputo` lacks EC2/SSM permissions. Minimal policy in `deploy/aws/iam-policy.json`. Scripts patched (AMI fallback, tar sync without rsync).
-- ☐ AMD endpoint (key pending) → then `amd_smoke.py`, `amd_benchmark.py`, `acceptance.py --require-ai`, promote profiles to SUPPORTED
+- ☑ AMD endpoint smoke and `acceptance.py --require-ai` recorded; both profiles promoted.
+- ☐ Complete and retain `amd_benchmark.py` report (smoke is not a benchmark).
 - ☐ Before publishing: history scan — Phase-0 commit contains the private brief (moved to git-ignored `general_docs/`); publish from a clean squashed history.
 
-### Phase 2 — Integration (19:00 → 01:00) [original targets]
+### Original future-phase targets (historical planning)
 - ☐ A end-to-end from UI (target 22:00)
 - ☐ AMD planner wired into the job
 - ☐ B end-to-end (target 01:00)
@@ -132,10 +149,11 @@ Legend: ☐ todo · ◐ in progress · ☑ done · ✖ blocked
 
 | Risk | Status | Mitigation |
 |---|---|---|
-| MCUboot in Renode (no NVMC model) | open | custom NVMC model; fallback direct-xip / STM32F4 |
-| AMD access pending | open | code with stub (tests only); smoke 10 calls on key arrival |
+| MCUboot in Renode | emulation working; physics limited | minimal NVMC model; power-loss behavior remains UNKNOWN |
+| AMD managed inference outages | observed | no fallback provider; deterministic pipeline continues; smoke retained |
 | Public deploy uptime after event | open | AWS EC2, not a laptop tunnel |
-| Zephyr image build time | open | workspace baked in image; only app build per job |
+| Zephyr image build time | mitigated for supported profile | workspace baked in image; only app build per job |
+| Public API abuse | open | authentication and quotas at a gateway before public access |
 
 ## 7. Change log
 

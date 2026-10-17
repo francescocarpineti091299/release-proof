@@ -26,6 +26,8 @@ class SemanticAssessmentResult(BaseModel):
     migration_verdict: Verdict | None = None
     candidate_verdict: Verdict | None = None
     transition_verdict: Verdict | None = None
+    candidate_state_assurance: dict[str, Verdict] | None = None
+    transition_plan_assurance: dict[str, Verdict] | None = None
     requirement_evaluation_results: list[dict[str, Any]] = Field(default_factory=list)
     invariant_evaluation_results: list[dict[str, Any]] = Field(default_factory=list)
     explanation_graph: dict[str, Any] = Field(default_factory=dict)

@@ -16,29 +16,11 @@ import type {
 import { buildAmdDashboard, unwrapList } from "@/lib/amd-stats";
 import { ApiError } from "@/lib/errors";
 import { isRecord } from "@/lib/utils";
-import { mockClient } from "@/lib/mock/client";
+import { consumeAssistantStream } from "@/lib/assistant-stream";
+import { parseStreamEvent, SSE_TYPES, type StreamEvent } from "@/lib/run-events";
 
 export { ApiError };
-
-export const MOCK_MODE = process.env.NEXT_PUBLIC_MOCK === "1";
-
-export const SSE_TYPES: SSEType[] = [
-  "stage",
-  "log",
-  "artifact",
-  "observation",
-  "test_result",
-  "error",
-  "done",
-  "run",
-  "ai",
-];
-
-export interface StreamEvent {
-  id: number | null;
-  type: SSEType;
-  data: Record<string, unknown>;
-}
+export { SSE_TYPES, type StreamEvent };
 
 export type ConnectionState = "connecting" | "open" | "reconnecting" | "closed";
 
@@ -106,28 +88,6 @@ async function request<T>(path: string, init?: RequestInit): Promise<T> {
   return (await res.json()) as T;
 }
 
-function parseStreamEvent(type: SSEType | null, e: MessageEvent<string>): StreamEvent | null {
-  let parsed: unknown;
-  try {
-    parsed = JSON.parse(e.data);
-  } catch {
-    return null;
-  }
-  if (!isRecord(parsed)) return null;
-  const lastId = e.lastEventId ? Number(e.lastEventId) : null;
-  // Envelope form: {id, type, data} (contracts/api.py SSEEvent) — or the bare data dict.
-  if (typeof parsed.type === "string" && isRecord(parsed.data) && SSE_TYPES.includes(parsed.type as SSEType)) {
-    return {
-      id: typeof parsed.id === "number" ? parsed.id : lastId,
-      type: parsed.type as SSEType,
-      data: parsed.data,
-    };
-  }
-  const t = type ?? (typeof parsed.type === "string" ? (parsed.type as SSEType) : null);
-  if (!t || !SSE_TYPES.includes(t)) return null;
-  return { id: lastId, type: t, data: parsed };
-}
-
 function subscribeReal(runId: string, { onEvent, onState }: SubscribeHandlers): () => void {
   let source: EventSource | null = null;
   let closed = false;
@@ -136,9 +96,11 @@ function subscribeReal(runId: string, { onEvent, onState }: SubscribeHandlers): 
   let timer: ReturnType<typeof setTimeout> | null = null;
 
   const handle = (type: SSEType | null) => (e: MessageEvent<string>) => {
-    if (e.lastEventId) lastId = e.lastEventId;
     const ev = parseStreamEvent(type, e);
-    if (ev) onEvent(ev);
+    if (ev) {
+      if (ev.id !== null) lastId = String(ev.id);
+      onEvent(ev);
+    }
   };
 
   const open = () => {
@@ -158,10 +120,11 @@ function subscribeReal(runId: string, { onEvent, onState }: SubscribeHandlers): 
     es.onerror = () => {
       if (closed) return;
       if (es.readyState === EventSource.CLOSED) {
+        if (timer) return;
         attempt += 1;
         onState?.("reconnecting");
         const delay = Math.min(15000, 1000 * 2 ** Math.min(attempt, 4));
-        timer = setTimeout(open, delay);
+        timer = setTimeout(() => { timer = null; open(); }, delay);
       } else {
         onState?.("reconnecting");
       }
@@ -255,43 +218,9 @@ const realClient: ApiClient = {
       signal,
     });
     if (!res.ok) throw await errorFrom(res);
-    const isSse = (res.headers.get("content-type") ?? "").includes("text/event-stream");
-    if (!res.body) {
-      onChunk(await res.text());
-      return;
-    }
-    const reader = res.body.getReader();
-    const decoder = new TextDecoder();
-    let buffer = "";
-    for (;;) {
-      const { value, done } = await reader.read();
-      if (done) break;
-      const text = decoder.decode(value, { stream: true });
-      if (!isSse) {
-        onChunk(text);
-        continue;
-      }
-      buffer += text;
-      const frames = buffer.split(/\n\n/);
-      buffer = frames.pop() ?? "";
-      for (const frame of frames) {
-        const data = frame
-          .split("\n")
-          .filter((l) => l.startsWith("data:"))
-          .map((l) => l.slice(5).replace(/^ /, ""))
-          .join("\n");
-        if (!data || data === "[DONE]") continue;
-        try {
-          const parsed: unknown = JSON.parse(data);
-          if (isRecord(parsed) && typeof parsed.text === "string") onChunk(parsed.text);
-          else if (typeof parsed === "string") onChunk(parsed);
-        } catch {
-          onChunk(data);
-        }
-      }
-    }
+    await consumeAssistantStream(res, onChunk);
   },
   subscribe: subscribeReal,
 };
 
-export const api: ApiClient = MOCK_MODE ? mockClient : realClient;
+export const api: ApiClient = realClient;

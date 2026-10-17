@@ -21,6 +21,7 @@ from amd_common import (
     WOLFBOOT,
     TraceLog,
     assistant_context_for,
+    assistant_unavailable,
     bundle,
     freeze_case,
     load_env_file,
@@ -128,7 +129,7 @@ def _assistant(svc: AIService, run_id: str, wolf: dict, freeze: dict) -> dict[st
         )
     )
     text = "".join(chunks)
-    failed = text.startswith("AI unavailable")
+    failed = assistant_unavailable(text)
     return {
         "status": "AI_UNAVAILABLE" if failed else "OK",
         "message": text[:600],

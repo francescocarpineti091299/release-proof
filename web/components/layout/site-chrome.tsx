@@ -3,7 +3,6 @@
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { Cpu, FlaskConical, History, ShieldCheck } from "lucide-react";
-import { MOCK_MODE } from "@/lib/api";
 import { cn } from "@/lib/utils";
 
 const NAV = [
@@ -16,11 +15,6 @@ export function SiteHeader() {
   const pathname = usePathname();
   return (
     <header className="sticky top-0 z-30 border-b border-slate-800 bg-slate-950 text-white">
-      {MOCK_MODE ? (
-        <div className="bg-amber-400 px-4 py-1 text-center text-xs font-bold uppercase tracking-wider text-black">
-          Mock data<span className="hidden md:inline">: UI preview without the backend (NEXT_PUBLIC_MOCK=1)</span>. Nothing on screen was executed.
-        </div>
-      ) : null}
       <div className="mx-auto flex h-14 max-w-7xl items-center gap-4 px-4 sm:px-6">
         <Link href="/" className="flex items-center gap-2 font-bold tracking-tight">
           <ShieldCheck className="h-6 w-6 text-emerald-400" aria-hidden />

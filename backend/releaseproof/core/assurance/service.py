@@ -156,9 +156,12 @@ def evaluate(assessment: dict[str, Any]) -> SemanticAssessmentResult:
 def _has_change_set_violation(assessment: dict[str, Any]) -> bool:
     allowed = assessment.get("allowed_change_set") or {}
     modifiable = set(allowed.get("modifiable_components") or [])
+    allowed_actions = set(allowed.get("allowed_actions") or [])
     for step in (assessment.get("transition_plan") or {}).get("steps") or []:
         for action in step.get("actions") or []:
             if action.get("component_ref") not in modifiable:
+                return True
+            if "allowed_actions" in allowed and action.get("action_type") not in allowed_actions:
                 return True
     return False
 
@@ -166,7 +169,7 @@ def _has_change_set_violation(assessment: dict[str, Any]) -> bool:
 def _evaluate_requirements(assessment: dict[str, Any]) -> list[dict[str, Any]]:
     profile = assessment.get("profile") or {}
     requirements = profile.get("requirements") or []
-    evidence = assessment.get("evidence") or []
+    evidence = [item for item in assessment.get("evidence") or [] if item.get("status") == "VALID"]
     gaps = {g["gap_id"]: g for g in assessment.get("evidence_gaps") or []}
     coverage = assessment.get("coverage_assertions") or []
     results: list[dict[str, Any]] = []
@@ -358,14 +361,16 @@ def _failing_hazard_ids(evidence: list[dict[str, Any]], groups: list[dict[str, A
         ):
             continue
         value = item.get("value")
-        if value in {"FAIL", "OVERFLOW", "VIOLATED"} or (
-            isinstance(value, str) and "FAIL" in value
+        if isinstance(value, str) and (
+            value in {"FAIL", "OVERFLOW", "VIOLATED"} or "FAIL" in value
         ):
             failing.append(item["id"])
     return failing
 
 
 def _evidence_matches_group(evidence: dict[str, Any], combinations: list[dict[str, Any]]) -> bool:
+    if evidence.get("status") != "VALID":
+        return False
     for combo in combinations:
         if (
             combo.get("evidence_kind")
@@ -468,11 +473,15 @@ def _invariant_evidence_refs(
     if evaluator_id == "BOOTABLE_IMAGE_EXISTS":
         refs: list[str] = []
         for item in assessment.get("evidence") or []:
+            if item.get("status") != "VALID":
+                continue
             if item.get("test_id") in {"E01", "E02"} and item.get("value") == "BOOT_OK":
                 refs.append(str(item["id"]))
         return refs
     if evaluator_id == "NON_ATOMIC_WINDOW_HANDLED":
         for item in assessment.get("evidence") or []:
+            if item.get("status") != "VALID":
+                continue
             if item.get("test_id") == "E12" and item.get("value") == "PASS":
                 return [str(item["id"])]
     return []
@@ -490,8 +499,17 @@ def _invariant_context(assessment: dict[str, Any], evaluator_id: str) -> dict[st
         path_states = (assessment.get("candidate_state") or {}).get(
             "authorization_path_states"
         ) or {}
-        if path_states:
-            context["policy"] = next(iter(path_states.values())).get("policy")
+        declared_paths = (assessment.get("platform_model") or {}).get("authorization_paths") or []
+        policies = [state.get("policy", "UNKNOWN") for state in path_states.values()]
+        policies.extend(
+            "UNKNOWN" for path in declared_paths if path["path_id"] not in path_states
+        )
+        if policies:
+            context["policy"] = (
+                "CLASSICAL_ONLY" if "CLASSICAL_ONLY" in policies
+                else "UNKNOWN" if any(policy in (None, "UNKNOWN") for policy in policies)
+                else policies[0]
+            )
     if evaluator_id == "BOOTABLE_IMAGE_EXISTS":
         fact = _evidence_fact(assessment, {"E01", "E02"}, {"BOOT_OK"}, {"FAIL", "NOT_BOOTABLE"})
         if fact is not _MISSING:
@@ -509,16 +527,20 @@ def _evidence_fact(
     truthy: set[str],
     falsy: set[str],
 ) -> Any:
+    outcomes: set[str] = set()
     for item in assessment.get("evidence") or []:
-        if item.get("test_id") not in test_ids:
+        if item.get("test_id") not in test_ids or item.get("status") != "VALID":
             continue
         value = item.get("value")
-        if value in truthy:
-            return True
-        if value in falsy:
-            return False
-        if value == "UNKNOWN":
-            return "UNKNOWN"
+        if isinstance(value, str):
+            outcomes.add(value)
+    # A positive row cannot conceal a contradictory or explicitly unknown observation.
+    if outcomes & falsy:
+        return False
+    if "UNKNOWN" in outcomes:
+        return "UNKNOWN"
+    if outcomes & truthy:
+        return True
     return _MISSING
 
 
@@ -560,23 +582,31 @@ def _combine_verdicts(a: Verdict, b: Verdict) -> Verdict:
 
 def _layout_sizes_from_evidence(
     evidence: list[dict[str, Any]],
-) -> dict[str, int] | None:
-    signed: int | None = None
-    capacity: int | None = None
+) -> dict[str, Any] | None:
+    signed_values: list[int] = []
+    capacity_values: list[int] = []
     for item in evidence:
         if item.get("test_id") != "E05" and "LAYOUT" not in str(item.get("id", "")):
             continue
         value = item.get("value")
         if isinstance(value, dict):
             if value.get("signed_artifact_size") is not None:
-                signed = int(value["signed_artifact_size"])
+                size = value["signed_artifact_size"]
+                if type(size) is not int or size < 0:
+                    return {"signed_artifact_size": "UNKNOWN", "boot_slot_capacity": "UNKNOWN"}
+                signed_values.append(size)
             if value.get("boot_slot_capacity") is not None:
-                capacity = int(value["boot_slot_capacity"])
+                size = value["boot_slot_capacity"]
+                if type(size) is not int or size < 0:
+                    return {"signed_artifact_size": "UNKNOWN", "boot_slot_capacity": "UNKNOWN"}
+                capacity_values.append(size)
         elif isinstance(value, int | float) and item.get("test_id") == "E05":
-            signed = int(value)
-    if signed is None or capacity is None:
+            if type(value) is not int or value < 0:
+                return {"signed_artifact_size": "UNKNOWN", "boot_slot_capacity": "UNKNOWN"}
+            signed_values.append(value)
+    if not signed_values or not capacity_values:
         return None
-    return {"signed_artifact_size": signed, "boot_slot_capacity": capacity}
+    return {"signed_artifact_size": max(signed_values), "boot_slot_capacity": min(capacity_values)}
 
 
 def _layout_requirement_state(
@@ -594,12 +624,12 @@ def _layout_requirement_state(
             if item.get("id") == "EV-LAYOUT" or "LAYOUT" in str(item.get("id", ""))
         ]
         if not legacy:
-            return None
+            return RequirementResultState.UNKNOWN, []
         if any(item.get("value") == "FAIL" for item in legacy):
             return RequirementResultState.VIOLATED, [legacy[0]["id"]]
         if any(item.get("value") == "PASS" for item in legacy):
             return RequirementResultState.SATISFIED, [legacy[0]["id"]]
-        return None
+        return RequirementResultState.UNKNOWN, [item["id"] for item in legacy]
     outcome = run_evaluator("LEQ", context=sizes)
     status = outcome.get("status")
     refs = [
@@ -696,20 +726,25 @@ def _emit(
     assessment: dict[str, Any],
     result: SemanticAssessmentResult,
 ) -> SemanticAssessmentResult:
-    conditions = _condition_evaluations(assessment)
+    conditions = (
+        [] if result.lifecycle == AssessmentLifecycle.BLOCKED else _condition_evaluations(assessment)
+    )
     graph = result.explanation_graph
     if "nodes" not in graph or "edges" not in graph:
         graph = {"nodes": [], "edges": []}
     graph = sanitize_explanation_graph(graph)
-    result = result.model_copy(update={"conditions": conditions, "explanation_graph": graph})
+    result = result.model_copy(update={
+        "conditions": conditions,
+        "explanation_graph": graph,
+        "candidate_state_assurance": (
+            {"verdict": result.candidate_verdict} if result.candidate_verdict else None
+        ),
+        "transition_plan_assurance": (
+            {"verdict": result.transition_verdict} if result.transition_verdict else None
+        ),
+    })
     document = result.model_dump(mode="json")
     document.pop("canonical_hash", None)
-    document["candidate_state_assurance"] = (
-        {"verdict": document["candidate_verdict"]} if document.get("candidate_verdict") else None
-    )
-    document["transition_plan_assurance"] = (
-        {"verdict": document["transition_verdict"]} if document.get("transition_verdict") else None
-    )
     digest = compute_canonical_hash(document)
     document["canonical_hash"] = digest
     errors = list(jsonschema.Draft202012Validator(_result_schema()).iter_errors(document))

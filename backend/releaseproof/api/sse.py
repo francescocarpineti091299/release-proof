@@ -13,6 +13,7 @@ from releaseproof.store.db import EventRow
 
 _TERMINAL = {RunStatus.SUCCEEDED.value, RunStatus.FAILED.value, RunStatus.CANCELLED.value}
 _BATCH = 500
+MAX_EVENT_ID = (1 << 63) - 1  # SQLite INTEGER range
 
 
 def format_event(row: EventRow) -> str:
@@ -72,7 +73,7 @@ def parse_last_event_id(header: str | None, after: int | None) -> int:
         if candidate is None or candidate == "":
             continue
         try:
-            return max(0, int(candidate))
+            return min(MAX_EVENT_ID, max(0, int(candidate)))
         except (TypeError, ValueError):
             continue
     return 0

@@ -32,6 +32,7 @@ while [[ $# -gt 0 ]]; do
   esac
 done
 
+[[ "$NAME" =~ ^[A-Za-z0-9-]{1,40}$ ]] || { echo "invalid --name" >&2; exit 2; }
 STATE_FILE="${HOME}/.releaseproof-aws/${NAME}.env"
 if [[ -f "$STATE_FILE" ]]; then
   # shellcheck disable=SC1090
@@ -43,6 +44,7 @@ SITE_ADDRESS="${SITE_ADDRESS:-${RP_SSLIP_HOST:-:80}}"
 ENV_FILE="${ENV_FILE:-${REPO_ROOT}/.env}"
 
 [[ -n "$HOST" ]] || { echo "no host: run provision.sh or pass --host" >&2; exit 2; }
+[[ "$HOST" =~ ^[A-Za-z0-9.-]+$ ]] || { echo "invalid --host (use an IPv4 address or hostname)" >&2; exit 2; }
 [[ -n "$KEY" && -f "$KEY" ]] || { echo "SSH key not found: ${KEY:-<unset>} (use --key)" >&2; exit 2; }
 [[ "$SITE_ADDRESS" =~ ^(:[0-9]+|[A-Za-z0-9.-]+)$ ]] || { echo "invalid --site-address" >&2; exit 2; }
 if [[ ! -f "$ENV_FILE" ]]; then
@@ -108,7 +110,8 @@ fi
 remote "cd ${REMOTE_DIR} && docker compose ps"
 
 if [[ "$SITE_ADDRESS" == :* ]]; then
-  URL="http://${HOST}${SITE_ADDRESS/#:80/}"
+  URL="http://${HOST}"
+  [[ "$SITE_ADDRESS" == :80 ]] || URL+="$SITE_ADDRESS"
 else
   URL="https://${SITE_ADDRESS}"
 fi

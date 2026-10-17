@@ -1,7 +1,7 @@
 # Workstreams — shared spec (read before touching code)
 
 Repo root: `C:\Users\carpy\Desktop\ProgettiPersonali\PQC\releaseproof` (Windows host, Docker Desktop
-with Linux containers, WSL Ubuntu available). POC (read-only reference, never modify):
+with Linux containers, WSL Ubuntu available). POC (read-only reference for the original workstreams):
 `C:\Users\carpy\Desktop\ProgettiPersonali\PQC\firmware-migration-assurance`.
 
 Backend venv: `backend\.venv\Scripts\python.exe` (Python 3.13 on Windows; containers use 3.12).
@@ -43,6 +43,10 @@ Run tests: `cd backend; .\.venv\Scripts\python.exe -m pytest`.
   and `releaseproof.core.validation.service.validate_assessment`. Contract docs in
   `contract/PQC_Engineering_Pack_V1_2/` (01 spec, 02 data contracts, schemas/).
 
+Test-only synthetic helpers live in `backend/tests/ai/rp_llm_stub.py` and
+`backend/tests/unit/rp_scenarios.py`, not in the shipped `releaseproof` package. Runtime dependency
+injection is refused outside `RELEASEPROOF_ENV=test`; there is no browser mock mode.
+
 ## Runtime topology
 
 ```
@@ -58,6 +62,10 @@ Env vars: `RELEASEPROOF_ENV` (`dev|test|demo`), `RELEASEPROOF_DATA_DIR` (/data),
 `AMD_LLM_PROVIDER_LABEL`, `AMD_LLM_HARDWARE_LABEL`, `AMD_LLM_ALLOWED_HOSTS`.
 
 Run id format: `RP-YYYYMMDDTHHMMSSZ-xxxxxx` (6 hex).
+
+Both profiles are currently `SUPPORTED` (reviewed promotion after the recorded
+`docs/acceptance/20261017T135337Z.json` gate). `scripts/acceptance.py` does not modify their status.
+Additional standalone checks: `python -m pytest scripts/tests -q` from the repository root.
 
 ## Observation fact vocabulary (runner → adapter)
 

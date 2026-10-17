@@ -12,14 +12,19 @@ from pathlib import Path
 
 
 def parse_config(text: str) -> dict[str, tuple[str, int]]:
-    """Parse ``KEY?=VALUE`` / ``KEY=VALUE`` lines -> {key: (value, 1-based line)}. Later lines win."""
+    """Parse literal Make assignments with ?= and += semantics (no make evaluation)."""
     values: dict[str, tuple[str, int]] = {}
     for lineno, raw in enumerate(text.splitlines(), start=1):
         line = raw.split("#", 1)[0].strip()
         m = re.match(r"^([A-Za-z_][A-Za-z0-9_]*)\s*(\?|:|\+)?=\s*(.*)$", line)
         if not m:
             continue
-        values[m.group(1)] = (m.group(3).strip(), lineno)
+        key, operator, value = m.group(1), m.group(2), m.group(3).strip()
+        if operator == "?" and key in values:
+            continue
+        if operator == "+" and key in values:
+            value = f"{values[key][0]} {value}".strip()
+        values[key] = (value, lineno)
     return values
 
 
@@ -101,6 +106,8 @@ class ImageHeader:
 
 def parse_image_header(data: bytes) -> ImageHeader:
     """wolfBoot manifest: u32 magic, u32 fw_size, then TLVs (u16 type, u16 len, value; 0xFF pad)."""
+    if len(data) < 8:
+        raise ValueError("truncated wolfBoot image prefix")
     magic, fw_size = struct.unpack_from("<II", data, 0)
     version = image_type = None
     off = 8
@@ -112,6 +119,8 @@ def parse_image_header(data: bytes) -> ImageHeader:
         tlv_type, tlv_len = struct.unpack_from("<HH", data, off)
         if tlv_type == 0 or tlv_type == 0xFFFF:
             break
+        if off + 4 + tlv_len > limit:
+            raise ValueError("truncated wolfBoot header TLV")
         value = data[off + 4 : off + 4 + tlv_len]
         if tlv_type == 0x0001 and tlv_len == 4:
             version = struct.unpack("<I", value)[0]

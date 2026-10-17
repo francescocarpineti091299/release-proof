@@ -4,6 +4,7 @@ from __future__ import annotations
 
 import hashlib
 import json
+import re
 from functools import lru_cache
 from pathlib import Path
 from typing import Any
@@ -11,6 +12,7 @@ from typing import Any
 import yaml
 
 from releaseproof.contracts.api import ArtifactView, EvidenceView
+from releaseproof.orchestrator.runner_client import safe_relative_path
 from releaseproof.profiles import registry
 
 
@@ -53,20 +55,25 @@ def catalog_source() -> tuple[str, str]:
 
 def resolve_artifact_path(runs_dir: Path, row: dict[str, Any]) -> Path | None:
     """Absolute path of an artifact row, or None if it would leave its owner run directory."""
-    base = (runs_dir / str(row["owner_run_id"])).resolve()
-    try:
-        target = (base / str(row["rel_path"])).resolve()
-    except (OSError, ValueError):
+    owner = str(row["owner_run_id"])
+    relative = str(row["rel_path"])
+    if owner in (".", "..") or not re.fullmatch(r"[A-Za-z0-9_.-]{1,160}", owner):
         return None
-    if target == base or base not in target.parents:
+    if not safe_relative_path(relative):
+        return None
+    try:
+        root = runs_dir.resolve()
+        base = (root / owner).resolve()
+        target = (base / relative).resolve()
+    except (OSError, ValueError, RuntimeError):
+        return None
+    if base.parent != root or target == base or base not in target.parents:
         return None
     return target
 
 
 def verify_artifacts(runs_dir: Path, rows: list[dict[str, Any]]) -> None:
     for row in rows:
-        if row["kind"] == "manifest" and row["artifact_id"] == "MANIFEST":
-            continue
         path = resolve_artifact_path(runs_dir, row)
         if path is None or not path.is_file():
             raise EvaluationFailure(
@@ -76,6 +83,11 @@ def verify_artifacts(runs_dir: Path, rows: list[dict[str, Any]]) -> None:
             raise EvaluationFailure(
                 "TOOL_FAILURE",
                 f"artifact {row['artifact_id']} sha256 does not match the runner report",
+            )
+        if path.stat().st_size != row["size_bytes"]:
+            raise EvaluationFailure(
+                "TOOL_FAILURE",
+                f"artifact {row['artifact_id']} size does not match the runner report",
             )
 
 

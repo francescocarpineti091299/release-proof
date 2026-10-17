@@ -1,4 +1,8 @@
-"""Versioned demo scenarios derived from the WP0 freeze (do not mutate the real assessment)."""
+"""Synthetic assessment fixtures for engine tests (never part of the runtime package).
+
+Derived from the WP0 freeze without mutating the recorded baseline. Policy, recovery and E12
+closure evidence in these scenarios is simulated, not measured by a runner.
+"""
 
 from __future__ import annotations
 

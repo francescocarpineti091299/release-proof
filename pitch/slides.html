@@ -375,7 +375,7 @@
     <div class="shots3">
       <div>
         <img class="shot" src="assets/home_wizard.png" alt="ReleaseProof wizard">
-        <div class="cap"><b>Wizard:</b> configurations with pinned versions. Both still carry the EXPERIMENTAL flag until they are formally promoted.</div>
+         <div class="cap"><b>Wizard:</b> configurations with pinned versions. Both profiles are SUPPORTED after the retained AMD-required acceptance gate.</div>
         <img class="shot" src="assets/wolfboot_stages.png" alt="Live pipeline stages" style="margin-top:18px">
         <div class="cap"><b>Live pipeline:</b> 7 stages streamed from the runner (SSE), 21 observations, 42 s in total.</div>
       </div>
@@ -443,14 +443,14 @@
       <div><b>No shell from the AI:</b> it can only choose allow-listed templates</div>
     </div>
   </div>
-  <div class="foot"><div class="brand">ReleaseProof</div><div class="src">Status: the AMD endpoint key is pending, so today's screenshots show AI_UNAVAILABLE with the deterministic fallback, as designed. The guardrails are implemented and unit-tested in backend/releaseproof/ai.</div><div class="num">05</div></div>
+   <div class="foot"><div class="brand">ReleaseProof</div><div class="src">Token Factory smoke and AMD-required acceptance are retained. Early screenshots show AI_UNAVAILABLE; retake them for an AMD-enabled demo. Guardrails are tested in backend/releaseproof/ai.</div><div class="num">05</div></div>
 </section>
 
 <!-- ===================================================================== 6. ARCHITECTURE + AMD -->
 <section class="slide light" id="s6">
   <div class="head">
     <div class="eyebrow">Architecture on AMD</div>
-    <h2>An AMD EPYC host runs the builds and emulation, and an AMD Instinct-hosted LLM does the reasoning</h2>
+     <h2>AMD EPYC is the compute deployment target; a configured AMD-hosted LLM plans and explains</h2>
   </div>
   <div class="body">
     <div class="arch">
@@ -478,12 +478,12 @@
       </div>
       <div class="zone amd">
         <div class="zt"><span>AMD evidence</span></div>
-        <div class="bx vi" style="margin-bottom:14px"><b>LLM on AMD Instinct (AMD Developer Cloud)</b><span>OpenAI-compatible, allow-listed host only, reached through API egress only</span></div>
+         <div class="bx vi" style="margin-bottom:14px"><b>AMD Token Factory · managed GPU undisclosed</b><span>OpenAI-compatible, operator allow-listed host, reached through API egress only</span></div>
         <div class="evid">
-          <div class="r"><div class="kk">Host CPU</div><div>AMD EPYC 4th gen (EC2 c7a.2xlarge, 8 vCPU) runs builds, Renode and the engine</div></div>
-          <div class="r"><div class="kk">GPU</div><div><span class="ph">[[AMD_HARDWARE]]</span></div></div>
-          <div class="r"><div class="kk">Model</div><div><span class="ph">[[AMD_MODEL]]</span></div></div>
-          <div class="r"><div class="kk">Serving</div><div><span class="ph">[[AMD_SERVING_STACK]]</span></div></div>
+           <div class="r"><div class="kk">Host CPU</div><div>Deployment target: AMD EPYC 4th gen (EC2 c7a.2xlarge, 8 vCPU); cloud deployment not yet evidenced</div></div>
+           <div class="r"><div class="kk">GPU</div><div>Managed GPU undisclosed; labels are not attestation</div></div>
+           <div class="r"><div class="kk">Model</div><div>DeepSeek-V4-Flash (recorded smoke)</div></div>
+           <div class="r"><div class="kk">Serving</div><div>AMD Token Factory managed API</div></div>
           <div class="r"><div class="kk">p50 latency</div><div><span class="ph">[[AMD_LATENCY_P50]]</span></div></div>
           <div class="r"><div class="kk">Schema-valid</div><div><span class="ph">[[AMD_SCHEMA_VALID_RATE]]</span> <span class="muted" style="font-size:15px">scripts/amd_benchmark.py also measures citation fidelity, verdict echo and injection leaks</span></div></div>
           <div class="r"><div class="kk">On AMD</div><div>Every LLM call, plus the full pipeline once deployed on EPYC</div></div>
@@ -491,7 +491,7 @@
       </div>
     </div>
   </div>
-  <div class="foot"><div class="brand">ReleaseProof</div><div class="src">Yellow tags are placeholders, filled only with measured values. Nothing on this slide is invented: the AMD endpoint and AWS deployment were still pending when the deck was written.</div><div class="num">06</div></div>
+   <div class="foot"><div class="brand">ReleaseProof</div><div class="src">Token Factory smoke: 9/10 logical calls OK, one outage. Benchmark placeholders require a completed report. AWS remains a deployment target. No managed GPU identity is attested.</div><div class="num">06</div></div>
 </section>
 
 <!-- ===================================================================== 7. EVIDENCE & SAFEGUARDS -->
@@ -522,7 +522,7 @@
           <li>Renode models nRF52840 flash as plain memory (wolfBoot), and our NVMC model for MCUboot is minimal, so there are no power-loss or timing faults.</li>
           <li>Interrupted-update recovery (E12) is not executed, so INV-I4 stays <b>UNKNOWN</b>.</li>
           <li>Verdicts are non-official engineering assessments, not certifications.</li>
-          <li>The AMD LLM was not connected for today's runs, so they used the deterministic fallback plan.</li>
+           <li>Early screenshots used deterministic fallback; later AMD-required acceptance and Token Factory smoke are retained separately.</li>
         </ul>
       </div>
       <div class="q hum">
@@ -619,7 +619,7 @@
         </ul></div>
       <div class="card"><div class="when">Next 30 days</div><h3>Close the open items</h3>
         <ul class="clean" style="margin-top:12px">
-          <li>Connect the AMD endpoint and publish the benchmark</li>
+           <li>Complete and publish the AMD benchmark (managed inference smoke is retained)</li>
           <li>Public deployment on EC2 c7a (AMD EPYC)</li>
           <li>Interrupted-update test (E12) via power-fail injection</li>
           <li>Staged hybrid ECDSA + ML-DSA plan; LMS once upstream lands (MCUboot PR #2707)</li>

@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import math
 from typing import Any
 
 EVALUATOR_WHITELIST = frozenset(
@@ -103,6 +104,14 @@ def _leq(context: dict[str, Any]) -> dict[str, Any]:
     used, bound, reason = pair
     if used in (None, "UNKNOWN") or bound in (None, "UNKNOWN"):
         return {"status": "UNKNOWN", "reason": "Capacità UNKNOWN"}
+    if any(
+        isinstance(value, bool)
+        or not isinstance(value, int | float)
+        or (isinstance(value, float) and not math.isfinite(value))
+        or value < 0
+        for value in (used, bound)
+    ):
+        return {"status": "UNKNOWN", "reason": "Capacità non numerica o non valida"}
     if used <= bound:
         return {"status": "SATISFIED"}
     return {"status": "VIOLATED", "reason": reason}

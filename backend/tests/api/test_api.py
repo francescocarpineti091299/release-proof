@@ -2,11 +2,13 @@
 
 from __future__ import annotations
 
+import asyncio
 import hashlib
 import json
 import sys
 import threading
 import time
+from dataclasses import replace
 from pathlib import Path
 
 import pytest
@@ -99,6 +101,99 @@ def test_health_and_configurations(h):
             headers={"Origin": "http://localhost:3000", "Access-Control-Request-Method": "GET"},
         )
         assert cors.headers.get("access-control-allow-origin") == "http://localhost:3000"
+
+
+def test_refused_dependencies_close_store_on_startup_failure(h, monkeypatch):
+    from releaseproof.orchestrator.deps import InjectedDependencyRefused
+    from releaseproof.store.db import Store
+
+    closed = []
+
+    class TrackedStore(Store):
+        def close(self):
+            closed.append(self.path)
+            super().close()
+
+    monkeypatch.setattr("releaseproof.api.app.Store", TrackedStore)
+    app = create_app(replace(h.settings, env="dev"), h.deps)
+    with pytest.raises(InjectedDependencyRefused), TestClient(app):
+        pass
+    assert closed == [str(h.settings.db_path)]
+
+
+def test_lifespan_drains_worker_before_closing_sqlite_without_blocking_loop(h, monkeypatch):
+    from releaseproof.contracts.api import RunCreate
+    from releaseproof.store.db import Store
+
+    gate = threading.Event()
+    h.runner.gate = gate
+    workers = []
+    closed = []
+
+    class TrackedStore(Store):
+        def close(self):
+            assert all(not worker.is_alive() for worker in workers)
+            closed.append(self.path)
+            super().close()
+
+    monkeypatch.setattr("releaseproof.api.app.Store", TrackedStore)
+    app = create_app(h.settings, h.deps)
+
+    async def lifecycle():
+        async with app.router.lifespan_context(app):
+            orch = app.state.orchestrator
+            run = orch.create_run(RunCreate(**CREATE))[0]
+            assert await asyncio.to_thread(h.runner.entered.wait, 5)
+            workers.extend(orch._threads.values())
+
+            async def release_runner():
+                # Exceed the old two-second join limit. Releasing on this loop also proves
+                # that lifespan shutdown does not block the loop while waiting for the runner.
+                await asyncio.sleep(2.2)
+                gate.set()
+
+            release = asyncio.create_task(release_runner())
+        await release
+        assert closed == [str(h.settings.db_path)]
+        assert all(not worker.is_alive() for worker in workers)
+        # Read the persisted terminal result with a new connection, after lifespan closed it.
+        reopened = Store(h.settings.db_path)
+        try:
+            assert reopened.get_run(run.run_id)["status"] == "SUCCEEDED"
+            assert reopened.get_result(run.run_id) is not None
+            assert reopened.list_events(run.run_id)[-1].data["status"] == "SUCCEEDED"
+        finally:
+            reopened.close()
+
+    try:
+        asyncio.run(lifecycle())
+    finally:
+        gate.set()
+
+
+def test_lifespan_does_not_close_sqlite_when_drain_times_out(h, monkeypatch):
+    from releaseproof.orchestrator.service import Orchestrator
+
+    gate = threading.Event()
+    h.runner.gate = gate
+    shutdown = Orchestrator.shutdown
+
+    def short_shutdown(self):
+        return shutdown(self, timeout=0.01)
+
+    monkeypatch.setattr(Orchestrator, "shutdown", short_shutdown)
+    app = create_app(h.settings, h.deps)
+    try:
+        with pytest.raises(TimeoutError, match="keep the store open"), TestClient(app) as client:
+            run_id = client.post("/api/assessments", json=CREATE).json()["run_id"]
+            assert h.runner.entered.wait(5)
+        assert app.state.store.schema_version == 1
+        assert app.state.orchestrator.run_view(run_id).status == "RUNNING"
+    finally:
+        gate.set()
+        if hasattr(app.state, "orchestrator"):
+            shutdown(app.state.orchestrator)
+            app.state.store.close()
 
 
 def test_experimental_profiles_hidden_by_default(tmp_path, monkeypatch):
@@ -212,6 +307,15 @@ def test_sse_follows_a_live_run_until_terminal(h):
         events = _sse(client, run_id)
         assert events[-1]["event"] == "run" and events[-1]["data"]["data"]["status"] == "SUCCEEDED"
         assert [e["id"] for e in events] == h_store_ids(client, run_id)
+
+
+def test_sse_cursor_cannot_overflow_sqlite_integer(h):
+    with _client(h) as client:
+        run_id = client.post("/api/assessments", json=CREATE).json()["run_id"]
+        _wait(client, run_id)
+        assert _sse(client, run_id, headers={"Last-Event-ID": str(1 << 80)}) == []
+        response = client.get(f"/api/assessments/{run_id}/events", params={"after": 1 << 80})
+        assert response.status_code == 422
 
 
 def test_failed_run_has_no_result(tmp_path):
@@ -330,6 +434,41 @@ def test_reference_is_the_recorded_freeze_with_golden_hash(h):
         )
         # the reference never shows up as a run
         assert all(r["mode"] != "REFERENCE" for r in client.get("/api/assessments").json())
+
+
+def test_download_refuses_tampered_artifact_and_manifest(h):
+    with _client(h) as client:
+        run_id = client.post("/api/assessments", json=CREATE).json()["run_id"]
+        _wait(client, run_id)
+        for artifact_id in ("ART-wolfboot.boot_current-uart", "MANIFEST"):
+            row = client.app.state.store.get_artifact(run_id, artifact_id)
+            path = h.settings.run_dir(run_id) / row["rel_path"]
+            path.write_bytes(b"modified after evaluation")
+            response = client.get(f"/api/assessments/{run_id}/artifacts/{artifact_id}")
+            assert response.status_code == 409
+            assert "X-Artifact-Sha256" not in response.headers
+
+
+def test_download_refuses_poisoned_artifact_owner(h):
+    with _client(h) as client:
+        run_id = client.post("/api/assessments", json=CREATE).json()["run_id"]
+        _wait(client, run_id)
+        secret = h.settings.data_dir / "secret.txt"
+        secret.write_bytes(b"secret")
+        client.app.state.store.add_artifact(
+            run_id,
+            {
+                "artifact_id": "ART-poisoned",
+                "owner_run_id": "..",
+                "name": "secret.txt",
+                "rel_path": "secret.txt",
+                "kind": "log",
+                "sha256": hashlib.sha256(b"secret").hexdigest(),
+                "size_bytes": 6,
+            },
+        )
+        response = client.get(f"/api/assessments/{run_id}/artifacts/ART-poisoned")
+        assert response.status_code == 404 and b"secret" not in response.content
 
 
 def test_alternatives_endpoints(h):

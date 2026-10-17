@@ -135,13 +135,15 @@ def execute(
         sink.log("runner", traceback.format_exc()[-3000:])
         status = "FAILED"
     finally:
-        sink.done(
-            status,
-            summary=f"{family.name} runner finished with {status}",
-            tool_versions=_safe(family.tool_versions),
-            source_pins=_safe(family.source_pins),
-        )
-        shutil.rmtree(workdir, ignore_errors=True)
+        try:
+            sink.done(
+                status,
+                summary=f"{family.name} runner finished with {status}",
+                tool_versions=_safe(family.tool_versions),
+                source_pins=_safe(family.source_pins),
+            )
+        finally:
+            shutil.rmtree(workdir, ignore_errors=True)
     return status
 
 
@@ -172,9 +174,11 @@ def _execute(family: Family, ctx: RunContext, template_ids: list[str]) -> str:
     discovery = [t for t in templates if t.phase == "DISCOVERY"]
     tests = [t for t in templates if t.phase != "DISCOVERY"]
 
+    all_statuses: list[str] = []
     if discovery:
         sink.stage("DISCOVERY", "RUNNING")
         statuses = [_run_one(ctx, t) for t in discovery]
+        all_statuses.extend(statuses)
         sink.stage("DISCOVERY", _phase_status(statuses))
 
     build_errors: dict[str, BuildFailed] = {}
@@ -213,7 +217,10 @@ def _execute(family: Family, ctx: RunContext, template_ids: list[str]) -> str:
                 continue
             statuses.append(_run_one(ctx, t))
         sink.stage("EMULATION_TESTS", _phase_status(statuses))
-    return "SUCCEEDED"
+        all_statuses.extend(statuses)
+    # A negative test result is valid evidence; infrastructure errors and tests
+    # skipped by the deadline/cancellation are not a successful execution.
+    return "FAILED" if any(o in {"ERROR", "NOT_EXECUTED"} for o in all_statuses) else "SUCCEEDED"
 
 
 def _run_one(ctx: RunContext, template: Template) -> str:

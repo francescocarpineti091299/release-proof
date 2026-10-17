@@ -2,10 +2,7 @@
 
 from __future__ import annotations
 
-from releaseproof.core.assurance.service import evaluate
-from releaseproof.core.domain.enums import AssessmentLifecycle, RequirementResultState, Verdict
-from releaseproof.core.golden.baseline import verify_baseline_golden
-from releaseproof.core.projection.scenarios import (
+from rp_scenarios import (
     ScenarioKind,
     build_assessment_by_id,
     build_scenario_compatible,
@@ -13,6 +10,10 @@ from releaseproof.core.projection.scenarios import (
     build_scenario_indeterminate,
     list_scenario_descriptors,
 )
+
+from releaseproof.core.assurance.service import evaluate
+from releaseproof.core.domain.enums import AssessmentLifecycle, RequirementResultState, Verdict
+from releaseproof.core.golden.baseline import verify_baseline_golden
 from releaseproof.core.projection.wp0 import (
     build_a4_signer_bound_assessment,
     build_wp0_baseline_assessment,

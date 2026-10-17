@@ -43,10 +43,14 @@ def validate_assessment(assessment: dict[str, Any]) -> ValidationResult:
     if _SCHEMA_PATH.is_file():
         schema = json.loads(_SCHEMA_PATH.read_text(encoding="utf-8"))
         validator = jsonschema.Draft202012Validator(schema)
-        for err in sorted(validator.iter_errors(assessment), key=lambda e: list(e.path)):
+        for err in sorted(validator.iter_errors(assessment), key=lambda e: str(list(e.path))):
             errors.append(f"Schema: {err.message}")
+    else:
+        errors.append("Schema di assessment non disponibile")
 
-    errors.extend(_validate_cross_object(assessment))
+    # Cross-object checks require the shapes and identifiers guaranteed by the schema.
+    if not errors:
+        errors.extend(_validate_cross_object(assessment))
 
     if errors:
         return ValidationResult(
@@ -73,9 +77,20 @@ def _validate_cross_object(assessment: dict[str, Any]) -> list[str]:
     candidate = assessment.get("candidate_state") or {}
     plan = assessment.get("transition_plan") or {}
     states = plan.get("states") or []
+    errors.extend(_duplicate_ids(platform.get("components") or [], "component_id"))
+    errors.extend(_duplicate_ids(platform.get("authorization_paths") or [], "path_id"))
+    errors.extend(_duplicate_ids(states, "state_id"))
+    errors.extend(_duplicate_ids(plan.get("steps") or [], "step_id"))
+    errors.extend(_duplicate_ids(assessment.get("evidence") or [], "id"))
+    errors.extend(_duplicate_ids(assessment.get("evidence_gaps") or [], "gap_id"))
+    errors.extend(_duplicate_ids(assessment.get("derived_effects") or [], "effect_id"))
+    errors.extend(_duplicate_ids((assessment.get("profile") or {}).get("requirements") or [], "id"))
     if states:
         final = states[-1]
-        if final.get("snapshot_hash") != candidate.get("snapshot_hash"):
+        if (
+            final.get("state_id") != candidate.get("state_id")
+            or final.get("snapshot_hash") != candidate.get("snapshot_hash")
+        ):
             errors.append("Stato finale del piano non coerente con candidate_state")
 
     allowed = assessment.get("allowed_change_set") or {}
@@ -93,6 +108,10 @@ def _validate_cross_object(assessment: dict[str, Any]) -> list[str]:
             errors.append("derivation_rule_ref non risolvibile")
 
     for step in plan.get("steps") or []:
+        state_ids = {state["state_id"] for state in states}
+        for endpoint in ("from", "to"):
+            if step[endpoint] not in state_ids:
+                errors.append(f"TransitionStep {endpoint} riferisce state_id inesistente: {step[endpoint]}")
         for action in step.get("actions") or []:
             cid = action.get("component_ref")
             if cid not in component_ids:
@@ -107,7 +126,11 @@ def _validate_cross_object(assessment: dict[str, Any]) -> list[str]:
             if "allowed_by_profile" in pre:
                 errors.append("allowed_by_profile non è un input: lo calcola il motore")
 
-    for state in states:
+    for state in [assessment["deployed_state"], candidate, *states]:
+        errors.extend(_duplicate_ids(state.get("components") or [], "component_id"))
+        for component in state.get("components") or []:
+            if component["component_id"] not in component_ids:
+                errors.append(f"State riferisce component_id inesistente: {component['component_id']}")
         for path_id in state.get("authorization_path_states") or {}:
             if path_id not in declared_surfaces and path_id not in {
                 p.get("path_id") for p in platform.get("authorization_paths") or []
@@ -133,6 +156,19 @@ def _validate_cross_object(assessment: dict[str, Any]) -> list[str]:
             if allowed_subjects and subject_type not in allowed_subjects:
                 errors.append(f"Scope invariante non ammesso: {phase}/{subject_type}")
 
+    return errors
+
+
+def _duplicate_ids(items: list[dict[str, Any]], field: str) -> list[str]:
+    seen: set[str] = set()
+    errors: list[str] = []
+    for item in items:
+        identifier = item.get(field)
+        if identifier is None:
+            continue
+        if identifier in seen:
+            errors.append(f"Identificatore duplicato {field}: {identifier}")
+        seen.add(identifier)
     return errors
 
 
@@ -175,8 +211,9 @@ def _delta_keys(before: dict[str, Any], after: dict[str, Any]) -> set[str]:
     for comp_id in set(before["components"]) | set(after["components"]):
         if before["components"].get(comp_id) != after["components"].get(comp_id):
             keys.add(f"component:{comp_id}")
-    if before["authorization_path_states"] != after["authorization_path_states"]:
-        keys.add("authorization_path_states")
+    for path_id in set(before["authorization_path_states"]) | set(after["authorization_path_states"]):
+        if before["authorization_path_states"].get(path_id) != after["authorization_path_states"].get(path_id):
+            keys.add(f"authorization_path:{path_id}")
     return keys
 
 
@@ -191,11 +228,11 @@ def _explained_fields(step: dict[str, Any], effects: dict[str, Any]) -> set[str]
             target = effect.get("target_ref")
             field = effect.get("affected_field") or ""
             if effect.get("effect_type") == "AUTHORIZATION_POLICY_UPDATE":
-                explained.add("authorization_path_states")
+                explained.add(f"authorization_path:{target}")
             if field.startswith("configuration."):
                 explained.add(f"component:{target}")
             if "authorization" in field:
-                explained.add("authorization_path_states")
+                explained.add(f"authorization_path:{target}")
     return explained
 
 

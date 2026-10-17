@@ -383,6 +383,11 @@ def build_a4_oversized_assessment(
     final = assessment["transition_plan"]["states"][-1]
     final_hash = "sha256:wp0-s2-a4-oversized"
     final["state_id"] = "S2-A4"
+    for step in assessment["transition_plan"]["steps"]:
+        if step["from"] == "S2":
+            step["from"] = "S2-A4"
+        if step["to"] == "S2":
+            step["to"] = "S2-A4"
     final["snapshot_hash"] = final_hash
     final["components"][1]["configuration"]["signed_image_size_bytes"] = signed_size
     assessment["candidate_state"] = copy.deepcopy(final)

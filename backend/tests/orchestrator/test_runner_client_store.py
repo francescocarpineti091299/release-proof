@@ -100,6 +100,9 @@ def test_unknown_fields_and_types_are_rejected():
         ("C:/Windows/x", False),
         ("a\\..\\b", False),
         ("", False),
+        (".", False),
+        ("./", False),
+        ("a/file:stream", False),
     ],
 )
 def test_safe_relative_path(path, ok):

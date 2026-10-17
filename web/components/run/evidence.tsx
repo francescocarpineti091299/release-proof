@@ -7,17 +7,18 @@ import { formatBytes, formatValue, shortHash } from "@/lib/format";
 import { originMeta } from "@/lib/semantics";
 import type { ArtifactView, EvidenceView } from "@/lib/types";
 import { citationAnchor, cn } from "@/lib/utils";
+import { safeArtifactUrl } from "@/lib/safe-url";
 import { Chip } from "@/components/ui/chip";
 import { Empty } from "@/components/ui/card";
 
 export function ArtifactLink({ a }: { a: ArtifactView }) {
-  const isData = a.url.startsWith("data:");
+  const href = safeArtifactUrl(a.url);
   return (
     <a
-      href={a.url}
-      target={isData ? undefined : "_blank"}
+      href={href}
+      aria-disabled={!href}
+      target="_blank"
       rel="noopener noreferrer"
-      download={isData ? `${a.name.replace(/[\\/]/g, "_")}.txt` : undefined}
       className="inline-flex max-w-full items-center gap-1 rounded border border-slate-200 bg-slate-50 px-1.5 py-0.5 text-xs hover:border-slate-400"
       title={`${a.name}\nsha256 ${a.sha256}\n${formatBytes(a.size_bytes)}`}
     >
@@ -177,10 +178,10 @@ export function ArtifactsTable({ artifacts }: { artifacts: ArtifactView[] }) {
               </td>
               <td className="py-1.5 text-right">
                 <a
-                  href={a.url}
+                  href={safeArtifactUrl(a.url)}
+                  aria-disabled={!safeArtifactUrl(a.url)}
                   className="inline-flex items-center gap-1 text-xs font-semibold text-link hover:underline"
-                  target={a.url.startsWith("data:") ? undefined : "_blank"}
-                  download={a.url.startsWith("data:") ? `${a.name.replace(/[\\/]/g, "_")}.txt` : undefined}
+                  target="_blank"
                   rel="noopener noreferrer"
                 >
                   <Download className="h-3.5 w-3.5" aria-hidden /> Open

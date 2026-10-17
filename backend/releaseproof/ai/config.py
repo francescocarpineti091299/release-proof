@@ -7,6 +7,7 @@ against an explicit allowlist; there is no fallback provider.
 from __future__ import annotations
 
 import json
+import math
 import os
 from collections.abc import Mapping
 from dataclasses import dataclass, field
@@ -35,7 +36,7 @@ def _float(env: Mapping[str, str], key: str, default: float) -> float:
         value = float(raw)
     except ValueError:
         return default
-    return value if value > 0 else default
+    return value if math.isfinite(value) and value > 0 else default
 
 
 def _int(env: Mapping[str, str], key: str, default: int) -> int:
@@ -147,6 +148,14 @@ class AISettings:
             return "AMD_LLM_BASE_URL is not a valid URL"
         if parts.scheme not in ("http", "https"):
             return "AMD_LLM_BASE_URL must use http or https"
+        if parts.username is not None or parts.password is not None:
+            return "AMD_LLM_BASE_URL must not contain credentials"
+        if parts.query or parts.fragment:
+            return "AMD_LLM_BASE_URL must not contain a query or fragment"
+        try:
+            _ = parts.port
+        except ValueError:
+            return "AMD_LLM_BASE_URL has an invalid port"
         host = (parts.hostname or "").lower()
         if not host:
             return "AMD_LLM_BASE_URL has no host"

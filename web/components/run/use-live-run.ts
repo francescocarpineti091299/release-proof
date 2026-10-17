@@ -39,50 +39,59 @@ export function useLiveRun(runId: string) {
   const [plan, setPlan] = useState<PlannedTestView[]>([]);
   const resultLoaded = useRef(false);
   const planLoaded = useRef(false);
-  const terminal = useRef(false);
+  const generation = useRef(0);
+  const refreshSequence = useRef(0);
 
   const refresh = useCallback(async (): Promise<RunView | null> => {
+    const current = generation.current;
+    const sequence = ++refreshSequence.current;
+    const active = () => generation.current === current;
     try {
       const r = await api.getRun(runId);
+      if (!active() || sequence !== refreshSequence.current) return null;
       setRun(r);
       setError(null);
       const done = isTerminal(r.status);
-      terminal.current = done;
       if ((r.verdict || done) && !resultLoaded.current) {
         api
           .getResult(runId)
           .then((res) => {
-            if (res) {
+            if (active() && res) {
               resultLoaded.current = true;
               setResult(res);
             }
           })
           .catch(() => undefined);
       }
-      api.getTraces(runId).then(setTraces).catch(() => undefined);
+      api.getTraces(runId).then((t) => active() && setTraces(t)).catch(() => undefined);
       const planReady = r.stages.some((s) => s.stage === "AI_PLAN" && s.status !== "QUEUED" && s.status !== "RUNNING");
       if (planReady && !planLoaded.current) {
         api
           .getPlan(runId)
           .then((p) => {
-            if (p.length) {
+            if (active() && p.length) {
               planLoaded.current = true;
               setPlan(p);
             }
           })
           .catch(() => undefined);
       }
-      if (done) api.getArtifacts(runId).then(setArtifacts).catch(() => undefined);
+      if (done) api.getArtifacts(runId).then((a) => active() && setArtifacts(a)).catch(() => undefined);
       return r;
     } catch (e) {
+      if (!active() || sequence !== refreshSequence.current) return null;
       setError(e instanceof Error ? e : new Error(String(e)));
       return null;
     }
   }, [runId]);
 
+  const hasRun = Boolean(run);
   useEffect(() => {
     let alive = true;
     let timer: ReturnType<typeof setTimeout> | null = null;
+    let closeTimer: ReturnType<typeof setTimeout> | null = null;
+    let replayingTerminal = false;
+    const seen = new Set<number>();
     let unsubscribe: () => void = () => undefined;
 
     const schedule = (ms = 500) => {
@@ -90,13 +99,21 @@ export function useLiveRun(runId: string) {
       timer = setTimeout(() => {
         timer = null;
         void refresh().then((r) => {
-          if (alive && r && isTerminal(r.status)) unsubscribe();
+          if (alive && r && isTerminal(r.status) && !replayingTerminal && !closeTimer) {
+            // Let the final persisted events arrive before closing the stream.
+            closeTimer = setTimeout(() => unsubscribe(), 1500);
+          }
         });
       }, ms);
     };
 
     const onEvent = (ev: StreamEvent) => {
       if (!alive) return;
+      if (ev.id !== null) {
+        if (seen.has(ev.id)) return;
+        seen.add(ev.id);
+        if (seen.size > 10_000) seen.delete(seen.values().next().value!);
+      }
       const d = ev.data;
       switch (ev.type) {
         case "log": {
@@ -201,7 +218,7 @@ export function useLiveRun(runId: string) {
           break;
         }
         case "error":
-          setStreamErrors((prev) => [...prev, { failure_class: String(d.failure_class ?? "ERROR"), message: String(d.message ?? ""), test_id: (d.test_id as string | null) ?? null }]);
+          setStreamErrors((prev) => [...prev.slice(-99), { failure_class: String(d.failure_class ?? "ERROR"), message: String(d.message ?? ""), test_id: (d.test_id as string | null) ?? null }]);
           schedule();
           break;
         case "ai": {
@@ -229,33 +246,36 @@ export function useLiveRun(runId: string) {
     };
 
     void Promise.resolve()
-      .then(refresh)
+      .then(() => alive ? refresh() : null)
       .then((r) => {
-      if (!alive || !r) return;
-      // Even for finished runs, replay the stored stream once so logs are visible.
-      unsubscribe = api.subscribe(runId, { onEvent, onState: (s) => alive && setConn(s) });
-      if (r && isTerminal(r.status)) {
-        // Close a little later: replay of persisted events arrives first.
-        const t = setTimeout(() => unsubscribe(), 8000);
-        const prev = unsubscribe;
-        unsubscribe = () => {
-          clearTimeout(t);
-          prev();
-        };
-      }
-    });
+        if (!alive || !r || !hasRun) return;
+        // Even for finished runs, replay the stored stream once so logs are visible.
+        unsubscribe = api.subscribe(runId, { onEvent, onState: (s) => alive && setConn(s) });
+        if (isTerminal(r.status)) {
+          replayingTerminal = true;
+          // Close a little later: replay of persisted events arrives first.
+          const t = setTimeout(() => unsubscribe(), 8000);
+          const prev = unsubscribe;
+          unsubscribe = () => {
+            clearTimeout(t);
+            prev();
+          };
+        }
+      });
 
     return () => {
       alive = false;
+      generation.current += 1;
       if (timer) clearTimeout(timer);
+      if (closeTimer) clearTimeout(closeTimer);
       unsubscribe();
     };
-  }, [runId, refresh]);
+  }, [runId, refresh, hasRun]);
 
   // Polling fallback while the stream is not connected.
   const status = run?.status;
   useEffect(() => {
-    if (!status || isTerminal(status) || conn === "open") return;
+    if ((status && isTerminal(status)) || conn === "open") return;
     const id = setInterval(() => void refresh(), 5000);
     return () => clearInterval(id);
   }, [status, conn, refresh]);

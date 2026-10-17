@@ -33,8 +33,6 @@ services:
     build:
       context: ./web
       dockerfile: Dockerfile
-      args:
-        NEXT_PUBLIC_MOCK: "0"
     image: releaseproof/web:0.1.0
     restart: unless-stopped
     expose:

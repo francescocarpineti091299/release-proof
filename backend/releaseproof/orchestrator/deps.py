@@ -35,6 +35,10 @@ class DependencyUnavailable(RuntimeError):
     pass
 
 
+class InjectedDependencyRefused(RuntimeError):
+    """An orchestrator test double was injected into a non-test application."""
+
+
 def _default_adapter_factory(name: str) -> AssessmentAdapter:
     try:
         module = importlib.import_module("releaseproof.adapters")
@@ -84,6 +88,9 @@ class Deps:
         ai_factory: AIFactory | None = None,
         runner_transport: httpx.BaseTransport | None = None,
     ) -> None:
+        self._injected = any(
+            value is not None for value in (adapter_factory, ai_factory, runner_transport)
+        ) or callable(evidence_indexer)
         self._adapter_factory = adapter_factory or _default_adapter_factory
         self._evidence_indexer = evidence_indexer
         self._ai_factory = ai_factory or _default_ai_factory
@@ -91,6 +98,14 @@ class Deps:
         self._ai: AIServiceProtocol | None = None
         self._ai_error: str | None = None
         self._lock = threading.Lock()
+
+    def check_environment(self, env: str) -> None:
+        """Keep injectable test factories/transports out of live application startup."""
+        if self._injected and env != "test":
+            raise InjectedDependencyRefused(
+                "custom adapter/AI factories, evidence indexers and runner transports "
+                "may only be injected with RELEASEPROOF_ENV=test"
+            )
 
     def get_adapter(self, name: str) -> AssessmentAdapter:
         return self._adapter_factory(name)

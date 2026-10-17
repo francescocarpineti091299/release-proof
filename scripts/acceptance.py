@@ -13,6 +13,7 @@ from __future__ import annotations
 import argparse
 import hashlib
 import json
+import re
 import sys
 import time
 import urllib.error
@@ -20,6 +21,7 @@ import urllib.request
 from datetime import UTC, datetime
 from pathlib import Path
 from typing import Any
+from uuid import uuid4
 
 ROOT = Path(__file__).resolve().parents[1]
 TERMINAL = {"SUCCEEDED", "FAILED", "CANCELLED"}
@@ -69,7 +71,7 @@ def run_profile(api: Api, config: dict[str, Any], *, require_ai: bool, timeout: 
         {
             "configuration_id": config["id"],
             "change_id": change["change_id"],
-            "idempotency_key": f"acceptance-{config['id']}-{int(time.time())}",
+            "idempotency_key": f"acceptance-{config['id']}-{uuid4().hex}",
         },
     )
     run_id = run["run_id"]
@@ -89,6 +91,10 @@ def run_profile(api: Api, config: dict[str, Any], *, require_ai: bool, timeout: 
     tests = run.get("tests") or []
     executed = [t for t in tests if t["outcome"] in {"PASS", "FAIL"}]
     gate(gates, "tests executed", len(executed) >= 3, f"{len(executed)}/{len(tests)}")
+    required = {t["template_id"] for t in change["templates"] if t["required"]}
+    observed_templates = {t["template_id"] for t in executed}
+    missing = sorted(required - observed_templates)
+    gate(gates, "required templates executed", not missing, ", ".join(missing))
     negatives = [t for t in tests if t["negative"] and t["outcome"] == "PASS"]
     gate(
         gates,
@@ -108,7 +114,7 @@ def run_profile(api: Api, config: dict[str, Any], *, require_ai: bool, timeout: 
     gate(
         gates,
         "deterministic verdict issued",
-        bool(verdict.get("canonical_hash")),
+        bool(re.fullmatch(r"sha256:[0-9a-f]{64}", verdict.get("canonical_hash") or "")),
         f"{verdict.get('migration')} "
         f"(cand {verdict.get('candidate')}, trans {verdict.get('transition')})",
     )
@@ -119,6 +125,8 @@ def run_profile(api: Api, config: dict[str, Any], *, require_ai: bool, timeout: 
         result = api.get(f"/api/assessments/{run_id}/result")
     except urllib.error.HTTPError as exc:
         gate(gates, "result available", False, str(exc))
+    else:
+        gate(gates, "result available", bool(result))
     if result:
         gate(
             gates,
@@ -128,12 +136,23 @@ def run_profile(api: Api, config: dict[str, Any], *, require_ai: bool, timeout: 
         ev = result.get("evidence") or []
         live = [e for e in ev if e.get("run_id") == run_id]
         gate(gates, "evidence belongs to this run", len(live) >= 3, f"{len(live)}/{len(ev)}")
-        gate(gates, "manifest hash recorded", bool(result.get("manifest_sha256")))
+        gate(
+            gates, "manifest hash recorded",
+            bool(re.fullmatch(r"[0-9a-f]{64}", result.get("manifest_sha256") or "")),
+        )
 
     artifacts = api.get(f"/api/assessments/{run_id}/artifacts")
     gate(gates, "artifacts recorded", len(artifacts) >= 3, str(len(artifacts)))
+    manifests = [a for a in artifacts if a["artifact_id"] == "MANIFEST"]
+    gate(
+        gates, "manifest artifact matches result digest",
+        len(manifests) == 1 and manifests[0]["sha256"] == result.get("manifest_sha256"),
+    )
     mismatches = []
-    for art in artifacts[:5]:
+    sample = artifacts[:5]
+    if manifests and manifests[0] not in sample:
+        sample = [*sample, manifests[0]]
+    for art in sample:
         blob = api.raw(art["url"])
         if hashlib.sha256(blob).hexdigest() != art["sha256"]:
             mismatches.append(art["artifact_id"])
@@ -163,23 +182,41 @@ def run_profile(api: Api, config: dict[str, Any], *, require_ai: bool, timeout: 
     }
 
 
-def main() -> int:
+def main(argv: list[str] | None = None) -> int:
     parser = argparse.ArgumentParser()
     parser.add_argument("--base", default="http://localhost:8080")
     parser.add_argument("--profile", action="append")
     parser.add_argument("--require-ai", action="store_true")
     parser.add_argument("--timeout", type=int, default=1800)
-    args = parser.parse_args()
+    args = parser.parse_args(argv)
+    if args.timeout <= 0:
+        parser.error("--timeout must be positive")
     api = Api(args.base)
     configs = api.get("/api/configurations")
     if args.profile:
+        unknown = sorted(set(args.profile) - {c["id"] for c in configs})
+        if unknown:
+            print(f"unknown or unexposed profiles: {', '.join(unknown)}")
+            return 2
         configs = [c for c in configs if c["id"] in args.profile]
     if not configs:
         print("no configurations selected/exposed")
         return 2
-    results = [
-        run_profile(api, c, require_ai=args.require_ai, timeout=args.timeout) for c in configs
-    ]
+    results = []
+    for config in configs:
+        try:
+            result = run_profile(api, config, require_ai=args.require_ai, timeout=args.timeout)
+        except (urllib.error.URLError, TimeoutError, OSError, ValueError, KeyError, TypeError) as exc:
+            # Preserve a failed report and continue checking the other profiles, even when
+            # a failed/timed-out pipeline has no result or artifact endpoint yet.
+            result = {
+                "profile": config["id"],
+                "passed": False,
+                "gates": [{"gate": "API response available and valid", "ok": False,
+                           "detail": str(exc)}],
+            }
+            print(f"  [FAIL] {config['id']}: {exc}")
+        results.append(result)
     out = ROOT / "docs" / "acceptance"
     out.mkdir(parents=True, exist_ok=True)
     stamp = datetime.now(UTC).strftime("%Y%m%dT%H%M%SZ")

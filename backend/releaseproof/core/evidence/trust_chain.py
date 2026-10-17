@@ -15,7 +15,10 @@ _CHAIN_ORDER = (
 
 
 def _evidence_index(evidence: list[dict[str, Any]]) -> dict[str, dict[str, Any]]:
-    return {str(item["id"]): item for item in evidence if item.get("id")}
+    return {
+        str(item["id"]): item for item in evidence
+        if item.get("id") and item.get("status") == "VALID"
+    }
 
 
 def _provenance_for_ids(
@@ -52,9 +55,7 @@ def trust_chain_from_evidence(evidence: list[dict[str, Any]]) -> dict[str, Any]:
     partition_value = partition.get("value")
     if isinstance(partition_value, dict):
         capacity = partition_value.get("boot_slot_capacity")
-    if signed_size is None or capacity is None:
-        signed_size = signed_size or 0
-        capacity = capacity or 0
+    sizes_valid = all(type(value) is int and value >= 0 for value in (signed_size, capacity))
 
     self_update = by_id.get("EV-E11-SELF-UPDATE", {}).get("value") == "PASS"
     key_mismatch = by_id.get("EV-E03-PANIC", {}).get("value")
@@ -76,7 +77,10 @@ def trust_chain_from_evidence(evidence: list[dict[str, Any]]) -> dict[str, Any]:
         {
             "node_id": "signed_image",
             "role": "Artifact",
-            "status": "SATISFIED" if int(signed_size) <= int(capacity) else "VIOLATED",
+            "status": (
+                "UNKNOWN" if not sizes_valid
+                else "SATISFIED" if signed_size <= capacity else "VIOLATED"
+            ),
             "evidence_ids": ["EV-E05-LAYOUT-G2", "EV-LAYOUT-PARTITION"],
             "detail": {
                 "signed_image_size_bytes": signed_size,
@@ -105,19 +109,12 @@ def trust_chain_from_evidence(evidence: list[dict[str, Any]]) -> dict[str, Any]:
             "detail": {"observed_recovery_mode": "UNKNOWN"},
         },
     ]
-    if "EV-SCENARIO-RECOVERY" in by_id:
-        for spec in node_specs:
-            if spec["node_id"] != "recovery":
-                continue
-            spec["status"] = "DECLARED"
-            spec["evidence_ids"] = ["EV-SCENARIO-RECOVERY"]
-            spec["gap_ids"] = []
-            spec["detail"] = {"observed_recovery_mode": "DECLARED_IN_SCENARIO"}
-
     nodes: list[dict[str, Any]] = []
     edges: list[dict[str, Any]] = []
     for spec in node_specs:
-        eids = list(spec.get("evidence_ids") or [])
+        eids = [eid for eid in spec.get("evidence_ids") or [] if eid in by_id]
+        if spec["status"] == "OBSERVED" and not eids:
+            spec["status"] = "UNKNOWN"
         prov = _provenance_for_ids(eids, by_id)
         run_ids = [row["run_id"] for row in prov if row.get("run_id")]
         nodes.append(

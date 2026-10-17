@@ -2,9 +2,10 @@ from __future__ import annotations
 
 import copy
 
+from rp_llm_stub import StubLLM, StubMode
+
 from releaseproof.ai import AIService
 from releaseproof.ai.guardrails import check_alternatives
-from releaseproof.ai.stub import StubLLM, StubMode
 from releaseproof.contracts.ai import AlternativesProposal
 from releaseproof.contracts.api import AIStatus
 

@@ -10,9 +10,6 @@ RUN npm ci --no-audit --no-fund
 FROM node:22-alpine AS build
 WORKDIR /app
 ENV NEXT_TELEMETRY_DISABLED=1
-# Mock mode is a build-time switch (NEXT_PUBLIC_*). Keep it off for real deployments.
-ARG NEXT_PUBLIC_MOCK=0
-ENV NEXT_PUBLIC_MOCK=${NEXT_PUBLIC_MOCK}
 COPY --from=deps /app/node_modules ./node_modules
 COPY . .
 RUN npm run build

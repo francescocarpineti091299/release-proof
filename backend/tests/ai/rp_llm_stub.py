@@ -1,4 +1,4 @@
-"""Deterministic fake AMD endpoint for TESTS ONLY (httpx.MockTransport).
+"""Test fixture: deterministic fake AMD endpoint (httpx.MockTransport).
 
 Refused unless RELEASEPROOF_ENV=test. Besides schema-valid answers it implements adversarial
 modes that the test-suite and the benchmark use to prove the guardrails.

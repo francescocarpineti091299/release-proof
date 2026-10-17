@@ -108,7 +108,7 @@ def _frames_locator(ctx: RunContext, phase: Phase) -> str:
 def _emu_problem(emu: Emulation) -> str:
     if emu.timed_out:
         return f"Renode wall-clock timeout ({settings.EMULATION_WALL_TIMEOUT_S}s)"
-    if emu.returncode not in (0, None):
+    if emu.returncode != 0:
         return f"Renode exited {emu.returncode}"
     return ""
 
@@ -117,6 +117,10 @@ def classify_boot(phase: Phase) -> tuple[str, Any, dict[str, list[int]]]:
     """BOOT_OK only with a version frame; FAIL only with an explicit refusal marker; else UNKNOWN."""
     cap = phase.capture
     refusals = cap.markers(BOOT_REFUSAL_MARKERS)
+    if refusals and cap.frames:
+        return UNKNOWN, UNKNOWN, refusals
+    if len(set(cap.versions())) > 1:
+        return UNKNOWN, UNKNOWN, refusals
     if cap.frames:
         return "BOOT_OK", cap.frames[0].version, refusals
     if refusals:
@@ -127,16 +131,21 @@ def classify_boot(phase: Phase) -> tuple[str, Any, dict[str, list[int]]]:
 def classify_staged_update(boot: Phase, update: Phase, new_version: int) -> tuple[str, str]:
     """APPLIED / NOT_APPLIED / UNKNOWN for a staged update, with positive identification only.
 
-    APPLIED: the new version's frame (or wolfBoot's "Booting version" line) after the reset.
+    APPLIED: the new version's application frame after the reset. A bootloader
+    "Booting version" line precedes verification and is not proof of execution.
     NOT_APPLIED: the previously running version's frame is observed after the reset and no
     trace of the new version. Anything else (timeout, silence) stays UNKNOWN.
     """
     before = boot.capture.versions()
     after = update.capture.versions()
     booting_after = update.capture.booting_versions()
-    if new_version in after or new_version in booting_after:
+    if boot.capture.markers(BOOT_REFUSAL_MARKERS) or update.capture.markers(BOOT_REFUSAL_MARKERS):
+        return UNKNOWN, "boot refusal in the capture; no unambiguous completed update"
+    if len(set(before)) != 1 or len(set(after)) != 1:
+        return UNKNOWN, f"missing or conflicting application frames (before {before}, after {after})"
+    if new_version in after:
         return "APPLIED", f"after reset: frames {after}, 'Booting version' {booting_after}"
-    if before and after and all(v == before[0] for v in after) and before[0] != new_version:
+    if before and after and all(v == before[0] for v in after) and before[0] != new_version and new_version not in booting_after:
         return "NOT_APPLIED", f"version {before[0]} before and after reset (frames {before} -> {after})"
     return UNKNOWN, f"no decisive frame (before {before}, after {after})"
 
@@ -173,13 +182,11 @@ def _result(outcome: str, observed: str, obs: Obs, emu: Emulation | None = None)
 
 
 def _tool_failure(emu: Emulation, what: str) -> TemplateResult | None:
-    """Renode could not produce any UART byte and did not exit cleanly: the tool failed."""
-    if any(p.capture.raw for p in emu.phases):
-        return None
+    """Partial UART output cannot turn a failed emulator into passing evidence."""
     if emu.timed_out:
-        return TemplateResult("ERROR", f"{what}: {_emu_problem(emu)}, no UART output", failure_class="TIMEOUT")
+        return TemplateResult("ERROR", f"{what}: {_emu_problem(emu)}", failure_class="TIMEOUT")
     if emu.returncode != 0:
-        return TemplateResult("ERROR", f"{what}: {_emu_problem(emu)}, no UART output", failure_class="TOOL_FAILURE")
+        return TemplateResult("ERROR", f"{what}: {_emu_problem(emu)}", failure_class="TOOL_FAILURE")
     return None
 
 
@@ -395,7 +402,11 @@ def _refusal_test(
     assert boot is not None
     cap = boot.capture
     refusals = cap.markers(BOOT_REFUSAL_MARKERS)
-    if cap.frames:
+    if _emu_problem(emu) or (cap.frames and refusals) or len(set(cap.versions())) > 1:
+        value = UNKNOWN
+        why = "incomplete emulator or contradictory UART evidence: " + _emu_problem(emu)
+        locator = _frames_locator(ctx, boot)
+    elif cap.frames:
         value = "ACCEPT"
         why = f"application ran: version frame(s) {cap.versions()}"
         locator = _frames_locator(ctx, boot)
@@ -551,7 +562,7 @@ class CandidateRejectsClassical(Template):
         value_b, why_b, srcs_b, loc_b = self._header_matched_cell(ctx, dep, cand)
         if value_a == "ACCEPT" or value_b == "ACCEPT":
             value = "ACCEPT"
-        elif value_a == "REJECT" and value_b in ("REJECT", "NOT_EXECUTED", UNKNOWN):
+        elif value_a == "REJECT" and value_b == "REJECT":
             value = "REJECT"
         else:
             value = UNKNOWN

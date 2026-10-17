@@ -64,7 +64,7 @@ changes:
         mechanism: bootloader_family_change
         status: REQUIRES_EXTERNAL_VALIDATION
       - plan_id: mcuboot_lms_branch
-        title: Adopt the upstream MCUboot LMS work (PR #2707)
+        title: "Adopt the upstream MCUboot LMS work (PR #2707)"
         description: >
           Hash-based LMS signatures are in review upstream and simulator-only. Not executable on
           the pinned toolchain.

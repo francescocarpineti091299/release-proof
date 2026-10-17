@@ -30,7 +30,12 @@ configurations, using real builds, real emulation, a deterministic verdict engin
 | Nordic nRF52840 + **wolfBoot** `4c79eee` (Renode 1.16.1, Arm GCC 14.2) | ECDSA P-256 → ML-DSA-87 | Candidate **COMPATIBLE**, Transition **INCOMPATIBLE**: no bootloader self-update on this port; the deployed ECDSA bootloader rejects the ML-DSA update. Alternative *field-service re-flash* ⇒ **INDETERMINATE** (blocker removed, interrupted-update recovery not observed). |
 | Nordic nRF52840 + **MCUboot** `4eba8087` / Zephyr v4.2.0 (Renode 1.16.1, Zephyr SDK 0.17.4) | ECDSA P-256 → ML-DSA | **INCOMPATIBLE**: pinned `imgtool` 2.2.0 refuses ML-DSA (measured); single-stage MCUboot cannot be replaced in the field. Tampered and wrong-key updates are rejected (observed). |
 
-Each run takes ≈ 65 s. Profiles are promoted to `SUPPORTED` only by `scripts/acceptance.py`.
+Build/emulation-only runs measured about 42–75 s; AMD planning and explanation add provider
+latency, so this is not a full AI-enabled run-time guarantee. Both profiles are `SUPPORTED`,
+with the recorded `--require-ai` gate in
+[`docs/acceptance/20261017T135337Z.json`](docs/acceptance/20261017T135337Z.json).
+The acceptance script writes reports; promotion is a reviewed edit to the profile YAML, not
+an automatic side effect.
 
 ## Architecture
 
@@ -55,12 +60,15 @@ Browser ─► Caddy ─┬─► web (Next.js)
 ## AMD usage
 
 - **Inference:** every LLM call (planner, explainer, alternatives, assistant) goes to an endpoint on
-  AMD hardware: `[[AMD_PROVIDER]]`, model `[[AMD_MODEL]]` on `[[AMD_HARDWARE]]`. Calls are traced
+  an operator-configured AMD-hosted endpoint. Provider and hardware labels come from `AMD_LLM_*`
+  settings; hardware labels are declarations, not remote hardware attestation. Calls are traced
   per run (model, endpoint host, request id, latency, tokens, status) and shown in the UI (`/amd`).
-  Benchmark: `docs/AMD_BENCHMARK.json` (schema-valid rate, citation fidelity, latency p50/p95,
-  prompt-injection resistance).
-- **Compute:** the whole platform (builds, Renode emulation, API) runs on an AWS EC2 `c7a`
-  instance (4th-gen **AMD EPYC**).
+  Recorded smoke: [`docs/AMD_SMOKE_TOKEN_FACTORY.json`](docs/AMD_SMOKE_TOKEN_FACTORY.json)
+  (9/10 logical calls OK, one upstream outage). `scripts/amd_benchmark.py` generates
+  `docs/AMD_BENCHMARK.json` for schema validity, citation fidelity and injection checks;
+  that benchmark report is not currently checked in.
+- **Compute deployment target:** AWS EC2 `c7a` (4th-gen **AMD EPYC**). The repository provides
+  deployment scripts, but the retained local acceptance reports do not attest an AWS deployment.
 - No fallback provider: if the AMD endpoint is unavailable the UI shows `AI_UNAVAILABLE` and the
   deterministic pipeline still runs; verdicts are unaffected.
 
@@ -83,8 +91,19 @@ Backend tests (Python 3.12+):
 
 ```bash
 cd backend && python -m venv .venv && . .venv/bin/activate && pip install -e ".[dev]"
-pytest            # 249 tests: SV01–SV15, golden hashes, adapters, real runner streams, API, AI guardrails
+pytest            # SV01–SV15, golden hashes, adapters, recorded runner streams, API, AI guardrails
 ```
+
+Additional offline checks, from the repository root (using the backend environment):
+
+```bash
+python -m pytest scripts/tests -q
+PYTHONPATH=runners/common:runners/wolfboot:runners/mcuboot python -m pytest runners -q
+```
+
+On PowerShell use `backend\.venv\Scripts\python.exe` and set `$env:PYTHONPATH` with `;`
+instead of `:`. Bash-specific deployment tests skip when Bash is unavailable. Acceptance
+starts new live runs and may call the configured AMD endpoint; offline tests do neither.
 
 AWS deploy: [`deploy/aws/README.md`](deploy/aws/README.md) (`provision.sh` → `deploy.sh`).
 AMD smoke/benchmark: `scripts/amd_smoke.py`, `scripts/amd_benchmark.py`; self-hosted vLLM on
@@ -97,6 +116,11 @@ versions, the sha256 of every artifact (build logs, ELF/BIN, signed images, UART
 scripts) and the assessment/result canonical hashes. The recorded proof of concept freeze
 (2026-10-01) is available as a clearly-labelled **Reference run**, never as a live run.
 
+The frontend always uses the real API. Synthetic AI responses and assessment scenarios live only
+under `backend/tests/`, which is excluded from the runtime package and API Docker image.
+Custom orchestrator factories/transports are refused outside `RELEASEPROOF_ENV=test`.
+See [`docs/MOCK_AUDIT.md`](docs/MOCK_AUDIT.md) for the audit and retained emulation limitations.
+
 ## Known limitations
 
 - Emulation is not hardware: Renode models nRF52840 flash as memory (ReleaseProof adds a minimal
@@ -105,6 +129,10 @@ scripts) and the assessment/result canonical hashes. The recorded proof of conce
   `UNKNOWN`, so no live migration reaches `COMPATIBLE` today — by design, not by tuning.
 - RAM is bounded from the linker map, not runtime stack measurement.
 - Only the configurations above are supported; arbitrary firmware is out of scope.
+- The API has no authentication, tenant isolation or public-use quotas. Put it behind an
+  authenticated gateway before exposing it to untrusted users; TLS alone is not access control.
+
+Review findings and verification scope: [`docs/CODE_AUDIT.md`](docs/CODE_AUDIT.md).
 
 ## Licenses
 

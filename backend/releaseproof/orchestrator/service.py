@@ -17,6 +17,7 @@ import json
 import logging
 import secrets
 import threading
+import time
 from collections import deque
 from collections.abc import Callable, Iterator
 from concurrent.futures import ThreadPoolExecutor
@@ -188,12 +189,14 @@ class _FamilySlot:
 
     def acquire(self, run_id: str, stop: threading.Event) -> bool:
         with self._cond:
-            while not (self._busy is None and self._queue and self._queue[0] == run_id):
+            while True:
                 if stop.is_set():
                     if run_id in self._queue:
                         self._queue.remove(run_id)
                     self._cond.notify_all()
                     return False
+                if self._busy is None and self._queue and self._queue[0] == run_id:
+                    break
                 self._cond.wait(timeout=0.5)
             self._queue.popleft()
             self._busy = run_id
@@ -265,11 +268,13 @@ class Orchestrator:
         self.store = store
         self.settings = settings
         self.deps = deps or Deps()
+        self.deps.check_environment(settings.env)
         self.bus = bus or EventBus()
         self._slots: dict[str, _FamilySlot] = {}
         self._slots_lock = threading.Lock()
         self._done: dict[str, threading.Event] = {}
         self._threads: dict[str, threading.Thread] = {}
+        self._submission_lock = threading.Lock()
         self._stop = threading.Event()
 
     # ------------------------------------------------------------------ lifecycle
@@ -278,12 +283,30 @@ class Orchestrator:
         self.settings.runs_dir.mkdir(parents=True, exist_ok=True)
         self.recover()
 
-    def shutdown(self, timeout: float = 2.0) -> None:
-        self._stop.set()
-        for slot in list(self._slots.values()):
+    def shutdown(self, timeout: float | None = None) -> None:
+        """Stop submissions/queued runs and drain active workers before returning.
+
+        Active runner/AI calls finish normally so their final events reach the store. By default
+        the drain waits for every worker; a caller-supplied timeout is one total budget, not a
+        budget per thread. If it expires, raise rather than imply the store is safe to close.
+        The caller must keep the store open and may retry shutdown after the workers finish.
+        """
+        deadline = None if timeout is None else time.monotonic() + max(0.0, timeout)
+        with self._submission_lock:
+            self._stop.set()
+            threads = list(self._threads.values())
+        with self._slots_lock:
+            slots = list(self._slots.values())
+        for slot in slots:
             slot.wake()
-        for thread in list(self._threads.values()):
-            thread.join(timeout=timeout)
+        for thread in threads:
+            remaining = None if deadline is None else max(0.0, deadline - time.monotonic())
+            thread.join(timeout=remaining)
+        active = [thread.name for thread in threads if thread.is_alive()]
+        if active:
+            raise TimeoutError(
+                f"orchestrator shutdown incomplete; keep the store open: {', '.join(active)}"
+            )
 
     def recover(self) -> list[str]:
         """Runs left QUEUED/RUNNING by a previous process cannot be resumed: fail them."""
@@ -478,23 +501,28 @@ class Orchestrator:
             "tool_versions": {},
             "extra": {"include_all_optional": include_all_optional, "idempotency_key": key},
         }
-        try:
-            existing_id, created = self.store.insert_run_with_key(
-                row, key=key, request_hash=request_hash, created_at=now
+        # Keep database insertion, FIFO enqueue and worker registration in the same order,
+        # even when concurrent API requests submit runs for the same runner family.
+        with self._submission_lock:
+            if self._stop.is_set():
+                raise Conflict("orchestrator shutting down")
+            try:
+                existing_id, created = self.store.insert_run_with_key(
+                    row, key=key, request_hash=request_hash, created_at=now
+                )
+            except StoreError as exc:
+                raise Conflict(str(exc)) from exc
+            if not created:
+                return self.run_view(existing_id), False
+            if mode == RunMode.LIVE:
+                self._slot(profile.bootloader.family).enqueue(run_id)
+            self._done[run_id] = threading.Event()
+            self._emit_run(run_id)
+            thread = threading.Thread(
+                target=self._execute, args=(run_id,), name=f"run-{run_id}", daemon=True
             )
-        except StoreError as exc:
-            raise Conflict(str(exc)) from exc
-        if not created:
-            return self.run_view(existing_id), False
-        if mode == RunMode.LIVE:
-            self._slot(profile.bootloader.family).enqueue(run_id)
-        self._done[run_id] = threading.Event()
-        self._emit_run(run_id)
-        thread = threading.Thread(
-            target=self._execute, args=(run_id,), name=f"run-{run_id}", daemon=True
-        )
-        self._threads[run_id] = thread
-        thread.start()
+            self._threads[run_id] = thread
+            thread.start()
         return self.run_view(run_id), True
 
     # ------------------------------------------------------------------ worker
@@ -557,7 +585,8 @@ class Orchestrator:
             done = self._done.get(run_id)
             if done is not None:
                 done.set()
-            self._threads.pop(run_id, None)
+            with self._submission_lock:
+                self._threads.pop(run_id, None)
 
     def _mark_running(self, ctx: _RunCtx) -> None:
         self.store.update_run(ctx.run_id, status=RunStatus.RUNNING.value, started_at=utc_now())

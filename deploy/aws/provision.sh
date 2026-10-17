@@ -37,6 +37,7 @@ done
 
 [[ "$NAME" =~ ^[A-Za-z0-9-]{1,40}$ ]] || { echo "--name must match [A-Za-z0-9-]{1,40}" >&2; exit 2; }
 KEY_NAME="${KEY_NAME:-$NAME}"
+[[ "$KEY_NAME" =~ ^[A-Za-z0-9._-]{1,255}$ ]] || { echo "invalid --key-name" >&2; exit 2; }
 SG_NAME="${NAME}-sg"
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 STATE_DIR="${HOME}/.releaseproof-aws"
@@ -192,17 +193,19 @@ PUBLIC_IP="$(aws_ ec2 describe-addresses --allocation-ids "$ALLOC_ID" \
   --query 'Addresses[0].PublicIp' --output text)"
 SSLIP_HOST="${PUBLIC_IP//./-}.sslip.io"
 
-cat > "$STATE_FILE" <<EOF
-# written by deploy/aws/provision.sh on $(date -u +%Y-%m-%dT%H:%M:%SZ)
-RP_NAME=${NAME}
-RP_REGION=${REGION}
-RP_INSTANCE_ID=${INSTANCE_ID}
-RP_SECURITY_GROUP_ID=${SG_ID}
-RP_ALLOCATION_ID=${ALLOC_ID}
-RP_PUBLIC_IP=${PUBLIC_IP}
-RP_SSLIP_HOST=${SSLIP_HOST}
-RP_KEY_FILE=${KEY_FILE}
-EOF
+{
+  printf '# written by deploy/aws/provision.sh on %s\n' "$(date -u +%Y-%m-%dT%H:%M:%SZ)"
+  # The state is sourced by deploy/destroy: shell-escape every value, including paths
+  # under Windows user directories that contain spaces or apostrophes.
+  printf 'RP_NAME=%q\n' "$NAME"
+  printf 'RP_REGION=%q\n' "$REGION"
+  printf 'RP_INSTANCE_ID=%q\n' "$INSTANCE_ID"
+  printf 'RP_SECURITY_GROUP_ID=%q\n' "$SG_ID"
+  printf 'RP_ALLOCATION_ID=%q\n' "$ALLOC_ID"
+  printf 'RP_PUBLIC_IP=%q\n' "$PUBLIC_IP"
+  printf 'RP_SSLIP_HOST=%q\n' "$SSLIP_HOST"
+  printf 'RP_KEY_FILE=%q\n' "$KEY_FILE"
+} > "$STATE_FILE"
 chmod 600 "$STATE_FILE"
 
 log "done"

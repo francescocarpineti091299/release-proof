@@ -38,11 +38,14 @@ export function AssistantDrawer({ runId, open, onClose, citations }: { runId: st
     return () => window.removeEventListener("keydown", onKey);
   }, [open, onClose]);
 
-  useEffect(() => () => abort.current?.abort(), []);
+  useEffect(() => () => {
+    abort.current?.abort();
+    abort.current = null;
+  }, []);
 
   const send = async (text: string) => {
     const content = text.trim();
-    if (!content || busy) return;
+    if (!content || abort.current) return;
     const history: AssistantMessage[] = [...messages, { role: "user" as const, content }].slice(-24);
     setMessages([...history, { role: "assistant", content: "" }]);
     setDraft("");
@@ -53,21 +56,27 @@ export function AssistantDrawer({ runId, open, onClose, citations }: { runId: st
     try {
       await api.assistant(
         { run_id: runId, messages: history },
-        (chunk) =>
+        (chunk) => {
+          if (abort.current !== ctrl || ctrl.signal.aborted) return;
           setMessages((prev) => {
             const next = [...prev];
             const last = next[next.length - 1];
             next[next.length - 1] = { ...last, content: last.content + chunk };
             return next;
-          }),
+          });
+        },
         ctrl.signal,
       );
     } catch (e) {
+      if (abort.current !== ctrl) return;
       if (!(e instanceof DOMException && e.name === "AbortError")) setError(e instanceof Error ? e.message : String(e));
       setMessages((prev) => (prev[prev.length - 1]?.content ? prev : prev.slice(0, -1)));
     } finally {
-      setBusy(false);
-      abort.current = null;
+      if (abort.current === ctrl) {
+        setMessages((prev) => (prev.at(-1)?.content ? prev : prev.slice(0, -1)));
+        setBusy(false);
+        abort.current = null;
+      }
     }
   };
 
@@ -142,7 +151,7 @@ export function AssistantDrawer({ runId, open, onClose, citations }: { runId: st
           value={draft}
           onChange={(e) => setDraft(e.target.value.slice(0, 4000))}
           onKeyDown={(e) => {
-            if (e.key === "Enter" && !e.shiftKey) {
+            if (e.key === "Enter" && !e.shiftKey && !e.nativeEvent.isComposing) {
               e.preventDefault();
               void send(draft);
             }

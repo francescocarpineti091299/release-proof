@@ -9,6 +9,7 @@ and never evaluates it.
 from __future__ import annotations
 
 import json
+import re
 import time
 from collections.abc import Iterator
 from pathlib import PurePosixPath
@@ -39,10 +40,10 @@ class InvalidRunnerEvent(RunnerFailure):
 
 
 def safe_relative_path(path: str) -> bool:
-    if not path or "\\" in path or "\x00" in path:
+    if not path or "\\" in path or "\x00" in path or ":" in path:
         return False
     pure = PurePosixPath(path)
-    return not pure.is_absolute() and ".." not in pure.parts and ":" not in pure.parts[0]
+    return bool(pure.parts) and not pure.is_absolute() and ".." not in pure.parts
 
 
 def parse_event_line(line: str) -> RunnerEvent:
@@ -67,8 +68,15 @@ class _ProtocolChecker:
         if event.seq <= self.last_seq:
             raise InvalidRunnerEvent(f"seq {event.seq} not increasing (last {self.last_seq})")
         self.last_seq = event.seq
-        if isinstance(event, ArtifactEvent) and not safe_relative_path(event.path):
-            raise InvalidRunnerEvent(f"artifact path {event.path!r} escapes the artifact dir")
+        if isinstance(event, ArtifactEvent):
+            if not safe_relative_path(event.path):
+                raise InvalidRunnerEvent(f"artifact path {event.path!r} escapes the artifact dir")
+            if event.artifact_id in (".", "..") or not re.fullmatch(
+                r"[A-Za-z0-9_.-]{1,160}", event.artifact_id
+            ):
+                raise InvalidRunnerEvent("artifact_id is not a valid API identifier")
+            if event.artifact_id == "MANIFEST":
+                raise InvalidRunnerEvent("artifact_id MANIFEST is reserved for the orchestrator")
         if isinstance(event, DoneEvent):
             self.done = event
 

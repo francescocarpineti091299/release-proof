@@ -1,8 +1,9 @@
 from __future__ import annotations
 
+from rp_llm_stub import StubLLM, StubMode
+
 from releaseproof.ai import AI_UNAVAILABLE_TEXT, AIService
 from releaseproof.ai.service import _ThinkFilter
-from releaseproof.ai.stub import StubLLM, StubMode
 from releaseproof.contracts.api import AssistantMessage
 
 CONTEXT = {
