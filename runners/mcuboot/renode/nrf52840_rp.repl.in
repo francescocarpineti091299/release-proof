@@ -1,0 +1,94 @@
+// nRF52840 platform for ReleaseProof (MCUboot runner).
+// Derived from Renode 1.16.1 platforms/cpus/nrf52840.repl (MIT, Antmicro) with:
+//   - the SVD loaded from a file baked in the image (no network at job time),
+//   - the ReleaseProof NVMC model (rp_nrf52840_nvmc.cs) so flash pages can be erased,
+//   - FICR code page size / count and UICR PSELRESET values so the SoC init and flash driver
+//     see a configured device.
+
+nvic: IRQControllers.NVIC @ sysbus 0xE000E000
+    -> cpu@0
+
+cpu: CPU.CortexM @ sysbus
+    cpuType: "cortex-m4"
+    nvic: nvic
+
+uart0: UART.NRF52840_UART @ sysbus 0x40002000
+    easyDMA: true
+    -> nvic@2
+
+uart1: UART.NRF52840_UART @ sysbus 0x40028000
+    easyDMA: true
+    -> nvic@40
+
+rtc0: Timers.NRF52840_RTC @ sysbus 0x4000B000
+    numberOfEvents: 3
+    -> nvic@11
+
+rtc1: Timers.NRF52840_RTC @ sysbus 0x40011000
+    numberOfEvents: 3
+    -> nvic@17
+
+rtc2: Timers.NRF52840_RTC @ sysbus 0x40024000
+    numberOfEvents: 4
+    -> nvic@36
+
+wdt: Timers.NRF52840_Watchdog @ sysbus 0x40010000
+    -> nvic@16
+
+ppi: Miscellaneous.NRF52840_PPI @ sysbus 0x4001F000
+
+flash: Memory.MappedMemory @ sysbus 0x0
+    size: 0x100000
+
+nvmc: Miscellaneous.RP_NRF52840_NVMC @ sysbus 0x4001E000
+    flash: flash
+
+ram: Memory.MappedMemory @ { sysbus 0x800000; sysbus 0x20000000 }
+    size: 0x40000
+
+clock: Miscellaneous.NRF_CLOCK @ sysbus 0x40000000
+    -> nvic@0
+
+timer0: Timers.NRF52840_Timer @ sysbus 0x40008000
+    numberOfEvents: 4
+    -> nvic@8
+
+timer1: Timers.NRF52840_Timer @ sysbus 0x40009000
+    numberOfEvents: 4
+    -> nvic@9
+
+timer2: Timers.NRF52840_Timer @ sysbus 0x4000A000
+    numberOfEvents: 4
+    -> nvic@10
+
+gpio0: GPIOPort.NRF52840_GPIO @ sysbus 0x50000500
+
+gpio1: GPIOPort.NRF52840_GPIO @ sysbus 0x50000800
+
+gpiote: GPIOPort.NRF52840_GPIOTasksEvents @ sysbus 0x40006000
+    port0: gpio0
+    port1: gpio1
+    -> nvic@6
+
+rng: Miscellaneous.NRF52840_RNG @ sysbus 0x4000D000
+    -> nvic@13
+
+ecb: Miscellaneous.NRF52840_ECB @ sysbus 0x4000E000
+    -> nvic@14
+
+egu0 : Miscellaneous.NRF52840_EGU @ sysbus 0x40014000
+    -> nvic@20
+
+egu1 : Miscellaneous.NRF52840_EGU @ sysbus 0x40015000
+    -> nvic@21
+
+sysbus:
+    init:
+        ApplySVD @{SVD_PATH}
+        Tag <0x10000000, 0x10000FFF> "FICR"
+        Tag <0x10000010, 0x10000013> "FICR_CODEPAGESIZE" 0x1000
+        Tag <0x10000014, 0x10000017> "FICR_CODESIZE" 0x100
+        Tag <0x100000a0, 0x100000a3> "DEVICEADDRTYPE" 0x1
+        Tag <0x100000a4, 0x100000a7> "DEVICEADDR[0]" 0xAABBCCDD
+        Tag <0x10001200, 0x10001203> "PSELRESET[0]" 0x12
+        Tag <0x10001204, 0x10001207> "PSELRESET[1]" 0x12

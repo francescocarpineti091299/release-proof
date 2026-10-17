@@ -1,0 +1,18 @@
+:name: ReleaseProof nRF52840 + MCUboot
+:description: Generated per scenario by rp_mcuboot.renode (placeholders in {BRACES}).
+
+logFile @{RENODE_LOG}
+using sysbus
+mach create "rp-nrf52840"
+include @{NVMC_CS}
+machine LoadPlatformDescription @{REPL}
+sysbus.uart0 CreateFileBackend @{UART_LOG} true
+
+# Power-on: the whole 1 MiB code flash image (0xFF background, MCUboot at 0x0, slot images).
+sysbus LoadBinary @{FLASH_IMAGE} 0x0
+cpu VectorTableOffset 0x0
+emulation RunFor "{PHASE1_TIME}"
+{PHASE2}
+# Pages erased through the ReleaseProof NVMC model (printed to renode.stdout.log).
+nvmc PageErases
+quit

@@ -15,8 +15,8 @@ bootloader:
   family: mcuboot
   name: MCUboot
   repo: https://github.com/zephyrproject-rtos/mcuboot
-  commit: PIN_AT_SPIKE   # resolved by `west manifest --freeze` in the runner image
-  version_label: Zephyr v4.2.0 manifest revision
+  commit: 4eba8087fa606db801455f14d185255bc8c49467
+  version_label: MCUboot from the Zephyr v4.2.0 manifest (Zephyr 413b789d)
   license: Apache-2.0
 toolchain:
   renode: "1.16.1"

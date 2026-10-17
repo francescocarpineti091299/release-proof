@@ -95,7 +95,9 @@ WOLFBOOT_OPTIONAL: dict[tuple[str, str], tuple[str, Any, str, str, str]] = {
 }
 
 MCUBOOT_FACTS: dict[tuple[str, str], tuple[str, Any, str, str, str]] = {
-    ("D01", "bootloader_commit"): ("toolchain", "1" * 40, _TOOL, "REPOSITORY", "west.lock"),
+    ("D01", "bootloader_commit"): (
+        "toolchain", "4eba8087fa606db801455f14d185255bc8c49467", _TOOL, "REPOSITORY", "west.lock"
+    ),
     ("D01", "zephyr_commit"): ("toolchain", "2" * 40, _TOOL, "REPOSITORY", "west.lock"),
     ("D01", "partition_layout"): (
         "platform",

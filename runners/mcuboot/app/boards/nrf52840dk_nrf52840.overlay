@@ -1,0 +1,7 @@
+/* SPDX-License-Identifier: MIT
+ * Renode has no model of the nRF52840 QSPI controller: keep its driver from probing the
+ * external NOR flash (it would hang). Applied to the application image.
+ */
+&qspi {
+	status = "disabled";
+};

@@ -115,7 +115,7 @@ templates:
     family: mcuboot
     title: Produce a post-quantum (ML-DSA) signed image with the pinned imgtool
     description: Attempts to generate an ML-DSA key and sign the candidate image with the pinned MCUboot imgtool.
-    expected: Signed image produced, or refusal recorded with the tool output
+    expected: ML-DSA signed image produced by the pinned tool
     est_seconds: 10
   - template_id: mcuboot.cross_key_update
     test_id: X01
