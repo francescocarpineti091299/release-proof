@@ -2,6 +2,11 @@
 
 **Data:** 17 ottobre 2026. **Esito:** NON totalmente conforme; release/submission gate aperto.
 
+**Aggiornamento successivo:** le correzioni e le scelte mantenute sono tracciate in
+[`COMPLIANCE_REMEDIATION_2026-10-17.md`](COMPLIANCE_REMEDIATION_2026-10-17.md).
+Questo documento conserva la fotografia originale; non usare i suoi finding come elenco
+di difetti ancora tutti aperti senza leggere la remediation e le nuove acceptance.
+
 Questo è un audit tecnico, non una certificazione di sicurezza, un parere legale o una
 conferma di ammissione ai premi. Non vengono attribuite percentuali arbitrarie di conformità.
 
@@ -20,8 +25,10 @@ conferma di ammissione ai premi. Non vengono attribuite percentuali arbitrarie d
   applicativo, pubblicazione GitHub, provisioning AWS o rebuild dello stack è stato effettuato.
 - Test offline sul worktree e verifiche HTTP/Docker sul deploy locale sono **evidenze distinte**.
   I container esistenti non contengono il codice corrente: quattro hash campionati differiscono.
-- Avviata una nuova acceptance API con `--require-ai` sullo stack esistente. Il suo esito va
-  interpretato come prova del deploy già avviato, non delle ultime modifiche locali.
+- Completata una nuova acceptance API con `--require-ai` sullo stack esistente: script PASS
+  su entrambi i profili, report `docs/acceptance/20261017T142014Z.json`. Il suo esito va
+  interpretato come prova del deploy già avviato, non delle ultime modifiche locali; il run
+  MCUboot ha planner AI_UNAVAILABLE, quindi non supera il requisito completo del brief.
 
 Legenda: **VERIFICATO** = prova osservata entro il perimetro dichiarato; **PARZIALE** =
 implementazione presente ma prova incompleta; **GAP** = requisito non soddisfatto;
@@ -37,6 +44,8 @@ implementazione presente ma prova incompleta; **GAP** = requisito non soddisfatt
 | `npm.cmd run test` da `web/` | 8 passed | Stream/URL helpers, non browser E2E |
 | `npm.cmd run lint` | PASS | Nessuna verifica visuale/accessibilità completa |
 | `npm.cmd run typecheck` | PASS | Type checking |
+| Backend `ruff check . --statistics` | PASS | Lint statico, non prova runtime |
+| `npm.cmd audit --omit=dev --json` | 0 advisory riportati | Dipendenze production JS; non scanner Python/container né garanzia di assenza vulnerabilità |
 | `npm.cmd run build` nel worktree | BLOCCATO da lock Next preesistente | Lock non cancellato, processi non terminati |
 | Build su copia isolata in directory temporanea, `next build --webpack` | PASS compilazione, TypeScript e generazione route | Diverso dal bundler standard; junction node_modules causa warning su 27 file esclusi dal tracing standalone. Non certifica packaging Docker |
 | Confronto contratto V1.2 con baseline | 17/17 file identici byte per byte | Non implica che tutte le modifiche al motore abbiano comportamento identico |
@@ -61,6 +70,19 @@ Entrambi i casi sono vere combinazioni di bootloader/device differenti, anche se
 la stessa. Il brief ammette esplicitamente questa scelta. Un risultato di migrazione
 INCOMPATIBLE non rende il prodotto non conforme: è una conclusione corretta se sostenuta
 da misure. Non serve inventare una migrazione COMPATIBLE.
+
+### Nuova acceptance completata durante questo audit
+
+Fonte: `docs/acceptance/20261017T142014Z.json`; stati AI poi verificati direttamente via API.
+
+| Profilo/run | Esecuzione | AI effettiva | Valutazione rispetto al brief |
+|---|---|---|---|
+| MCUboot, `RP-20261017T140937Z-d37080` | 7/7 test, build/sign/boot/negative; 50 artefatti; migration INCOMPATIBLE | Planner AI_UNAVAILABLE, report AI_UNAVAILABLE, alternatives OK; test pianificati da POLICY_REQUIRED/PROFILE_OPTIONAL | Script PASS, ma **non** dimostra AI planner → test eseguiti in questa job |
+| wolfBoot, `RP-20261017T141734Z-b7a825` | 8/8 test, build/sign/boot/negative; 61 artefatti; candidate COMPATIBLE, transition/migration INCOMPATIBLE | Planner, report e alternatives OK; test AI_PLANNER presenti | Flusso positivo confermato sul deploy esistente, non sul worktree corrente |
+
+Questa nuova prova riproduce **in condizioni reali** la debolezza F05 già dimostrata offline:
+`--require-ai` passa sul solo successo di alternatives, anche con planner indisponibile.
+Non confondere successo dello script con chiusura di tutti i requisiti del brief.
 
 ## 3. Finding prioritari
 
@@ -145,6 +167,14 @@ commit del motore/adapters/parser e snapshot completo dell'implementazione.
 `CODE_PROVENANCE.md:9` descrive una sola modifica additiva D05; il diff corrente contiene
 anche cambiamenti a selezione evidenza valida, allowed actions, policy, layout e trust chain.
 
+Inoltre **entrambi i result serializzati dal deploy non sono auto-consistenti col proprio
+canonical_hash**: ricalcolare JCS sul JSON esposto dall'API non restituisce l'hash dichiarato.
+Il match torna soltanto reinserendo i wrapper `candidate_state_assurance` e
+`transition_plan_assurance`, che il vecchio modello non serializzava. Il worktree corrente
+include già questi campi nel modello: è un fix locale presente ma non applicato ai container.
+Il gate attuale confronta l'hash del run con quello del result, senza ricalcolarlo, perciò
+non scopre questo errore del deploy.
+
 **Fix richiesto:** congelare commit/release, aggiornare provenance, registrare digest e versione
 del motore, rebuild controllato, acceptance nuova sullo stesso codice. Preservare i vecchi run
 con identificazione della loro versione; non riscriverne hash/evidenze per farli coincidere.
@@ -162,6 +192,10 @@ Non richiede il successo di explainer/alternatives per dimostrare l'intero ciclo
 host `unapproved.example`, nessuna trace planner. Acceptance `passed=true`.
 Non significa che il runtime ordinario abbia realmente contattato tale host: la debolezza
 è nella prova del gate, non nel client che ha allowlist e redirects disabilitati.
+
+**Confermato anche live:** nella nuova acceptance MCUboot il gate passa grazie alla trace
+alternatives OK, mentre planner e report sono AI_UNAVAILABLE (run
+`RP-20261017T140937Z-d37080`). Non risultano test con planned_by=AI_PLANNER in quel run.
 
 **Fix richiesto:** controllare planner OK, run_id, provider/host attesi, ai_plan valido e relazione
 con planned/executed templates; distinguere gate minimo da demo AI completa.
@@ -304,3 +338,12 @@ non sono dimostrati qui come tutte le feature P1. P2 non è necessario per il ga
 build/verdetti. Tuttavia test verdi e precedenti acceptance non chiudono i finding avversari,
 i confini della sandbox, la riproducibilità della release né i deliverable pubblici.
 Non dichiarare "fully compliant" finché questi gate non hanno evidenze della stessa release.
+
+## Addendum — riposizionamento e funzionalità di preflight
+
+Il testo sopra conserva la fotografia storica dell'audit; non descrive automaticamente il worktree
+successivo. La revisione del documento di mercato è in `docs/POSITIONING_REVIEW_2026-10-17.md`:
+UI/pitch industriale, otto slide, evidence pack verificato e release-preflight CLI sono aggiunti;
+il controllo di fase del verdetto è esteso al testo dei report AI. Fix signer/chat/Compose/acceptance
+e accesso demo erano già presenti localmente. La verifica offline non chiude F04/F06/F08 né attesta
+un nuovo deploy. Manteniamo report storici, UNKNOWN recovery e limiti di isolamento espliciti.

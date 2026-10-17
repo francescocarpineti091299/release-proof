@@ -116,7 +116,8 @@ Verified results for the reviewed source:
   drain pending; forcibly killing the process/container interrupts the run instead of completing
   it. Wait for active runs before deployment/restart, or deliberately accept interrupted runs.
 - Authentication, tenant isolation, submission quotas and AI/SSE rate limiting are not built in.
-  An authenticated gateway is required before untrusted public access. Completed-run bookkeeping
+  Subsequent judging policy intentionally permits anonymous HTTPS with bounded jobs/POST requests.
+  Stronger identities/isolation remain necessary for customer hosting. Completed-run bookkeeping
   and long-lived connections still need capacity controls for sustained production use.
 - Artifact verification and response streaming are not atomic against a hostile concurrent
   filesystem writer. Keep the shared volume trusted and immutable after publication.
@@ -131,4 +132,6 @@ Verified results for the reviewed source:
   stays UNKNOWN; this review does not supply missing E12 hardware evidence.
 - No new rebuilt-container live acceptance, cloud deployment, paid AMD smoke or full benchmark
   was performed. Existing acceptance and smoke JSON remain historical records. Managed GPU
-  labels are operator declarations, and the repository does not attest a completed AWS deployment.
+  labels are operator declarations. That review did not attest an AWS deployment. Subsequent
+  actual cloud checks, cleanup and deployed-runtime drift are recorded separately in
+  [`INFRA_AUDIT_2026-10-17.md`](INFRA_AUDIT_2026-10-17.md); they do not retroactively expand this review.

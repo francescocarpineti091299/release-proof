@@ -1,0 +1,277 @@
+[
+  {
+    "profile": "nrf52840-mcuboot-pqc",
+    "change": "ecdsa_p256_to_mldsa",
+    "run_id": "RP-20261017T144716Z-0a2c7d",
+    "verdict": {
+      "lifecycle": "COMPLETED",
+      "migration": "INCOMPATIBLE",
+      "candidate": "INCOMPATIBLE",
+      "transition": "INCOMPATIBLE",
+      "canonical_hash": "sha256:5454f7659073667bc425d020ef92ebb3d0f1ff987c1dee5958b27daecb36efc2",
+      "official": false
+    },
+    "gates": [
+      {
+        "gate": "run reached a terminal state",
+        "ok": true,
+        "detail": "SUCCEEDED"
+      },
+      {
+        "gate": "run is LIVE (not replay)",
+        "ok": true,
+        "detail": "LIVE"
+      },
+      {
+        "gate": "run created now",
+        "ok": true,
+        "detail": "2026-10-17T14:47:16.236Z"
+      },
+      {
+        "gate": "pipeline succeeded",
+        "ok": true,
+        "detail": "None"
+      },
+      {
+        "gate": "tests executed",
+        "ok": true,
+        "detail": "7/7"
+      },
+      {
+        "gate": "required templates executed",
+        "ok": true,
+        "detail": ""
+      },
+      {
+        "gate": "at least one negative test observed",
+        "ok": true,
+        "detail": "mcuboot.tampered_image_rejected, mcuboot.cross_key_update"
+      },
+      {
+        "gate": "positive boot observed (E01)",
+        "ok": true,
+        "detail": ""
+      },
+      {
+        "gate": "build/sign stage succeeded",
+        "ok": true,
+        "detail": ""
+      },
+      {
+        "gate": "deterministic verdict issued",
+        "ok": true,
+        "detail": "INCOMPATIBLE (cand INCOMPATIBLE, trans INCOMPATIBLE)"
+      },
+      {
+        "gate": "official flag is false",
+        "ok": true,
+        "detail": ""
+      },
+      {
+        "gate": "result available",
+        "ok": true,
+        "detail": ""
+      },
+      {
+        "gate": "canonical result hash recomputed",
+        "ok": true,
+        "detail": ""
+      },
+      {
+        "gate": "result hash matches run verdict",
+        "ok": true,
+        "detail": ""
+      },
+      {
+        "gate": "evidence belongs to this run",
+        "ok": true,
+        "detail": "15/17"
+      },
+      {
+        "gate": "manifest hash recorded",
+        "ok": true,
+        "detail": ""
+      },
+      {
+        "gate": "artifacts recorded",
+        "ok": true,
+        "detail": "50"
+      },
+      {
+        "gate": "manifest artifact matches result digest",
+        "ok": true,
+        "detail": ""
+      },
+      {
+        "gate": "artifact sha256 verified (all)",
+        "ok": true,
+        "detail": ""
+      },
+      {
+        "gate": "manifest identifies this run and assessment",
+        "ok": true,
+        "detail": ""
+      },
+      {
+        "gate": "deployed backend matches current source",
+        "ok": true,
+        "detail": ""
+      },
+      {
+        "gate": "runner code identity recorded",
+        "ok": true,
+        "detail": ""
+      },
+      {
+        "gate": "deployed runner matches current source",
+        "ok": false,
+        "detail": ""
+      },
+      {
+        "gate": "AMD LLM called for this run",
+        "ok": true,
+        "detail": "planner:self-dploy/DeepSeek-V4-Flash@developer.amd.com.cn"
+      },
+      {
+        "gate": "accepted AMD plan was executed",
+        "ok": true,
+        "detail": ""
+      },
+      {
+        "gate": "AMD explainer validated for this run",
+        "ok": false,
+        "detail": ""
+      },
+      {
+        "gate": "AMD alternatives validated for this run",
+        "ok": false,
+        "detail": ""
+      }
+    ],
+    "passed": false
+  },
+  {
+    "profile": "nrf52840-wolfboot-pqc",
+    "change": "ecdsa_p256_to_mldsa87",
+    "run_id": "RP-20261017T145336Z-e7f078",
+    "verdict": {},
+    "gates": [
+      {
+        "gate": "run reached a terminal state",
+        "ok": true,
+        "detail": "FAILED"
+      },
+      {
+        "gate": "run is LIVE (not replay)",
+        "ok": true,
+        "detail": "LIVE"
+      },
+      {
+        "gate": "run created now",
+        "ok": true,
+        "detail": "2026-10-17T14:53:36.066Z"
+      },
+      {
+        "gate": "pipeline succeeded",
+        "ok": false,
+        "detail": "{'failure_class': 'ENVIRONMENT_SETUP', 'message': 'runner unreachable at http://runner-wolfboot:8080: [Errno -2] Name or service not known'}"
+      },
+      {
+        "gate": "tests executed",
+        "ok": false,
+        "detail": "0/0"
+      },
+      {
+        "gate": "required templates executed",
+        "ok": false,
+        "detail": "wolfboot.boot_candidate, wolfboot.boot_current, wolfboot.candidate_rejects_classical, wolfboot.cross_generation_update, wolfboot.discover, wolfboot.self_update_capability, wolfboot.tampered_image_rejected"
+      },
+      {
+        "gate": "at least one negative test observed",
+        "ok": false,
+        "detail": ""
+      },
+      {
+        "gate": "positive boot observed (E01)",
+        "ok": false,
+        "detail": ""
+      },
+      {
+        "gate": "build/sign stage succeeded",
+        "ok": false,
+        "detail": ""
+      },
+      {
+        "gate": "deterministic verdict issued",
+        "ok": false,
+        "detail": "None (cand None, trans None)"
+      },
+      {
+        "gate": "official flag is false",
+        "ok": false,
+        "detail": ""
+      },
+      {
+        "gate": "result available",
+        "ok": false,
+        "detail": "HTTP Error 409: Conflict"
+      },
+      {
+        "gate": "artifacts recorded",
+        "ok": false,
+        "detail": "0"
+      },
+      {
+        "gate": "manifest artifact matches result digest",
+        "ok": false,
+        "detail": ""
+      },
+      {
+        "gate": "artifact sha256 verified (all)",
+        "ok": true,
+        "detail": ""
+      },
+      {
+        "gate": "manifest identifies this run and assessment",
+        "ok": false,
+        "detail": ""
+      },
+      {
+        "gate": "deployed backend matches current source",
+        "ok": false,
+        "detail": ""
+      },
+      {
+        "gate": "runner code identity recorded",
+        "ok": false,
+        "detail": ""
+      },
+      {
+        "gate": "deployed runner matches current source",
+        "ok": false,
+        "detail": ""
+      },
+      {
+        "gate": "AMD LLM called for this run",
+        "ok": true,
+        "detail": "planner:self-dploy/DeepSeek-V4-Flash@developer.amd.com.cn"
+      },
+      {
+        "gate": "accepted AMD plan was executed",
+        "ok": false,
+        "detail": ""
+      },
+      {
+        "gate": "AMD explainer validated for this run",
+        "ok": false,
+        "detail": ""
+      },
+      {
+        "gate": "AMD alternatives validated for this run",
+        "ok": false,
+        "detail": ""
+      }
+    ],
+    "passed": false
+  }
+]

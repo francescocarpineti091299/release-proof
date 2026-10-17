@@ -64,17 +64,17 @@
         <svg viewBox="0 0 32 32" aria-hidden="true"><rect width="32" height="32" rx="7" fill="#0b1220"/><path d="M16 5l9 3.5v6.8c0 5.6-3.8 10.2-9 11.7-5.2-1.5-9-6.1-9-11.7V8.5L16 5z" fill="none" stroke="#34d399" stroke-width="2.4" stroke-linejoin="round"/><path d="M11.5 16.2l3.2 3.2 6-6.4" fill="none" stroke="#34d399" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"/></svg>
         ReleaseProof
       </div>
-      <div class="eyebrow">Post-quantum firmware migration assurance</div>
+      <div class="eyebrow">Industrial IoT · firmware migration assurance</div>
       <h1>A firmware can boot and still be <em>impossible to upgrade</em> safely.</h1>
-      <p class="sub">Real builds, real Renode emulation and a <b>deterministic verdict</b> on the migration path. AMD-hosted AI plans and explains. <b>It never decides.</b></p>
+      <p class="sub">Verify that an update can <b>reach installed devices</b> before rollout. Real builds and Renode emulation. AMD-hosted AI plans and explains; <b>the engine decides.</b></p>
     </div>
     <div class="stack">
       <div class="panel verdict">
         <div class="k">wolfBoot · nRF52840 · ECDSA P-256 → ML-DSA-87</div>
         <div class="vt"><div class="x">×</div><div class="w">INCOMPATIBLE</div></div>
         <div class="row ok"><span>Candidate boots?</span><span class="chip ok">Compatible</span></div>
-        <div class="row bad"><span>Deployed fleet can get there?</span><span class="chip bad">Incompatible</span></div>
-        <div class="meta">LIVE run RP-20261017T124806Z-a39610 · 8/8 tests</div>
+        <div class="row bad"><span>Supported transition works?</span><span class="chip bad">Incompatible</span></div>
+        <div class="meta">Historical LIVE run a39610 · 8/8 tests executed<br>Emulation, not silicon · non-official assessment</div>
       </div>
       <div class="panel uart">
         <div class="t">UART · deployed ECDSA bootloader + ML-DSA update</div>
@@ -86,7 +86,7 @@
   </div>
   <div class="foot">
     <span class="pill">AMD Developer Hackathon ACT III · <b>Intelligent Industry</b></span>
-    <span>wolfBoot &amp; MCUboot · Zephyr · Renode · built for AMD EPYC + AMD Instinct</span>
+    <span>wolfBoot &amp; MCUboot · Renode · AMD-hosted inference · not OTA delivery</span>
   </div>
 </body>
 </html>

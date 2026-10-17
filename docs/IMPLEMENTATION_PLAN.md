@@ -14,9 +14,11 @@
   GPU is undisclosed. A completed `docs/AMD_BENCHMARK.json` is not retained yet.
 - Browser mock mode and runtime synthetic helpers have been removed; test-only helpers remain
   under `backend/tests/`. See `docs/MOCK_AUDIT.md`.
-- AWS scripts target EC2 c7a, but no public deployment completion is evidenced in this repository.
+- AWS demo is deployed on EC2 `c7a.2xlarge` behind CloudFront:
+  `https://d1yxcnwgdgjzt6.cloudfront.net`. Actual inventory/health, scoped cleanup and remaining
+  runtime hardening drift are recorded in `docs/INFRA_AUDIT_2026-10-17.md`.
 - Interrupted-update recovery and runtime RAM measurement remain unobserved. The API still needs
-  an authenticated gateway before untrusted public use.
+  bounded jobs/request rates before public use; judging access is intentionally anonymous.
 - Current code review, fixes and reproducible offline checks: `docs/CODE_AUDIT.md`.
 
 The phase notes below are historical implementation checkpoints, not a current to-do list.

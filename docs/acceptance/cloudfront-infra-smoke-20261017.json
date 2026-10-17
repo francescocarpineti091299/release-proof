@@ -1,0 +1,98 @@
+{
+  "base": "https://d1yxcnwgdgjzt6.cloudfront.net",
+  "checked_at": "2026-10-17T14:51:56.838481+00:00",
+  "checks": [
+    {
+      "check": "UI and trusted HTTPS",
+      "ok": true,
+      "detail": "HTTP 200; Miss from cloudfront"
+    },
+    {
+      "check": "no redirect to origin hostname",
+      "ok": true,
+      "detail": "https://d1yxcnwgdgjzt6.cloudfront.net/"
+    },
+    {
+      "check": "UI has built assets",
+      "ok": true,
+      "detail": "13"
+    },
+    {
+      "check": "static asset",
+      "ok": true,
+      "detail": "/_next/static/chunks/831fb274446660fd.css"
+    },
+    {
+      "check": "static asset",
+      "ok": true,
+      "detail": "/_next/static/chunks/6b72d953419206d6.js"
+    },
+    {
+      "check": "static asset",
+      "ok": true,
+      "detail": "/_next/static/chunks/c46fafffbfd9b15d.js"
+    },
+    {
+      "check": "static asset",
+      "ok": true,
+      "detail": "/_next/static/chunks/058cf50593f21476.js"
+    },
+    {
+      "check": "static asset",
+      "ok": true,
+      "detail": "/_next/static/chunks/67e9ba0323896ae2.js"
+    },
+    {
+      "check": "HTTP /api/health",
+      "ok": true,
+      "detail": "200"
+    },
+    {
+      "check": "demo health",
+      "ok": true,
+      "detail": "{\"status\": \"ok\", \"env\": \"demo\", \"schema_version\": 1, \"expose_experimental\": false}"
+    },
+    {
+      "check": "HTTP /api/configurations",
+      "ok": true,
+      "detail": "200"
+    },
+    {
+      "check": "two supported profiles",
+      "ok": true,
+      "detail": ""
+    },
+    {
+      "check": "HTTP /api/assessments?limit=1",
+      "ok": true,
+      "detail": "200"
+    },
+    {
+      "check": "query parameters forwarded",
+      "ok": true,
+      "detail": ""
+    },
+    {
+      "check": "HTTP /api/assessments/RP-20261017T144403Z-58de1b/result",
+      "ok": true,
+      "detail": "200"
+    },
+    {
+      "check": "verdict available",
+      "ok": true,
+      "detail": ""
+    },
+    {
+      "check": "HTTP /api/assessments/RP-20261017T144403Z-58de1b/artifacts",
+      "ok": true,
+      "detail": "200"
+    },
+    {
+      "check": "manifest downloaded and hash verified",
+      "ok": true,
+      "detail": ""
+    }
+  ],
+  "run_id": "RP-20261017T144403Z-58de1b",
+  "passed": true
+}

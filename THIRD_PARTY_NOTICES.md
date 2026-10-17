@@ -15,5 +15,8 @@ repository. Their licenses apply to those images.
 | Arm GNU Toolchain | 14.2.rel1 | GPL-3.0 with runtime exceptions | Compiler in `runner-wolfboot`. |
 | Python packages, Next.js/React | see `backend/pyproject.toml`, `web/package.json` | MIT / BSD / Apache-2.0 | Application dependencies. |
 
+Exact application package versions and license metadata (including transitive dependencies)
+are recorded in `docs/DEPENDENCY_INVENTORY.json`; see `DEPENDENCIES.md` for scope and reproduction.
+
 If you publish runner images, you must also comply with the source-availability obligations of
 the GPL components they contain.

@@ -5,10 +5,13 @@
 > Facts here come from `docs/IMPLEMENTATION_PLAN.md`, `docs/ARCHITECTURE.md`,
 > `docs/acceptance/*.json`, `profiles/*.yaml` and the runner READMEs (17 Oct 2026).
 
-> Current evidence: both profiles are `SUPPORTED`; the AMD-required acceptance report is
-> `docs/acceptance/20261017T135337Z.json`. Token Factory smoke recorded 9/10 successful calls,
-> not a completed benchmark. Managed GPU identity and public AWS deployment are not attested.
-> HTML deck sources and the 10-page PDF have been refreshed. Existing screenshots still describe
+> Historical evidence: both profiles were promoted after `docs/acceptance/20261017T135337Z.json`.
+> That older gate required only one successful AI call. The final submission must reference the
+> fresh strengthened `--require-ai` gate and `docs/RELEASE_EVIDENCE.json`, not infer full AI success
+> from historical promotion. Managed GPU identity is not attested. Public AWS infrastructure
+> and transport are independently verified in `docs/INFRA_AUDIT_2026-10-17.md`; this does not
+> attest current-source equivalence or repository security controls on the older AWS images.
+> The deck is now eight slides focused on industrial sensor OEMs. Existing screenshots describe
 > historical runs and must be retaken or labelled before submission. Unfilled publication/benchmark
 > placeholders remain intentional.
 
@@ -16,9 +19,9 @@
 
 ## Title
 
-**ReleaseProof: a firmware can boot and still be impossible to upgrade safely**
+**ReleaseProof: Firmware Migration Assurance**
 
-(Short form if the field is limited: **ReleaseProof: Firmware Migration Assurance**)
+42 characters. The longer "a firmware can boot..." sentence is the pitch hook, not the form title.
 
 ## Track
 
@@ -26,80 +29,68 @@
 
 ## Short description (≤ 255 characters)
 
-> ReleaseProof checks whether deployed devices can actually migrate to post-quantum firmware
-> signatures. It uses real builds, Renode emulation and a deterministic verdict. AMD-hosted AI plans
-> and explains but never decides.
+> ReleaseProof helps industrial IoT teams verify firmware migration paths before rollout. Real
+> builds, Renode emulation and separate candidate/transition verdicts expose update blockers.
+> AMD-hosted AI plans and explains; the engine decides.
 
-(221 characters including spaces. The count was checked with PowerShell `.Length` on the
-single-line version.)
+Use the single-line version in the form; standard limit 50–255 characters.
 
 ## Long description
 
-Industrial and IoT fleets stay in the field for 10–20 years, and their secure bootloaders verify
-firmware with keys and algorithms chosen long before post-quantum cryptography. The deadlines are now
-concrete:
+Industrial sensor OEMs need to know whether deployed devices can reach a new
+security configuration, not merely whether a new image boots. Changing signature algorithms
+can leave a working candidate that the deployed bootloader cannot accept.
 
-- NSA CNSA 2.0 requires software and firmware signing to use CNSA 2.0 algorithms exclusively by 2030.
-- NIST IR 8547 (draft) disallows ECDSA and RSA signatures after 2035.
-- The EU Cyber Resilience Act fully applies on 11 December 2027, and products must remain
-  maintainable with security updates.
+ReleaseProof connects AMD-hosted AI, real firmware builds and Renode emulation to a
+deterministic migration-assurance engine. Engineers choose a pinned device/bootloader profile
+and a guided change. The AMD Token Factory planner selects registered tests; mandatory
+checks cannot be removed. Isolated runners build, sign with ephemeral keys and execute
+positive and negative tests. Evidence is linked to logs, source pins and SHA-256 artifacts.
+The engine, never the LLM, produces separate candidate, transition and migration verdicts.
 
-Teams usually check one thing: "does the new ML-DSA image boot?" That check is necessary but not
-sufficient. **A firmware can boot and still be impossible to upgrade safely**, because the
-bootloader already deployed in the field may reject the new image and may have no way to replace
-itself.
+Two nRF52840 configurations demonstrate different blockers. With wolfBoot, the ML-DSA-87
+candidate boots, but the deployed ECDSA bootloader rejects the update and cannot self-update
+on this port. With MCUboot/Zephyr, the pinned imgtool explicitly refuses ML-DSA key types;
+tampered and wrong-key updates are rejected in emulation.
 
-**ReleaseProof verifies the migration path, not just the new image.** An engineer picks a verified
-configuration (device + bootloader, all versions pinned) and a change (for example ECDSA P-256 →
-ML-DSA-87), then clicks *Run assessment*. A LIVE run then:
+AMD AI explains findings with checked citation IDs and proposes allowed alternatives. Human
+selection creates a new assessment without rewriting the parent. AI outages are explicit,
+with no external-provider fallback; deterministic tests can still run. The submission gate
+requires successful AMD planning and reporting, not just any successful AI call.
 
-1. builds the deployed and candidate bootloaders and images with pinned toolchains and signs them
-   with ephemeral keys;
-2. boots and updates them in **Renode** on an emulated **Nordic nRF52840**;
-3. runs **positive and negative tests**: tampered image, cross-generation update (deployed
-   bootloader vs. candidate image), wrong key, and candidate rejects classical;
-4. hashes every artifact with sha256 and projects the observations into the deterministic
-   **V1.2 semantic engine**. The engine issues three separate verdicts (candidate, transition,
-   migration) with an explanation graph, a canonical result hash and a manifest.
+This is an engineering demo, not certification or proof on silicon. Interrupted-update
+recovery remains UNKNOWN. ReleaseProof complements inventory scanners and OTA platforms
+by answering the question between them: can this migration proceed as planned?
 
-Build/emulation-only runs took 42–75 s in the retained local recordings. Full AI-enabled runs also
-include provider latency. Two configurations run end to end and pass our
-acceptance gate:
+## Buyer and operational value
 
-- **wolfBoot @4c79eee (ECDSA P-256 → ML-DSA-87):** the candidate is **COMPATIBLE** (the ML-DSA-87
-  bootloader and image build and boot), but the transition is **INCOMPATIBLE**. wolfBoot has no
-  bootloader self-update on nRF52840, and the deployed ECDSA bootloader rejects the ML-DSA update
-  (`Update type invalid 0xB01!=0x200`, v1 keeps running). In short, it boots but it does not migrate.
-- **MCUboot @4eba8087 / Zephyr v4.2.0 (ECDSA P-256 → ML-DSA):** the result is **INCOMPATIBLE**. The
-  pinned imgtool 2.2.0 refuses `ml-dsa-44/65/87` (measured, not assumed), and single-stage MCUboot
-  cannot be replaced in the field.
+First segment: OEMs of wireless condition-monitoring sensors in factories and remote sites.
+Buyer: Head of Embedded Engineering, Firmware Lead or Product Security Manager, with OT/operations
+as co-sponsor. The operational goal is to keep sensors maintainable without avoidable physical
+intervention or gaps in monitoring. Nordic documents nRF52840 in NI MON-10411, Lynxemi and Atomation
+products: hardware relevance only, not proprietary firmware support, customers or PQC defects.
 
-**The agentic loop.** The AMD-hosted LLM plans which registered optional tests to run. Required tests
-always run, and unknown templates are blocked. After the verdict, the LLM explains it with citations
-to real evidence IDs and proposes alternative plans from the profile's allowed set. When a human
-picks an alternative, ReleaseProof creates a **new** run. For wolfBoot, *re-flash the bootloader in
-a field-service window* is re-evaluated as **INDETERMINATE**: the blocker is removed, but recovery
-from an interrupted update was never observed, so the result is an honest unknown and not a pass.
-The parent run is never modified.
+Illustrative scenario, **not measured ROI**: 5,000 sensors × hypothetical 5% requiring service ×
+hypothetical €250/intervention = €62,500 of exposure, not demonstrated savings. Validate in pilots:
+pre-rollout blockers, engineering hours saved, confirmed interventions avoided and cost/profile/run.
+Proposed packaging: custom-profile onboarding, then subscription per supported product profile
+and assessment volume. No pricing or willingness to pay is validated; no per-device billing claim.
 
-**The AI never decides.** The safeguards are schema-validated outputs, citation checks, a
-verdict-echo check, an allow-listed AMD host with no fallback provider, tool output wrapped as
-untrusted data, and no shell access. If a runner dies mid-run, the run is FAILED and no verdict is
-issued. A tool failure is never turned into a result.
+Static inventory and OTA delivery are complementary. Finite State already documents evidence-linked
+AI and release gates; ReleaseProof's focus is the deployed-to-candidate bootloader transition and
+its separate verdicts. No exclusivity, competitive incapability or head-to-head superiority claim.
 
-ReleaseProof is complementary to CBOM/SBOM scanners (they tell you *what* to migrate) and to OTA
-platforms (they *deliver* the update). It answers the question in between: **can this fleet actually
-get there?**
+Regulatory context: CRA main obligations 11 Dec 2027, reporting 11 Sep 2026, with scope/exclusions
+and transitional rules—not a general ML-DSA mandate. CNSA 2.0 applies to US NSS, not all industrial
+OEMs. NIST IR 8547 is an initial public draft, not binding law. No certification claim is made.
 
 ## Tags
 
 `post-quantum cryptography` · `PQC` · `ML-DSA` · `firmware` · `secure boot` · `embedded` · `IoT` ·
-`industrial IoT` · `Cyber Resilience Act` · `CNSA 2.0` · `wolfBoot` · `MCUboot` · `Zephyr` ·
-`Renode` · `emulation` · `agentic AI` · `AMD Instinct` · `AMD EPYC` · `AMD Developer Cloud` ·
-`vLLM` · `ROCm` · `FastAPI` · `Next.js`
+`industrial IoT` · `condition monitoring` · `wolfBoot` · `MCUboot` · `Zephyr` ·
+`Renode` · `emulation` · `agentic AI` · `AMD Token Factory` · `FastAPI` · `Next.js`
 
-(Keep `vLLM` / `ROCm` only if the final AMD serving stack is self-hosted vLLM on ROCm. Check this
-against `[[AMD_SERVING_STACK]]`.)
+Do not add AMD Instinct/MI300X, EPYC, vLLM or ROCm deployment tags without evidence of their use.
 
 ## Tech stack
 
@@ -121,28 +112,28 @@ The recorded managed configuration is AMD Token Factory with `DeepSeek-V4-Flash`
 GPU is undisclosed. Provider/hardware labels are declarations, not remote attestation.
 The endpoint host is allow-listed and there is **no fallback to any other
 provider**. If the AMD endpoint is unavailable, the steps are recorded as `AI_UNAVAILABLE` and the
-deterministic pipeline continues on its own. Our benchmark (`scripts/amd_benchmark.py`, real calls
-only) measured a p50 latency of `[[AMD_LATENCY_P50]]` and a schema-valid response rate of
-`[[AMD_SCHEMA_VALID_RATE]]`. It also measures citation fidelity, verdict-echo fidelity and
-prompt-injection leaks. The compute-heavy part of the product consists of cross-compiling
+deterministic pipeline continues on its own. The benchmark (`scripts/amd_benchmark.py`, real calls
+only) records latency, schema validity, citation/verdict checks and adversarial cases. Quote
+only the retained report's actual measurements and sample size. The compute-heavy part consists of cross-compiling
 bootloaders, signing images and running Renode emulations for every assessment. It is designed for
-an **AMD EPYC** host (AWS EC2 c7a.2xlarge, Docker Compose) reachable at `[[DEMO_URL]]`.
+ an **AMD EPYC** host (AWS EC2 c7a.2xlarge, Docker Compose); deployment is not attested.
 
 > Honesty note: the retained Token Factory smoke has 9/10 logical calls OK and one outage;
-> `docs/AMD_BENCHMARK.json` is not currently retained. Early screenshots show `AI_UNAVAILABLE`;
+> The small current benchmark retains upstream outages and missing metrics; it is not a
+> completed reliability/performance claim. Early screenshots show `AI_UNAVAILABLE`;
 > they must not be used as evidence of later AMD-enabled runs. AWS remains a deployment target
 > until a completed deployment is independently verified. Do not claim specific GPUs or benchmark
 > rates from provider labels or smoke counts.
 
-## AMD evidence checklist (lablab hidden checklist)
+## AMD evidence checklist (team verification, not an official hidden checklist)
 
 | Item | Value |
 |---|---|
 | Hardware | Managed LLM GPU undisclosed; self-hosted MI300X is an alternative, not the recorded serving configuration. Host target: AWS EC2 c7a.2xlarge, AMD EPYC 4th gen (Genoa), 8 vCPU / 16 GiB |
 | Model | `DeepSeek-V4-Flash` in the retained Token Factory smoke |
 | Serving stack | AMD Token Factory managed API; vLLM on MI300X is documented as Plan B in `deploy/amd/README.md` |
-| Benchmark | p50 latency `[[AMD_LATENCY_P50]]` · schema-valid rate `[[AMD_SCHEMA_VALID_RATE]]` · report `docs/AMD_BENCHMARK.json` (generated by `scripts/amd_benchmark.py -n 5`) |
-| What ran on AMD | Retained AMD Token Factory inference traces. Local acceptance does not attest an EPYC deployment; fill `[[DEMO_URL]]` only after verification |
+| Benchmark | Use the actual sample size, successes and failures in `docs/AMD_BENCHMARK.json`; do not replace missing statistics with smoke counts |
+| What ran on AMD | Retained AMD Token Factory inference traces. Existing HTTPS demo: https://d1yxcnwgdgjzt6.cloudfront.net. Verify the frozen hardened release there before the final walkthrough; local acceptance does not attest cloud hardware |
 
 ## Architecture
 
@@ -169,7 +160,7 @@ Runners **measure**, adapters **project** (a missing observation becomes `UNKNOW
 ## Setup instructions
 
 ```bash
-git clone [[GITHUB_URL]] && cd releaseproof
+git clone https://github.com/francescocarpineti091299/release-proof && cd release-proof
 cp .env.example .env            # optional: fill AMD_LLM_BASE_URL / _API_KEY / _MODEL / _ALLOWED_HOSTS
 # Local: full stack (web, api, both runners, Caddy) on http://localhost:8080
 docker compose -f docker-compose.yml -f docker-compose.dev.yml up -d --build
@@ -195,12 +186,13 @@ works and the AI steps show `AI_UNAVAILABLE`.
 | Re-evaluation runs with a parent reference, immutable history, refusal (HTTP 422) of alternatives needing external validation | LMS / hash-based signatures for MCUboot (upstream PR #2707, still in review) |
 | Failed-run policy: runner killed ⇒ FAILED, no verdict, `/result` 409 | More boards (STM32, NXP), more bootloader families, key-rotation rulesets |
 | AI gateway with schema/citation/verdict guardrails, configured AMD host allow-list, no fallback; real Token Factory smoke and AMD-required acceptance retained | **Completed benchmark numbers** (`[[AMD_LATENCY_P50]]`, `[[AMD_SCHEMA_VALID_RATE]]`) |
-| AWS deploy scripts for EC2 c7a (AMD EPYC) | **Public deployment** (`[[DEMO_URL]]`), which was blocked on IAM permissions when this was written |
-| Both profiles are `SUPPORTED`, promoted after `docs/acceptance/20261017T135337Z.json`; promotion is a manual reviewed edit | CI integration (GitHub/GitLab action) |
+| Verified EC2 `c7a.2xlarge` (AMD EPYC) + CloudFront demo: https://d1yxcnwgdgjzt6.cloudfront.net; inventory, TLS and live transport evidence retained | Reviewed deployment of latest application hardening, strict current-source cloud acceptance, off-host backups and operational alarms |
+| Both YAML profiles are `SUPPORTED`; historical promotion used `docs/acceptance/20261017T135337Z.json`; current-source strict acceptance must be rerun | Additional supported boards/forks require their own acceptance |
+| Evidence pack download; strict preflight CLI with independent integrity checks and engine replay; manual GitHub Actions integration (`docs/RELEASE_GATE.md`) | GitHub-hosted execution and production CI/OTA integration are not attested |
 
 ## Evaluation
 
-### One business result (measured)
+### One technical result (measured; not measured business savings)
 
 On the wolfBoot configuration, ReleaseProof found in **42 s** a migration blocker that a boot-only
 check would pass. The ML-DSA-87 candidate boots, yet deployed devices cannot reach it: there is no
@@ -232,7 +224,9 @@ SVD.
 
 The AI **cannot change a verdict**. Its outputs are labelled PROPOSAL and validated against a JSON
 schema. Every claim must cite an evidence ID that exists in the run, and the explanation must echo
-the engine's verdicts exactly, otherwise it is rejected. A **human** chooses whether to evaluate an
+the engine's verdicts exactly; explicit verdict-phase swaps in report prose are rejected. Chat is
+buffered before checking citation IDs and verdict phases. This is not semantic entailment of every
+sentence. A **human** chooses whether to evaluate an
 alternative, and that creates a new run while the parent stays unchanged. Alternatives that need
 external validation are refused (HTTP 422). Every result is marked "Non-official engineering
 assessment" and carries the engine version, canonical hash and manifest, so the reviewing engineer
@@ -240,11 +234,11 @@ can trace each claim to UART captures and artifacts.
 
 ## Links
 
-- Demo: `[[DEMO_URL]]`
+- Demo: https://d1yxcnwgdgjzt6.cloudfront.net (existing deployment; final hardening must be verified there)
 - Video: `[[VIDEO_URL]]`
-- Code: `[[GITHUB_URL]]` (MIT; third-party tools fetched at pinned commits, see `THIRD_PARTY_NOTICES.md`)
+- Code: https://github.com/francescocarpineti091299/release-proof (public/MIT; publish the reviewed final changes before submission; third-party tools retain their licenses)
 - Slides: `pitch/slides.pdf` · Cover: `pitch/cover.png`
-- Team: `[[TEAM]]`
+- Team: Francesco Carpineti (solo)
 
 ## Suggested gallery images (`pitch/assets/`)
 
@@ -264,10 +258,15 @@ can trace each claim to UART captures and artifacts.
 - European Commission, *CRA summary*: https://digital-strategy.ec.europa.eu/en/policies/cra-summary
 - Regulation (EU) 2024/2847 (CRA), Art. 64 penalties: https://eur-lex.europa.eu/eli/reg/2024/2847/oj
 - NIST IR 8547 ipd, Nov 2024: https://csrc.nist.gov/pubs/ir/8547/ipd
-- IoT Analytics, connected IoT devices, Oct 2025: https://iot-analytics.com/number-connected-iot-devices/
-- MarketsandMarkets, PQC market, Oct 2025: https://www.marketsandmarkets.com/Market-Reports/post-quantum-cryptography-market-126986626.html
-- Mordor Intelligence, secure boot & firmware security market, Jul 2025: https://www.mordorintelligence.com/industry-reports/secure-boot-and-firmware-security-market
-- ABI Research, PQC press release, 29 Apr 2025: https://www.abiresearch.com/press/new-algorithmic-standards-and-migration-policy-timelines-propel-post-quantum-cryptography-toward-billion-dollar-market-by-2030
+- Nordic / NI MON-10411: https://www.nordicsemi.com/Nordic-news/2019/09/National-Instruments-employs-nRF52840-to-wirelessly-transmit-asset-health-data
+- Nordic / Lynxemi: https://www.nordicsemi.com/Nordic-news/2020/04/Lynxemis-Bluetooth-5-2-Bluetooth-LE-sensor-employs-nRF52840
+- Nordic / Atomation: https://www.nordicsemi.com/Nordic-news/2023/06/Atomations-Atom-employs-nRF52840-SoC
 - ONEKEY, *PQC for connected devices*, Jul 2026: https://www.onekey.com/resource/post-quantum-cryptography-connected-devices
 - Binarly docs, CBOM / PQC report: https://docs.binarly.io/user-guides/export/pqc
+- Binarly PQC/reachability: https://www.binarly.io/news/binarly-expands-platform-to-enable-post-quantum-compliance-readiness
+- Finite State Product Security OS: https://finitestate.io/news/autonomous-product-security-os-launch
+- Memfault OTA: https://memfault.com/ota-firmware-updates/
+- Mender: https://mender.io/resources/reports-and-guides/ota-updates-best-practices
+- Foundries.io security: https://docs.foundries.io/91/reference-manual/security/security.html
+- Renode determinism: https://renode.io/news/fully-deterministic-linux-zephyr-micro-ros-testing-in-renode/
 - wolfBoot upstream CI: https://github.com/wolfSSL/wolfBoot/blob/master/.github/workflows/test-renode-nrf52.yml

@@ -1,0 +1,13 @@
+{
+  "exported_at": "2026-10-17T14:38:56.541Z",
+  "browser": "Chrome/155.0.8059.40",
+  "pages": 8,
+  "placeholders": false,
+  "overflow": [],
+  "sha256": {
+    "slides.html": "1b044b88828a601e31b00c82012f2f0bfae7f3311be2c8340d66da28eaec6b7b",
+    "slides.pdf": "200d5ae5ce07457b9419f28ea860e7bdcc0d03166e0a7803f28d4609ef4c2346",
+    "cover.html": "6193e1e0c5ecd1bdedd4d0e1347eaff8c6a6f21807548c8c337e2c043bec92f9",
+    "cover.png": "91c413452bf4736f50d845a57e4dc1aca72420b2c6d987de1fbe99ee7cdab822"
+  }
+}

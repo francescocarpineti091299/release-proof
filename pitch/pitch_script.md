@@ -1,47 +1,49 @@
 # ReleaseProof: live pitch talk track (< 5 min) + judge Q&A
 
-Deck: `pitch/slides.pdf` (10 slides). Target **4:40**, which leaves a 20 s buffer. Bracketed timings
+Deck: `pitch/slides.pdf` (8 slides). Target **4:25**, which leaves a 35 s buffer. Bracketed timings
 are cumulative. Speak slowly, because judges read the slides while you talk.
 
-> Placeholders in **[[…]]** must be replaced by measured values or the sentence dropped. **Never
-> say a number that is not on a slide or in `submission.md`.**
+> Introduce yourself with the actual team name. Technical counts refer to labelled historical
+> runs, not current-source acceptance. Economic inputs are hypothetical. Do not infer GPU identity,
+> cloud deployment, customer support or measured ROI from this script.
 
 ---
 
-## Slide 1 · Title · [0:00–0:25]
+## Slide 1 · Title · [0:00–0:20]
 
-"Hi, I'm `[[TEAM]]`. This is **ReleaseProof**.
+"This is **ReleaseProof**, a preflight check for industrial IoT firmware teams.
 
 One sentence to remember: **a firmware can boot and still be impossible to upgrade safely.**
 ReleaseProof checks the *migration path*, not just the new image. It uses real builds, real
 emulation and a deterministic verdict. The AMD-hosted AI plans and explains, but it never decides."
 
-## Slide 2 · Problem · [0:25–1:05]
+## Slide 2 · Industrial problem · [0:20–0:55]
 
-"Post-quantum is no longer a research topic for embedded teams. NSA's CNSA 2.0 wants firmware
-signing on quantum-resistant algorithms *exclusively* by 2030, and firmware signing has the earliest
-deadline in the whole suite. The EU Cyber Resilience Act fully applies in December 2027, and products
-must stay updatable. NIST's draft disallows ECDSA after 2035.
+"A factory may depend on wireless sensors for condition monitoring. An OEM can build a secure
+next-generation image and still discover that installed bootloaders cannot accept it. Physical
+intervention can mean rework and gaps in monitoring.
 
-Those deadlines hit fleets that last 10 to 20 years, with bootloaders that trust ECDSA keys burned in
-years ago.
+Nordic documents nRF52840 in industrial sensors from NI, Lynxemi and Atomation—the MCU family in
+our demo. We do not support their proprietary images or claim them as customers. Our first buyer
+is the firmware lead or product-security manager at a sensor manufacturer.
 
 On the right is what we measured. In the lab, the new ML-DSA-87 bootloader and image boot fine, so
 the test is green. In the field, the deployed ECDSA bootloader receives the ML-DSA update and
 answers *'Update type invalid'*, and version 1 keeps running. **Boots is not the same as migrates.**
-Finding that out after shipping means recalls or truck rolls."
+Finding that out before rollout lets the engineer reconsider the update path."
 
-## Slide 3 · Solution, live · [1:05–1:40]
+## Slide 3 · Solution · [0:55–1:35]
 
-"ReleaseProof turns that into a one-minute check. You pick a verified configuration, with every
+"ReleaseProof makes that a repeatable check. You pick a supported configuration, with every
 commit and toolchain pinned. You pick the change and click Run.
 
 It really executes. It builds both bootloaders, signs with ephemeral keys, boots and updates in
 Renode, and runs positive *and* negative tests. Every artifact gets a sha256 and every evidence row
-links to it. This run took 42 seconds. The candidate is compatible, the transition is incompatible.
+links to it. This historical build/emulation run took 42 seconds, with 8 of 8 tests executed and
+61 hashed artifacts. AI-enabled wall time is different. The candidate is compatible, the transition is incompatible.
 Those are two separate questions with two separate answers."
 
-## Slide 4 · Two configurations · [1:40–2:15]
+## Slide 4 · Two configurations · [1:35–2:00]
 
 "We support two configurations end to end, on the same Nordic nRF52840 chip.
 
@@ -56,7 +58,7 @@ The tests share bootloader-agnostic semantics, but each profile implements them 
 runners measure, and only the engine decides. A fact we didn't observe becomes UNKNOWN, never a
 pass."
 
-## Slide 5 · Agentic loop · [2:15–2:55]
+## Slide 5 · Agentic loop · [2:00–2:45]
 
 "Here's where the AI fits. The AMD-hosted model **plans**: it picks optional tests from a registered
 catalog, and it can't remove the required ones or invent new ones. The runner **executes**. The
@@ -67,52 +69,41 @@ A human picks one, and that creates a *new* run. For wolfBoot, re-flashing the b
 service window removes the blocker, but the result is **INDETERMINATE**, not compatible, because we
 never observed recovery from an interrupted update. That's an honest unknown.
 
-The guardrails: schema validation, a citation check, a verdict-echo check, an allow-listed AMD host
-with no fallback, and log text treated as untrusted."
+The guardrails check structured schemas, citation IDs and explicit verdict phases. Chat is buffered
+before validation. These checks do not prove the semantic truth of every sentence. Logs are untrusted
+data; the AI has no shell or authority to change the verdict."
 
-## Slide 6 · Architecture + AMD · [2:55–3:25]
+## Slide 6 · Architecture, AMD and limits · [2:45–3:25]
 
-"The deployment target is one AMD EPYC host on AWS c7a running everything under Docker Compose:
-the UI, API/orchestrator, two isolated runners with no internet egress, and the engine. The
-recorded inference configuration is AMD Token Factory with DeepSeek-V4-Flash; the specific
-managed GPU is undisclosed. Public AWS deployment must be verified separately.
-*(If measured:)* `[[AMD_MODEL]]` on `[[AMD_HARDWARE]]`, p50 `[[AMD_LATENCY_P50]]`,
-`[[AMD_SCHEMA_VALID_RATE]]` schema-valid.
-*(If not connected in the recording, say:)* the AMD endpoint was unavailable, so the runs you saw used the
-deterministic fallback. The panel shows that openly, and no other provider was ever called."
+"The recorded inference configuration is AMD Token Factory, DeepSeek-V4-Flash. The managed GPU
+is undisclosed. The smoke sample records 9 of 10 logical calls successful, with one outage—not a
+performance benchmark. The run's traces show what the AI actually did. If it is unavailable, we say
+so; the deterministic pipeline continues without another provider.
 
-## Slide 7 · Evidence & safeguards · [3:25–3:55]
+The app uses isolated runners and a deterministic engine. AWS c7a on AMD EPYC is a deployment
+target, not an attested cloud deployment. This is emulation, not silicon; power-loss recovery stays
+unknown. A runner crash produces FAILED, not a firmware verdict."
 
-"Four honest facts. **Result:** a blocker that boot-only testing misses, found in 42 seconds with
-21 cited evidence items and 61 hashed artifacts. **Failure case:** when a runner dies mid-run, the run
-is FAILED and there's no verdict. Our own gate also caught a Renode file download on the offline
-network and refused to fake the result. **Limitation:** this is emulation, not silicon, with no
-power-loss model yet, so we report UNKNOWN instead of guessing. **Safeguard:** the AI never changes
-a verdict, and an engineer chooses and signs off."
+## Slide 7 · Buyer, economics and packaging · [3:25–4:00]
 
-## Slide 8 · Market + business model · [3:55–4:20]
+"For a sensor OEM, a hypothetical fleet of 5,000 devices, with 5 percent requiring physical
+intervention at 250 euros each, represents 62,500 euros of exposure. Every input is hypothetical;
+this is not measured savings or a customer incident.
 
-"Analysts put PQC at about $2.8 billion by 2030 and secure boot and firmware security at about
-$4.4 billion. The first wave of PQC spending is assessment and planning, which is exactly what we
-do. CRA fines go up to 15 million euros or 2.5% of turnover.
+Start with one technical pilot on a specific board, bootloader and change. Proposed packaging is
+paid custom-profile onboarding, then a profile subscription and assessment volume—not a per-device
+service. The portable evidence pack and strict CI preflight CLI are implemented; production CI,
+pricing and willingness to pay still need validation."
 
-We'd charge per device-configuration profile, per assessment or as a CI gate, plus onboarding for
-custom boards. We go to market through the integrators who already sell PQC readiness work.
-Pricing is a hypothesis we'll validate with design partners, and we claim no ROI numbers today."
+## Slide 8 · Landscape, roadmap and ask · [4:00–4:25]
 
-## Slide 9 · Competition · [4:20–4:35]
+"Inventory scanners help find what changes. OTA platforms deliver it. Finite State is an adjacent
+competitor with evidence-linked release gates, so we do not claim to be the only one. Our focused
+question is whether the deployed bootloader can reach the candidate state on a supported profile.
 
-"Binarly and ONEKEY inventory the crypto in your binaries. Memfault, Mender and Golioth ship the
-update. wolfBoot's own CI tests each algorithm on its own. Nobody executes the *deployed-to-candidate
-transition* and gives a deterministic verdict on it. We're complementary: a CBOM tells you what to
-migrate, and we tell you whether you can get there."
-
-## Slide 10 · Roadmap + ask · [4:35–4:50]
-
-"Next: the live AMD benchmark, the public EPYC deployment, power-fail tests and more boards. We're
-looking for design partners with ECDSA-signed fleets.
-**A firmware can boot and still be impossible to upgrade safely, and ReleaseProof tells you which
-one you have before you ship.** Thank you."
+Next validation: real hardware and interrupted updates, then new profiles and OTA integrations.
+We are looking for industrial sensor design partners. Don't ask only whether your firmware works.
+Ask whether deployed devices can get there—before rollout. Thank you."
 
 ---
 
@@ -121,7 +112,7 @@ one you have before you ship.** Thank you."
 **1. "Isn't this just wolfBoot's CI?"**
 No. wolfBoot's upstream CI (`test-renode-nrf52.yml`) builds and boots *each* signing algorithm on its
 own and tests a same-scheme v1→v2 update. That is exactly the check that comes back green here.
-ReleaseProof adds what CI doesn't do: the cross-generation test (deployed ECDSA bootloader + ML-DSA
+ReleaseProof adds the explicit cross-generation assessment (deployed ECDSA bootloader + ML-DSA
 update), the bootloader field-update capability, negative tests, and a deterministic verdict that
 separates candidate from transition. It also does this for a second, unrelated bootloader family
 (MCUboot/Zephyr) with the same engine.
@@ -147,10 +138,12 @@ fallback provider.
 **4. "What if the LLM hallucinates?"**
 It can't change the outcome. The verdict comes from the deterministic engine before the explainer
 runs. The explainer must echo the engine's verdicts exactly, and every statement must cite an
-evidence ID that exists in this run. Otherwise the output is rejected (one repair retry, then
+evidence ID that exists in this run. Otherwise the output is rejected (one repair retry for structured reports, then
 `REJECTED`). The planner can only choose from registered templates, and unknown ones are blocked and
 shown. Alternatives come only from the profile's allowed list. Log text is wrapped as untrusted data
-against prompt injection. The worst case is a missing explanation, never a wrong verdict.
+against prompt injection. Chat is buffered and checked before release. Citation existence and
+explicit verdict-phase checks are not semantic entailment of every claim; human review remains
+necessary. The persisted engine verdict is independent of the explanation.
 
 **5. "What's the business model?"**
 A recurring subscription per configuration profile (device + bootloader + toolchain, kept pinned and
@@ -167,9 +160,9 @@ was still in review. The transition problem (can the deployed bootloader get the
 whichever PQC scheme you pick.
 
 **7. "Can I trust a verdict from an emulator?"**
-For the questions we ask, yes. "Does this bootloader reject this image?" and "does a self-update
-path exist?" depend on code and layout, not on analogue behaviour, and we observe them from the real
-binaries. For timing and power-loss behaviour, no, and we say so: those facts are UNKNOWN, which is
+Only within its observed scope. Image rejection is observed by executing real binaries on the
+emulated configuration; field-update capability also uses source/configuration inspection.
+Neither guarantees equivalent silicon behavior. Timing and power-loss facts are UNKNOWN, which is
 why the re-flash alternative is INDETERMINATE and not COMPATIBLE. A hardware-in-the-loop runner is on
 the roadmap.
 
@@ -199,7 +192,15 @@ model. The traces are on the AMD AI tab for each run." If not: "nothing. The end
 connected, the UI shows `AI_UNAVAILABLE`, and the deterministic fallback ran every registered test.
 That is the designed degradation, and no other provider was called."
 
-**Bonus 12. "Is this a compliance certification?"**
+**Bonus 12. "Is this a compliance certification or a regulatory PQC mandate?"**
 No. Every result is labelled "Non-official engineering assessment". It gives engineers and auditors
 traceable evidence (manifest, hashes, UART captures) to support CRA technical documentation, but the
-compliance decision stays with the manufacturer and, where required, a notified body.
+compliance decision stays with the manufacturer and, where required, a notified body. The CRA does
+not generally mandate ML-DSA or a universal PQC retrofit. CNSA 2.0 targets US National Security
+Systems, not every industrial OEM; NIST IR 8547 is an initial public draft, not binding law.
+
+**Bonus 13. "Can I gate a release today?"**
+There is a strict CLI and a manual GitHub Actions integration for an existing trusted run. They
+verify the pack and replay the engine; only complete COMPATIBLE candidate/transition/migration
+verdicts pass. Both current demo profiles correctly block. No GitHub-hosted execution or production
+OTA integration is attested. See `docs/RELEASE_GATE.md`.

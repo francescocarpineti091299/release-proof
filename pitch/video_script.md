@@ -1,4 +1,7 @@
-# ReleaseProof: demo video script (≤ 3:00) + 60-second backup
+# ReleaseProof: demo video script (team target ≤ 3:00) + 60-second backup
+
+The three-minute target is our editing choice, not an ACT III rule. Standard guidance recommends
+under five minutes and MP4/MOV up to 300 MB; verify the authenticated event form before uploading.
 
 **Goal:** an *authentic* screen recording of the running app. It shows two real LIVE runs, an
 alternative re-evaluated as a new run, and the AMD AI panel. Nothing is mocked or animated. Every
@@ -10,8 +13,8 @@ cut and speed-up is labelled on screen.
 
 | # | Check | Why |
 |---|---|---|
-| 1 | Stack up: `docker compose -f docker-compose.yml -f docker-compose.dev.yml up -d` (or the public `[[DEMO_URL]]`). Do one warm-up run per profile first (ccache, page caches) | First runs are slower |
-| 2 | AMD endpoint configured (`AMD_LLM_*` in `.env`). Open `/amd` and check that the provider/model show `[[AMD_MODEL]]` on `[[AMD_HARDWARE]]` and that OK calls exist | The AI plan card, the explanation and the AMD panel should show real AMD calls |
+| 1 | Stack up: `docker compose -f docker-compose.yml -f docker-compose.dev.yml up -d` (or https://d1yxcnwgdgjzt6.cloudfront.net after verifying the frozen release). Do one warm-up run per profile first | First runs are slower |
+| 2 | AMD endpoint configured (`AMD_LLM_*` in `.env`). Verify planner/explainer/alternatives OK traces belong to the runs shown. Provider labels are not GPU attestation | Global OK calls alone do not prove this run used AMD planning |
 | 3 | If the AMD endpoint is **not** connected at recording time, use the lines marked **[NO-AMD]** and never pretend otherwise | The UI shows `AI_UNAVAILABLE`, and the video must match |
 | 4 | Browser: Chrome, 1920×1080 window, zoom 110%, bookmarks bar hidden, dark OS theme, notifications off | Readability |
 | 5 | Recorder: OBS 1080p30, system audio off, separate mic track. Note the **wall-clock time** at each "Run assessment" click | For overlays |
@@ -23,7 +26,7 @@ Cuts show a 0.5 s badge `✂ <n> s of run time cut`. If this video is used as th
 demo, add a permanent top-right badge `RECORDED DEMO`.
 
 Run IDs to overlay (fill in after recording): `[[RUN_ID_WOLFBOOT]]`, `[[RUN_ID_REEVAL]]`,
-`[[RUN_ID_MCUBOOT]]`. Reference runs already recorded on 17 Oct 2026 can be used as B-roll:
+`[[RUN_ID_MCUBOOT]]`. Historical LIVE runs recorded on 17 Oct 2026 can be used as labelled B-roll:
 `RP-20261017T124806Z-a39610` (wolfBoot), `RP-20261017T124931Z-72d0b1` (re-evaluation),
 `RP-20261017T124230Z-7682fc` (MCUboot), `RP-20261017T124942Z-23dd8f` (failed run).
 
@@ -34,16 +37,16 @@ Run IDs to overlay (fill in after recording): `[[RUN_ID_WOLFBOOT]]`, `[[RUN_ID_R
 ### Shot 1 · 0:00–0:12 · Hook (home page hero)
 - **Screen:** `/` hero, "A firmware can boot and still be impossible to upgrade safely." Slow
   2% zoom-in.
-- **Say:** "Post-quantum deadlines are coming for firmware signing: CNSA 2.0 by 2030, and the EU
-  Cyber Resilience Act from December 2027. But a firmware can boot and still be impossible to
-  upgrade safely. ReleaseProof checks the migration path, not just the new image."
+- **Say:** "Industrial sensors must remain updatable after installation. But a firmware can boot
+  and still be impossible to upgrade safely. ReleaseProof checks the migration path before rollout,
+  not just the new image."
 
 ### Shot 2 · 0:12–0:28 · Pick configuration and change
 - **Click:** wolfBoot card → **Select →**. Then the change row **"Migrate firmware signatures from
   ECDSA P-256 to ML-DSA-87"**. The *Review the planned checks* step appears.
-- **Hover** briefly over **Always run (6)** and **AI may add (2)**.
-- **Say:** "I pick a verified configuration: Nordic nRF52840 with wolfBoot, every commit and
-  toolchain pinned. The change is ECDSA P-256 to ML-DSA-87. Six checks always run. The AMD-hosted
+- **Hover** briefly over **Always run (7)** and **AI may add (1)**.
+- **Say:** "I pick a supported configuration: Nordic nRF52840 with wolfBoot, every commit and
+  toolchain pinned. The change is ECDSA P-256 to ML-DSA-87. Seven checks always run. The AMD-hosted
   planner can only add checks from this registered list. It cannot invent tests."
 
 ### Shot 3 · 0:28–0:36 · Start the LIVE run
@@ -56,7 +59,8 @@ Run IDs to overlay (fill in after recording): `[[RUN_ID_WOLFBOOT]]`, `[[RUN_ID_R
   Running emulator tests*. The first 8 s run in real time, the rest at **⏩ ×4** (badge).
 - **Point at** the AI verification plan card.
 - **Say (AMD connected):** "The AI plan comes from `[[AMD_MODEL]]` on the configured AMD-hosted endpoint. It ordered the
-  optional checks and explained why. Now the runner builds both bootloaders, signs the images with
+   registered checks and explained its selections or skips. Required tests cannot be removed.
+   Now the runner builds both bootloaders, signs the images with
   fresh keys and boots them in Renode, including the negative tests: a tampered image, and the
   deployed bootloader receiving the new ML-DSA update."
 - **Say [NO-AMD]:** "The AMD endpoint isn't connected in this recording, so the planner reports
@@ -102,23 +106,23 @@ Run IDs to overlay (fill in after recording): `[[RUN_ID_WOLFBOOT]]`, `[[RUN_ID_R
   same engine."
 
 ### Shot 8 · 2:25–2:45 · AMD panel
-- **Click:** top nav **AMD AI**. Show the *Provider*, *Hardware* `[[AMD_HARDWARE]]`, *AI calls*,
-  *Latency (OK calls)* `[[AMD_LATENCY_P50]]` and *Fallback provider: None* tiles, then *Models per
-  module*.
+- **Click:** the run's **AMD AI** tab. Show planner, explainer and alternatives traces, with their
+  run ID, request IDs, model, latency and status. Then show `/amd` and *Fallback provider: None*.
+  Hardware labels are declarations; do not turn dashboard latency aggregates into a benchmark.
 - *(Optional, if time allows: on the wolfBoot run click **Ask about this run** and ask "Why is the
   transition incompatible?". Show the cited answer for 4 s.)*
-- **Say (AMD connected):** "Every AI step runs on one AMD-hosted endpoint: `[[AMD_MODEL]]` on
-  `[[AMD_HARDWARE]]`, with a p50 latency of `[[AMD_LATENCY_P50]]` and `[[AMD_SCHEMA_VALID_RATE]]`
-  schema-valid outputs. There is no fallback provider, and outputs that cite missing evidence or
-  contradict the verdict are rejected."
+- **Say (AMD connected, only after checking these traces):** "These planning and explanation calls
+  belong to this run and went to the configured AMD-hosted endpoint. There is no fallback provider.
+  Citation IDs and explicit verdict phases are checked before display; that is not proof of every
+  sentence. The deterministic engine is independent of the model."
 - **Say [NO-AMD]:** "Every AI step is wired to one AMD-hosted endpoint, with no fallback provider.
   It's not connected in this recording, and the panel says so."
 
 ### Shot 9 · 2:45–2:58 · Safety + close
 - **Screen:** 2 s on the failed run `RP-20261017T124942Z-23dd8f`: "Run failed: no verdict issued ·
-  TOOL_FAILURE". Then the end card (`cover.png` + `[[DEMO_URL]]` + `[[GITHUB_URL]]`).
-- **Say:** "If a tool fails, there's no verdict. We never fake a result. ReleaseProof: know whether
-  your fleet can actually get there, before you ship."
+  TOOL_FAILURE". Then the end card (`cover.png` + https://d1yxcnwgdgjzt6.cloudfront.net + https://github.com/francescocarpineti091299/release-proof).
+- **Say:** "If the runner fails, there's no verdict. Emulation is not silicon, and interrupted-update
+  recovery remains unknown. ReleaseProof: check whether the supported migration path works before rollout."
 
 **Total ≈ 2:58.** If you run long, cut the optional assistant in Shot 8 first, then shorten Shot 4.
 
@@ -135,7 +139,7 @@ Use the already-recorded runs (overlay their real IDs). Recording date: 17 Oct 2
 | 0:18–0:32 | Decision of `RP-20261017T124806Z-a39610` → X01 row | "The ML-DSA candidate boots, but the deployed bootloader rejects the update and can't replace itself. Transition incompatible, decided by a deterministic engine with linked evidence." |
 | 0:32–0:42 | **Evaluate this plan** → `RP-20261017T124931Z-72d0b1` INDETERMINATE | "The AI proposes a field re-flash, a human evaluates it as a new run, and the result is indeterminate: an honest unknown, not a pass." |
 | 0:42–0:52 | MCUboot `RP-20261017T124230Z-7682fc` → imgtool refusal | "On MCUboot the pinned tool refuses ML-DSA, measured live. A different failure caught by the same engine." |
-| 0:52–1:00 | `/amd` panel → end card | "AI runs on AMD-hosted inference, with no fallback, and it never decides. `[[DEMO_URL]]`." |
+| 0:52–1:00 | `/amd` panel → end card | "AI runs on AMD-hosted inference, with no fallback, and it never decides. Demo: d1yxcnwgdgjzt6.cloudfront.net." |
 
 ---
 

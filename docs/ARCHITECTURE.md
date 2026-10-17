@@ -5,7 +5,7 @@ flowchart LR
   subgraph Browser
     UI[Next.js UI<br/>wizard · live run · evidence · alternatives]
   end
-  subgraph HOST[Compose host — local or target AWS EC2 c7a]
+  subgraph HOST[Compose host — local or AWS EC2 c7a.2xlarge]
     C[Caddy TLS] --> UI2[web :3000]
     C --> API[FastAPI :8000<br/>orchestrator · SQLite · artifacts]
     API -->|NDJSON /execute| RW[runner-wolfboot<br/>wolfBoot · Arm GCC · Renode]
@@ -13,7 +13,7 @@ flowchart LR
     API --> AD[Assessment adapters] --> ENG[V1.2 semantic engine<br/>validate · evaluate · canonical hash]
   end
    API -->|OpenAI-compatible, allow-listed host| AMD[(Configured AMD-hosted LLM<br/>Token Factory or dedicated endpoint)]
-  UI --> C
+   UI --> CF[CloudFront HTTPS<br/>public demo; no response caching] --> C
 ```
 
 ## Responsibilities
@@ -42,13 +42,30 @@ flowchart LR
 
 ## Trust boundaries
 
+The bullets below describe the hardened repository configuration. The existing AWS demo
+still runs older images: it is anonymous, lacks the new API quotas and has root runners
+mounting the full data volume. See the independently checked
+[`INFRA_AUDIT_2026-10-17.md`](INFRA_AUDIT_2026-10-17.md) for deployed controls and outstanding drift.
+
 - LLM output is untrusted: JSON-schema validation, allow-lists, citation checks, verdict echo check.
 - Tool output (logs/UART) passed to the LLM is wrapped as untrusted data (prompt-injection defense).
 - Runner network is `internal`; secrets only in the API container.
 - The endpoint allow-list is an operator configuration, not GPU attestation. The managed
   Token Factory smoke records an undisclosed GPU; MI300X is a separate self-hosted option.
-- The current API has no authentication/authorization or tenant boundary. An authenticated
-  gateway is required for an untrusted/public deployment; Caddy TLS does not supply that boundary.
+- The owner requires anonymous public judging: the UI/API have no login or password gate.
+  HTTPS, active-job and POST request limits remain enabled. There is no customer/tenant boundary:
+  only pinned open fixtures are accepted. Anonymous access is intentional, not customer authorization.
+- Azure uses Front Door HTTPS with caching disabled, HTTPS origin certificate validation and a
+  scoped backend NSG. Origin admission checks `X-Azure-FDID` inside an ordered Caddy route;
+  the proxy supplies this header, not the browser. Judges need no token or Azure account.
+- Runners run as UID 10001 with all capabilities dropped. They mount only the `runs/` volume
+  subpath, never SQLite. They still share a trusted artifact namespace; this is not a hostile
+  multi-tenant sandbox or a general uploaded-firmware service.
+- New manifests record LF-normalized source fingerprints for backend, core, adapters and runner
+  code/assets. Historical results keep their original hashes and implementation limitations.
+- Assistant text is buffered through upstream completion and validated for citation IDs and
+  phase-specific verdict labels before any generated text is shown. This is not a formal proof
+  of natural-language entailment; human engineering review remains necessary.
 - Run one API process/worker per data volume. Runner slot coordination and restart recovery are
   process-local; multiple uvicorn workers or API replicas are not supported on the same SQLite store.
 - Graceful shutdown drains active runner/AI operations before closing SQLite. It can take as long
@@ -60,5 +77,12 @@ flowchart LR
 - The AI gateway rejects credential-bearing/query/fragment endpoint URLs, malformed responses,
   and streams lacking the terminal OpenAI-compatible `[DONE]` marker. SSE cursors must fit a
   non-negative signed 64-bit SQLite integer; invalid `after` query values return HTTP 422.
-- Recorded acceptance reports verify local runs, not cloud deployment status. See
-  [`CODE_AUDIT.md`](CODE_AUDIT.md) for offline verification and remaining limitations.
+- The public viewer URL is `https://d1yxcnwgdgjzt6.cloudfront.net`. CloudFront connects to
+  Caddy over HTTPS using the origin Host/SNI; it forwards viewer headers except Host and
+  disables caching for API results, SSE and UI. Local development bypasses CloudFront.
+- Origin HTTPS ingress uses AWS's CloudFront origin-facing prefix list; HTTP/80 remains for
+  ACME HTTP-01, and SSH remains operator-only. Shared prefix-list admission is not viewer
+  authentication or a per-distribution origin secret.
+- Local acceptance alone does not establish cloud deployment/source identity. See
+  [`CODE_AUDIT.md`](CODE_AUDIT.md) for historical offline verification and the separate
+  [`INFRA_AUDIT_2026-10-17.md`](INFRA_AUDIT_2026-10-17.md) for actual cloud/transport checks.

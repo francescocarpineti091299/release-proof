@@ -18,3 +18,9 @@ repository: runner images fetch it at pinned commits at build time. See `THIRD_P
 Synthetic AI/assessment helpers were moved out of the shipped runtime package into
 `backend/tests/`; the browser mock client was removed. These cleanup changes do not turn
 reference fixtures into live evidence or alter the origin of the pre-existing core.
+
+Submission hardening adds explicit signer-error classification, buffered chat validation,
+non-root artifact-only runner mounts, bounded demo requests/jobs, anonymous HTTPS judging access,
+source fingerprints and stricter acceptance. These wrappers/controls were added during ACT III;
+they do not turn the pre-existing semantic contract into newly authored work. See
+`docs/HACKATHON_READINESS.md` and the dated compliance audit for remaining external gates.

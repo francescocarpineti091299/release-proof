@@ -1,0 +1,15 @@
+{
+  "title": "ReleaseProof: Firmware Migration Assurance",
+  "track": "Intelligent Industry",
+  "short_description": "ReleaseProof checks whether deployed devices can actually migrate to post-quantum firmware signatures. It uses real builds, Renode emulation and a deterministic verdict. AMD-hosted AI plans and explains but never decides.",
+  "long_description": "Firmware teams need to know whether deployed industrial and IoT devices can reach a new security configuration, not merely whether a new image boots. Changing signature algorithms can leave a working candidate that the deployed bootloader cannot accept.\n\nReleaseProof connects AMD-hosted AI, real firmware builds and Renode emulation to a deterministic migration-assurance engine. Engineers choose a pinned device/bootloader profile and a guided change. The AMD Token Factory planner selects registered tests; mandatory checks cannot be removed. Isolated runners build, sign with ephemeral keys and execute positive and negative tests. Evidence is linked to logs, source pins and SHA-256 artifacts. The engine, never the LLM, produces separate candidate, transition and migration verdicts.\n\nTwo nRF52840 configurations demonstrate different blockers. With wolfBoot, the ML-DSA-87 candidate boots, but the deployed ECDSA bootloader rejects the update and cannot self-update on this port. With MCUboot/Zephyr, the pinned imgtool explicitly refuses ML-DSA key types; tampered and wrong-key updates are rejected in emulation.\n\nAMD AI explains findings with checked citations and proposes allowed alternatives. Human selection creates a new assessment without rewriting the parent. AI outages are explicit, with no external-provider fallback; deterministic tests can still run. The submission gate requires successful AMD planning and reporting, not just any successful AI call.\n\nThis is an engineering demo, not certification or proof on silicon. Interrupted-update recovery remains UNKNOWN. ReleaseProof complements inventory scanners and OTA platforms by answering the question between them: can this migration proceed as planned?",
+  "technology_tags": ["AMD Token Factory", "ML-DSA", "firmware", "Renode", "wolfBoot", "MCUboot", "FastAPI", "Next.js"],
+  "demo_url": "https://d1yxcnwgdgjzt6.cloudfront.net",
+  "github_url": "https://github.com/francescocarpineti091299/release-proof",
+  "video_url": "",
+  "team_members": ["Francesco Carpineti"],
+  "rights_and_prior_work_confirmed": true,
+  "registrations_confirmed": true,
+  "judge_access_verified": false,
+  "video_and_pdf_verified": false
+}

@@ -1,0 +1,138 @@
+{
+  "format": "releaseproof.deployment-evidence/1",
+  "generated_at": "2026-10-17T15:15:44.383792+00:00",
+  "containers": [
+    {
+      "name": "/releaseproof-api-1",
+      "image_id": "sha256:e9fab4bccf874d7d04725c5d4dfc3bf27b993a5cdc5890ec6ec0d445ee69b0f7",
+      "image_reference": "releaseproof/api:0.1.0",
+      "user": "rp",
+      "privileged": false,
+      "cap_drop": null,
+      "mounts": [
+        {
+          "target": "/data",
+          "type": "volume",
+          "volume": "releaseproof_rpdata",
+          "writable": true,
+          "subpath": null
+        }
+      ],
+      "networks": [
+        "releaseproof_edge",
+        "releaseproof_runners"
+      ]
+    },
+    {
+      "name": "/releaseproof-web-1",
+      "image_id": "sha256:b7d459d35863adf1fd1bd94e108ccbbb37cd9f36c43ccb2edddf9dfaa10246a5",
+      "image_reference": "releaseproof/web:0.1.0",
+      "user": "nextjs",
+      "privileged": false,
+      "cap_drop": null,
+      "mounts": [],
+      "networks": [
+        "releaseproof_edge"
+      ]
+    },
+    {
+      "name": "/releaseproof-runner-wolfboot-1",
+      "image_id": "sha256:4dde171313ca1ab11174f6b4318f34c5a63884daed4a989a992047c83dc48a8c",
+      "image_reference": "releaseproof/runner-wolfboot:0.1.0",
+      "user": "rp",
+      "privileged": false,
+      "cap_drop": [
+        "ALL"
+      ],
+      "mounts": [
+        {
+          "target": "/data/runs",
+          "type": "volume",
+          "volume": "releaseproof_rpdata",
+          "writable": true,
+          "subpath": "runs"
+        }
+      ],
+      "networks": [
+        "releaseproof_runners"
+      ]
+    },
+    {
+      "name": "/releaseproof-runner-mcuboot-1",
+      "image_id": "sha256:084805a68e23ba0a64d700c57d6d1fcb63b8eb384df0e4c85a811b2f6539581a",
+      "image_reference": "releaseproof/runner-mcuboot:0.1.0",
+      "user": "rp",
+      "privileged": false,
+      "cap_drop": [
+        "ALL"
+      ],
+      "mounts": [
+        {
+          "target": "/data/runs",
+          "type": "volume",
+          "volume": "releaseproof_rpdata",
+          "writable": true,
+          "subpath": "runs"
+        }
+      ],
+      "networks": [
+        "releaseproof_runners"
+      ]
+    },
+    {
+      "name": "/releaseproof-caddy-1",
+      "image_id": "sha256:af32e97399febea808609119bb21544d0265c58a02836576e32a2d082c262c17",
+      "image_reference": "caddy:2.8-alpine",
+      "user": "",
+      "privileged": false,
+      "cap_drop": null,
+      "mounts": [
+        {
+          "target": "/etc/caddy/Caddyfile",
+          "type": "bind",
+          "volume": null,
+          "writable": false,
+          "subpath": null
+        },
+        {
+          "target": "/etc/caddy/access.caddy",
+          "type": "bind",
+          "volume": null,
+          "writable": false,
+          "subpath": null
+        },
+        {
+          "target": "/data",
+          "type": "volume",
+          "volume": "releaseproof_caddy_data",
+          "writable": true,
+          "subpath": null
+        },
+        {
+          "target": "/config",
+          "type": "volume",
+          "volume": "releaseproof_caddy_config",
+          "writable": true,
+          "subpath": null
+        }
+      ],
+      "networks": [
+        "releaseproof_edge"
+      ]
+    }
+  ],
+  "implementation": {
+    "backend_sha256": "6f2e6adac018dd9fb29cf8bd84791a738ab9a6837980d7e21620b71b695d1679",
+    "engine_sha256": "4b813703be958deb3ae717b905f1c7e5dfd18561ecd8921b8cb081d523ef2dcc",
+    "adapters_sha256": "6c5b0068e9c898186387bde2622c01e14fcab400404a5d40e1ba6a94eefa779c",
+    "contract_version": "1.2",
+    "identity_algorithm": "sorted-python-path-lf-sha256/1"
+  },
+  "source_matches_worktree": {
+    "backend": true,
+    "wolfboot": true,
+    "mcuboot": true
+  },
+  "runner_network_internal": true,
+  "scope": "local Compose deployment, not public-cloud/hardware attestation"
+}
