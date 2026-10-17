@@ -52,7 +52,7 @@ def test_env_file_preserves_exported_settings_and_literal_key(no_amd_env, monkey
     monkeypatch.delenv("AMD_LLM_PROVIDER_LABEL", raising=False)
     path = tmp_path / ".env"
     path.write_text(
-        "AMD_LLM_MODEL=DeepSeek-V4-Flash\n"
+        "AMD_LLM_MODEL=Gemma-4-31B-IT\n"
         "AMD_LLM_API_KEY=rc-${LITERAL}\n"
         'AMD_LLM_PROVIDER_LABEL="AMD Token Factory"\n',
         encoding="utf-8-sig",

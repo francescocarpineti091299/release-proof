@@ -55,9 +55,8 @@ mounting the full data volume. See the independently checked
 - The owner requires anonymous public judging: the UI/API have no login or password gate.
   HTTPS, active-job and POST request limits remain enabled. There is no customer/tenant boundary:
   only pinned open fixtures are accepted. Anonymous access is intentional, not customer authorization.
-- Azure uses Front Door HTTPS with caching disabled, HTTPS origin certificate validation and a
-  scoped backend NSG. Origin admission checks `X-Azure-FDID` inside an ordered Caddy route;
-  the proxy supplies this header, not the browser. Judges need no token or Azure account.
+- The final target is AWS only, behind CloudFront; the abandoned Azure scaffolding was removed.
+  Judges need no token, password or cloud account.
 - Runners run as UID 10001 with all capabilities dropped. They mount only the `runs/` volume
   subpath, never SQLite. They still share a trusted artifact namespace; this is not a hostile
   multi-tenant sandbox or a general uploaded-firmware service.

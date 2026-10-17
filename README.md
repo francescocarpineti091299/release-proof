@@ -95,8 +95,12 @@ Browser ─► CloudFront (public demo) ─► Caddy ─┬─► web (Next.js)
   an operator-configured AMD-hosted endpoint. Provider and hardware labels come from `AMD_LLM_*`
   settings; hardware labels are declarations, not remote hardware attestation. Calls are traced
   per run (model, endpoint host, request id, latency, tokens, status) and shown in the UI (`/amd`).
-  Recorded smoke: [`docs/AMD_SMOKE_TOKEN_FACTORY.json`](docs/AMD_SMOKE_TOKEN_FACTORY.json)
-  (9/10 logical calls OK, one upstream outage). `scripts/amd_benchmark.py` generates
+  Recorded smoke (previous default `DeepSeek-V4-Flash`):
+  [`docs/AMD_SMOKE_TOKEN_FACTORY.json`](docs/AMD_SMOKE_TOKEN_FACTORY.json)
+  (9/10 logical calls OK, one upstream outage). The current default is **`Gemma-4-31B-IT`**
+  (Google Gemma on AMD Token Factory); its 2-iteration comparison run is in
+  [`docs/AMD_BENCHMARK_PRIOR_20261017T133903Z.json`](docs/AMD_BENCHMARK_PRIOR_20261017T133903Z.json).
+  `scripts/amd_benchmark.py` generates
    `docs/AMD_BENCHMARK.json` for schema validity, citation fidelity and injection checks.
    The retained small sample includes upstream outages and unmeasurable metrics; it is not
    a claim of complete reliability or of injection resistance when an adversarial call timed out.
@@ -119,7 +123,7 @@ open http://localhost:8080      # UI; API on http://localhost:8000/api
 python scripts/acceptance.py --base http://localhost:8000 --require-ai --env-file .env
 ```
 
-`.env.example` is preconfigured for **AMD Token Factory**, model `DeepSeek-V4-Flash`.
+`.env.example` is preconfigured for **AMD Token Factory**, model `Gemma-4-31B-IT`.
 Set only `AMD_LLM_API_KEY` to get started; the key stays server-side. For other available
 models, per-module overrides and inference checks, see [`deploy/amd/README.md`](deploy/amd/README.md).
 Compose streams structured AMD responses (`AMD_LLM_STRUCTURED_STREAM=1`) to avoid idle
@@ -163,7 +167,8 @@ override with `docker-compose.dev.yml`. The API bounds active jobs and POST requ
 pinned open-source fixtures are accepted. Operator Azure/SSH credentials are never given to judges.
 
 AWS deploy: [`deploy/aws/README.md`](deploy/aws/README.md) (`provision.sh` → `deploy.sh`).
-Azure deployment: [`deploy/azure/README.md`](deploy/azure/README.md) (dedicated AMD VM + Front Door).
+Deployment target: **AWS only**, following the owner's final instruction. The superseded Azure
+attempt is retained only as an incident record in [`docs/AZURE_RELEASE_2026-10-17.md`](docs/AZURE_RELEASE_2026-10-17.md).
 Public viewer/CloudFront operations: [`deploy/aws/CLOUDFRONT_DEMO.md`](deploy/aws/CLOUDFRONT_DEMO.md).
 The live AWS runtime has not yet been rebuilt with all repository hardening changes;
 the public override instructions above describe the intended configuration, not its current state.

@@ -12,6 +12,9 @@
 - AMD Token Factory inference was exercised with `DeepSeek-V4-Flash`:
   `docs/AMD_SMOKE_TOKEN_FACTORY.json` records 9/10 logical calls OK and one outage. The managed
   GPU is undisclosed. A completed `docs/AMD_BENCHMARK.json` is not retained yet.
+- Default model switched to `Gemma-4-31B-IT` (Google/Gemma award). Its only retained evidence
+  is the 2-iteration comparison in `docs/AMD_BENCHMARK_PRIOR_20261017T133903Z.json`
+  (12 OK / 2 timeout traces); a Gemma smoke and AMD-required acceptance must be re-run.
 - Browser mock mode and runtime synthetic helpers have been removed; test-only helpers remain
   under `backend/tests/`. See `docs/MOCK_AUDIT.md`.
 - AWS demo is deployed on EC2 `c7a.2xlarge` behind CloudFront:

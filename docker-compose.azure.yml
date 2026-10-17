@@ -1,7 +1,0 @@
-# Apply after docker-compose.public.yml. The origin guard is not viewer login.
-services:
-  caddy:
-    environment:
-      AZURE_FRONT_DOOR_ID: ${AZURE_FRONT_DOOR_ID:?Set the provisioned Front Door profile ID}
-    volumes:
-      - ./deploy/azure/Caddyfile:/etc/caddy/Caddyfile:ro

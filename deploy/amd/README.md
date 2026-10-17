@@ -10,7 +10,7 @@ deterministic pipeline continues without them.
 ```bash
 AMD_LLM_BASE_URL=https://developer.amd.com.cn/radeon/api/v1   # from the model card
 AMD_LLM_API_KEY=<copy the exact key from Token Factory>    # server side only
-AMD_LLM_MODEL=DeepSeek-V4-Flash
+AMD_LLM_MODEL=Gemma-4-31B-IT
 AMD_LLM_ALLOWED_HOSTS=developer.amd.com.cn
 AMD_LLM_PROVIDER_LABEL="AMD Token Factory"
 AMD_LLM_HARDWARE_LABEL="AMD-hosted (GPU not disclosed)"
@@ -48,8 +48,11 @@ IDs and capabilities were checked against `GET /models` on 2026-10-17; availabil
 ReleaseProof currently sends **text only**, even when the selected model supports images.
 The existing context budget remains bounded; a large model window does not send more data.
 
-`DeepSeek-V4-Flash` is the default because it answers directly when reasoning is omitted.
-For Qwen/GLM, the shared API may enable long reasoning by default. Use
+`Gemma-4-31B-IT` (Google Gemma served on AMD) is the default, for the Google/Gemma partner
+award. In the 2-iteration Token Factory comparison
+(`docs/AMD_BENCHMARK_PRIOR_20261017T133903Z.json`) it produced 12 OK / 2 timeout traces with
+schema-valid rate 1.0, versus 0.75 for `DeepSeek-V4-Flash`; that is a small sample, not a
+completed benchmark. It answers directly when reasoning is omitted. For Qwen/GLM, the shared API may enable long reasoning by default. Use
 `AMD_LLM_EXTRA_BODY='{"reasoning_effort":"low"}'` and benchmark the token budgets before switching.
 `chat_template_kwargs.enable_thinking` is **not forwarded by the shared gateway**; it is only
 appropriate for dedicated vLLM/SGLang endpoints. All models still pass through local schema,
@@ -146,6 +149,7 @@ unavailable for every call. The JSON files contain traces (model, endpoint host,
 latency, tokens, status, prompt template version). They never contain the API key.
 
 The retained `docs/AMD_SMOKE_TOKEN_FACTORY.json` records 9/10 successful logical calls and
-one upstream outage; it is not a completed benchmark. `docs/AMD_BENCHMARK.json` is a generated
+one upstream outage with the previous default `DeepSeek-V4-Flash`; it is not a completed
+benchmark and is not Gemma evidence. Re-run the smoke with Gemma before citing Gemma smoke counts. `docs/AMD_BENCHMARK.json` is a generated
 output, currently absent from version control. Do not report a schema-valid benchmark rate or
 specific managed GPU identity from the smoke alone.

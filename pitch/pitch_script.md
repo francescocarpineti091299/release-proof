@@ -75,8 +75,9 @@ data; the AI has no shell or authority to change the verdict."
 
 ## Slide 6 · Architecture, AMD and limits · [2:45–3:25]
 
-"The recorded inference configuration is AMD Token Factory, DeepSeek-V4-Flash. The managed GPU
-is undisclosed. The smoke sample records 9 of 10 logical calls successful, with one outage—not a
+"The inference configuration is Google Gemma, Gemma-4-31B-IT, served on AMD Token Factory. The
+managed GPU is undisclosed. In a small two-iteration comparison it completed 12 of 14 calls, with
+two timeouts and every response schema-valid—not a
 performance benchmark. The run's traces show what the AI actually did. If it is unavailable, we say
 so; the deterministic pipeline continues without another provider.
 

@@ -10,6 +10,8 @@ This checklist separates official event rules from the project's stricter engine
   offered by the event; managed inference is sufficient as a technology choice. Specific
   MI300X/ROCm/vLLM or EC2 deployment claims need evidence and are not made by default.
 - Google/Gemma and Evolus are optional partner awards, **not** requirements for this track.
+  The project also targets the **Google/Gemma award**: all LLM modules default to
+  `Gemma-4-31B-IT`, served on AMD Token Factory.
 - Public authorized GitHub repository; working app URL; title, short/long descriptions,
   technology tags, cover, video and PDF pitch presentation.
 - Standard form limits: title 5–50, short 50–255, long 600–2,000 characters. MP4/MOV video
@@ -60,8 +62,8 @@ The current demo only executes pinned open-source fixtures, not arbitrary upload
 
 The owner's judging policy explicitly requires **anonymous access without login**.
 Use HTTPS and the public override's API budgets, not Basic Auth. Deployment credentials stay
-with the operator; judges receive only the public viewer URL. For Azure, see
-[`../deploy/azure/README.md`](../deploy/azure/README.md).
+with the operator; judges receive only the public viewer URL. The final deployment target
+is **AWS only**; see [`../deploy/aws/README.md`](../deploy/aws/README.md).
 
 ```bash
 docker compose -f docker-compose.yml -f docker-compose.public.yml up -d --build

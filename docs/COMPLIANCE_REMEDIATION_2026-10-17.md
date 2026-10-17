@@ -113,6 +113,28 @@ is a capability adjective, not a migration verdict. Alternatives still reject up
 labels and explicit phase/plan verdict assertions; they retain allowed-plan/external-validation
 constraints. Separate tests cover both accepted descriptive language and rejected verdict claims.
 
+### Streaming transport verification (latest)
+
+Following AMD's documented recommendation for long generations, structured requests can now
+stream in JSON mode, with bounded buffering, mandatory completion marker and unchanged full
+local validation. Default direct-client compatibility is retained; Compose enables the option.
+Regression tests prove a truncated JSON stream is AI_UNAVAILABLE, never an accepted proposal.
+Latest full backend verification with these tests: **422 passed, 1 skipped**.
+
+Fresh report: `docs/acceptance/20261017T152548Z.json`:
+
+- MCUboot `RP-20261017T151547Z-2fe042`: 6/6 tests, 45 fully hash-verified artifacts,
+  source/result/manifest checks and AMD planner + alternatives pass. The explainer received
+  a gateway `streaming_error` with upstream status 502 after about 53 seconds, and its output
+  was withheld as AI_UNAVAILABLE. No partial report was accepted.
+- wolfBoot `RP-20261017T152101Z-63a4c8`: 8/8 tests, 61 fully hash-verified artifacts,
+  all source/hash and planner/explainer/alternatives gates pass.
+
+**The overall strict acceptance is still FAILED solely on the MCUboot explainer.** Streaming
+kept the completed plan/alternatives flow working but does not establish provider availability
+or prove that the remaining upstream failure is fixed. Preserve this report and rerun when the
+managed serving service is healthy; do not turn this failure into a pass or fallback to old text.
+
 ## Final external gate
 
 See `HACKATHON_READINESS.md` and fill `pitch/submission_fields.json`. Final URLs, owner/team,

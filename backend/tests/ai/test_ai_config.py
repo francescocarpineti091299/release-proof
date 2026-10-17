@@ -18,7 +18,7 @@ def test_from_env_parses_all_variables() -> None:
             "AMD_LLM_BASE_URL": "https://developer.amd.com.cn/radeon/api/v1/",
             "AMD_LLM_API_KEY": "rc-secret",
             "AMD_LLM_MODEL": "Qwen3.8-Flash-Next",
-            "AMD_LLM_MODEL_EXPLAINER": "DeepSeek-V4-Flash-0731",
+            "AMD_LLM_MODEL_EXPLAINER": "Gemma-4-31B-IT",
             "AMD_LLM_PROVIDER_LABEL": "AMD Token Factory",
             "AMD_LLM_HARDWARE_LABEL": "AMD Instinct MI300X",
             "AMD_LLM_ALLOWED_HOSTS": " developer.amd.com.cn , 10.0.0.5 ",
@@ -32,7 +32,7 @@ def test_from_env_parses_all_variables() -> None:
     assert s.endpoint_host == "developer.amd.com.cn"
     assert s.allowed_hosts == ("developer.amd.com.cn", "10.0.0.5")
     assert s.model_for("planner") == "Qwen3.8-Flash-Next"
-    assert s.model_for("explainer") == "DeepSeek-V4-Flash-0731"
+    assert s.model_for("explainer") == "Gemma-4-31B-IT"
     assert s.read_timeout_s == 30
     assert s.extra_body == {"chat_template_kwargs": {"enable_thinking": False}}
     assert s.env == "demo"
@@ -151,6 +151,7 @@ def test_token_factory_example_has_safe_usable_defaults():
     assert not settings.configured
     assert settings.unavailable_reason() == "AMD_LLM_API_KEY is not set"
     assert settings.endpoint_host == "developer.amd.com.cn"
+    assert settings.model == "Gemma-4-31B-IT"
     assert settings.response_format == "json_object"
     assert settings.provider_label == "AMD Token Factory"
     assert "MI300X" not in settings.hardware_label

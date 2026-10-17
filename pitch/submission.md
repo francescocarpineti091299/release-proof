@@ -31,7 +31,7 @@
 
 > ReleaseProof helps industrial IoT teams verify firmware migration paths before rollout. Real
 > builds, Renode emulation and separate candidate/transition verdicts expose update blockers.
-> AMD-hosted AI plans and explains; the engine decides.
+> Google Gemma on AMD plans and explains; the engine decides.
 
 Use the single-line version in the form; standard limit 50–255 characters.
 
@@ -41,9 +41,9 @@ Industrial sensor OEMs need to know whether deployed devices can reach a new
 security configuration, not merely whether a new image boots. Changing signature algorithms
 can leave a working candidate that the deployed bootloader cannot accept.
 
-ReleaseProof connects AMD-hosted AI, real firmware builds and Renode emulation to a
-deterministic migration-assurance engine. Engineers choose a pinned device/bootloader profile
-and a guided change. The AMD Token Factory planner selects registered tests; mandatory
+ReleaseProof connects Google Gemma on AMD Token Factory, real firmware builds and Renode
+emulation to a deterministic migration-assurance engine. Engineers choose a pinned device/bootloader profile
+and a guided change. The Gemma planner selects registered tests; mandatory
 checks cannot be removed. Isolated runners build, sign with ephemeral keys and execute
 positive and negative tests. Evidence is linked to logs, source pins and SHA-256 artifacts.
 The engine, never the LLM, produces separate candidate, transition and migration verdicts.
@@ -88,7 +88,7 @@ OEMs. NIST IR 8547 is an initial public draft, not binding law. No certification
 
 `post-quantum cryptography` · `PQC` · `ML-DSA` · `firmware` · `secure boot` · `embedded` · `IoT` ·
 `industrial IoT` · `condition monitoring` · `wolfBoot` · `MCUboot` · `Zephyr` ·
-`Renode` · `emulation` · `agentic AI` · `AMD Token Factory` · `FastAPI` · `Next.js`
+`Renode` · `emulation` · `agentic AI` · `Gemma` · `AMD Token Factory` · `FastAPI` · `Next.js`
 
 Do not add AMD Instinct/MI300X, EPYC, vLLM or ROCm deployment tags without evidence of their use.
 
@@ -101,15 +101,15 @@ Do not add AMD Instinct/MI300X, EPYC, vLLM or ROCm deployment tags without evide
 | Runners (Docker, internal network, no egress) | **runner-wolfboot**: wolfBoot `4c79eee`, wolfSSL `4aa1ad7`, Arm GNU Toolchain 14.2.rel1, Renode 1.16.1 · **runner-mcuboot**: Zephyr v4.2.0 sysbuild, MCUboot `4eba8087`, imgtool 2.2.0, Zephyr SDK 0.17.4, Renode 1.16.1 + ReleaseProof NVMC flash model (MIT) |
 | Decision engine | ReleaseProof V1.2 semantic engine (validate · evaluate · explanation graph · canonical hash), golden-hash regression tests |
 | AI gateway | OpenAI-compatible client, configured AMD host allow-list, JSON mode or structured outputs with local schema validation, citation/verdict-echo guardrails, traces |
-| AMD | AMD Token Factory managed API, `DeepSeek-V4-Flash`, GPU undisclosed · deployment target AWS EC2 **c7a.2xlarge (AMD EPYC 4th gen)** |
+| AMD | AMD Token Factory managed API, `Gemma-4-31B-IT` (Google Gemma), GPU undisclosed · deployment target AWS EC2 **c7a.2xlarge (AMD EPYC 4th gen)** |
 | Edge / deploy | Docker Compose, Caddy (auto-TLS) |
 
 ## How we use AMD
 
 ReleaseProof sends every AI step (test planning, cited explanations, alternative plans and the
 "Ask about this run" assistant) to **one configured AMD-hosted OpenAI-compatible endpoint**.
-The recorded managed configuration is AMD Token Factory with `DeepSeek-V4-Flash`; its specific
-GPU is undisclosed. Provider/hardware labels are declarations, not remote attestation.
+The configured managed model is **Google Gemma (`Gemma-4-31B-IT`) on AMD Token Factory**; its
+specific GPU is undisclosed. Provider/hardware labels are declarations, not remote attestation.
 The endpoint host is allow-listed and there is **no fallback to any other
 provider**. If the AMD endpoint is unavailable, the steps are recorded as `AI_UNAVAILABLE` and the
 deterministic pipeline continues on its own. The benchmark (`scripts/amd_benchmark.py`, real calls
@@ -118,7 +118,9 @@ only the retained report's actual measurements and sample size. The compute-heav
 bootloaders, signing images and running Renode emulations for every assessment. It is designed for
  an **AMD EPYC** host (AWS EC2 c7a.2xlarge, Docker Compose); deployment is not attested.
 
-> Honesty note: the retained Token Factory smoke has 9/10 logical calls OK and one outage;
+> Honesty note: the retained Token Factory smoke (9/10 logical calls OK, one outage) was
+> recorded with the previous default `DeepSeek-V4-Flash`. Gemma's retained evidence is a
+> 2-iteration comparison (12/14 calls OK, 2 timeouts, schema-valid 1.0);
 > The small current benchmark retains upstream outages and missing metrics; it is not a
 > completed reliability/performance claim. Early screenshots show `AI_UNAVAILABLE`;
 > they must not be used as evidence of later AMD-enabled runs. AWS remains a deployment target
@@ -130,7 +132,7 @@ bootloaders, signing images and running Renode emulations for every assessment. 
 | Item | Value |
 |---|---|
 | Hardware | Managed LLM GPU undisclosed; self-hosted MI300X is an alternative, not the recorded serving configuration. Host target: AWS EC2 c7a.2xlarge, AMD EPYC 4th gen (Genoa), 8 vCPU / 16 GiB |
-| Model | `DeepSeek-V4-Flash` in the retained Token Factory smoke |
+| Model | `Gemma-4-31B-IT` (Google Gemma) on AMD Token Factory; 2-iteration comparison in `docs/AMD_BENCHMARK_PRIOR_20261017T133903Z.json` (the retained smoke used `DeepSeek-V4-Flash`) |
 | Serving stack | AMD Token Factory managed API; vLLM on MI300X is documented as Plan B in `deploy/amd/README.md` |
 | Benchmark | Use the actual sample size, successes and failures in `docs/AMD_BENCHMARK.json`; do not replace missing statistics with smoke counts |
 | What ran on AMD | Retained AMD Token Factory inference traces. Existing HTTPS demo: https://d1yxcnwgdgjzt6.cloudfront.net. Verify the frozen hardened release there before the final walkthrough; local acceptance does not attest cloud hardware |
