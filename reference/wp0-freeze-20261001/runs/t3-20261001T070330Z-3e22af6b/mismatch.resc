@@ -1,0 +1,13 @@
+using sysbus
+mach create
+machine LoadPlatformDescription @platforms/cpus/nrf52840.repl
+emulation CreateUartPtyTerminal "term" "/tmp/wolfboot-t3.uart" True
+connector Connect uart0 term
+cpu PerformanceInMips 100
+macro reset
+"""
+    sysbus LoadELF @/tmp/renode-wolfboot.elf
+    sysbus LoadBinary @/mnt/c/Users/carpy/Desktop/ProgettiPersonali/firmware-migration-assurance/wp0/runs/t3-20261001T070330Z-3e22af6b/artifacts/image_bad_signature.bin 0x20000
+    start
+"""
+runMacro $reset

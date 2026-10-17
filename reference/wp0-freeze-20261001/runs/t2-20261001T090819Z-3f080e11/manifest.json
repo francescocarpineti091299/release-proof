@@ -1,0 +1,38 @@
+{
+  "run_id": "t2-20261001T090819Z-3f080e11",
+  "experiment": "t2_copy_sector_interrupt",
+  "fault_injection_strategy": "event_first_copy_sector_then_cpu_reset",
+  "injection_point": "first_Copy_sector_printf_in_wolfBoot_copy_sector",
+  "trigger": "On the first UART line 'Copy sector', pause, cpu Reset, start",
+  "expected_observables": [
+    "copy_sector_line",
+    "post_reset_version_frame"
+  ],
+  "outcomes": [
+    {
+      "index": 1,
+      "executed": true,
+      "copy_sector_seen": true,
+      "verify_before_copy": true,
+      "post_reset_frames": [
+        2
+      ],
+      "post_reset_panic": false,
+      "monitor_error": null
+    },
+    {
+      "index": 2,
+      "executed": true,
+      "copy_sector_seen": true,
+      "verify_before_copy": true,
+      "post_reset_frames": [
+        2
+      ],
+      "post_reset_panic": false,
+      "monitor_error": null
+    }
+  ],
+  "reproducibility": "REPEATABLE",
+  "status": "CONCLUSIVE",
+  "notes": "Trigger declared from src/update_flash.c wolfBoot_copy_sector before the run. A missing or divergent marker leaves recovery UNKNOWN."
+}

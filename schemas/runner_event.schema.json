@@ -1,0 +1,622 @@
+{
+  "$defs": {
+    "ArtifactEvent": {
+      "additionalProperties": false,
+      "properties": {
+        "artifact_id": {
+          "title": "Artifact Id",
+          "type": "string"
+        },
+        "kind": {
+          "enum": [
+            "elf",
+            "bin",
+            "signed_image",
+            "log",
+            "uart",
+            "script",
+            "config",
+            "manifest",
+            "other"
+          ],
+          "title": "Kind",
+          "type": "string"
+        },
+        "name": {
+          "title": "Name",
+          "type": "string"
+        },
+        "path": {
+          "description": "Relative to the run artifact_dir",
+          "title": "Path",
+          "type": "string"
+        },
+        "run_id": {
+          "title": "Run Id",
+          "type": "string"
+        },
+        "seq": {
+          "minimum": 0,
+          "title": "Seq",
+          "type": "integer"
+        },
+        "sha256": {
+          "pattern": "^[0-9a-f]{64}$",
+          "title": "Sha256",
+          "type": "string"
+        },
+        "size_bytes": {
+          "minimum": 0,
+          "title": "Size Bytes",
+          "type": "integer"
+        },
+        "test_id": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Test Id"
+        },
+        "ts": {
+          "description": "RFC 3339 UTC timestamp",
+          "title": "Ts",
+          "type": "string"
+        },
+        "type": {
+          "const": "artifact",
+          "default": "artifact",
+          "title": "Type",
+          "type": "string"
+        }
+      },
+      "required": [
+        "seq",
+        "ts",
+        "run_id",
+        "artifact_id",
+        "name",
+        "path",
+        "sha256",
+        "size_bytes",
+        "kind"
+      ],
+      "title": "ArtifactEvent",
+      "type": "object"
+    },
+    "DoneEvent": {
+      "additionalProperties": false,
+      "properties": {
+        "run_id": {
+          "title": "Run Id",
+          "type": "string"
+        },
+        "seq": {
+          "minimum": 0,
+          "title": "Seq",
+          "type": "integer"
+        },
+        "source_pins": {
+          "additionalProperties": {
+            "type": "string"
+          },
+          "title": "Source Pins",
+          "type": "object"
+        },
+        "status": {
+          "enum": [
+            "SUCCEEDED",
+            "FAILED"
+          ],
+          "title": "Status",
+          "type": "string"
+        },
+        "summary": {
+          "default": "",
+          "title": "Summary",
+          "type": "string"
+        },
+        "tool_versions": {
+          "additionalProperties": {
+            "type": "string"
+          },
+          "title": "Tool Versions",
+          "type": "object"
+        },
+        "ts": {
+          "description": "RFC 3339 UTC timestamp",
+          "title": "Ts",
+          "type": "string"
+        },
+        "type": {
+          "const": "done",
+          "default": "done",
+          "title": "Type",
+          "type": "string"
+        }
+      },
+      "required": [
+        "seq",
+        "ts",
+        "run_id",
+        "status"
+      ],
+      "title": "DoneEvent",
+      "type": "object"
+    },
+    "ErrorEvent": {
+      "additionalProperties": false,
+      "properties": {
+        "failure_class": {
+          "$ref": "#/$defs/FailureClass"
+        },
+        "message": {
+          "title": "Message",
+          "type": "string"
+        },
+        "run_id": {
+          "title": "Run Id",
+          "type": "string"
+        },
+        "seq": {
+          "minimum": 0,
+          "title": "Seq",
+          "type": "integer"
+        },
+        "test_id": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Test Id"
+        },
+        "ts": {
+          "description": "RFC 3339 UTC timestamp",
+          "title": "Ts",
+          "type": "string"
+        },
+        "type": {
+          "const": "error",
+          "default": "error",
+          "title": "Type",
+          "type": "string"
+        }
+      },
+      "required": [
+        "seq",
+        "ts",
+        "run_id",
+        "failure_class",
+        "message"
+      ],
+      "title": "ErrorEvent",
+      "type": "object"
+    },
+    "FailureClass": {
+      "enum": [
+        "ENVIRONMENT_SETUP",
+        "BUILD_FAILED",
+        "TOOL_FAILURE",
+        "TIMEOUT",
+        "INCONCLUSIVE",
+        "INTERNAL",
+        "AI_UNAVAILABLE"
+      ],
+      "title": "FailureClass",
+      "type": "string"
+    },
+    "LogEvent": {
+      "additionalProperties": false,
+      "properties": {
+        "line": {
+          "maxLength": 4000,
+          "title": "Line",
+          "type": "string"
+        },
+        "run_id": {
+          "title": "Run Id",
+          "type": "string"
+        },
+        "seq": {
+          "minimum": 0,
+          "title": "Seq",
+          "type": "integer"
+        },
+        "stream": {
+          "enum": [
+            "build",
+            "sign",
+            "renode",
+            "uart",
+            "tool",
+            "runner"
+          ],
+          "title": "Stream",
+          "type": "string"
+        },
+        "test_id": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Test Id"
+        },
+        "ts": {
+          "description": "RFC 3339 UTC timestamp",
+          "title": "Ts",
+          "type": "string"
+        },
+        "type": {
+          "const": "log",
+          "default": "log",
+          "title": "Type",
+          "type": "string"
+        }
+      },
+      "required": [
+        "seq",
+        "ts",
+        "run_id",
+        "stream",
+        "line"
+      ],
+      "title": "LogEvent",
+      "type": "object"
+    },
+    "Observation": {
+      "additionalProperties": false,
+      "properties": {
+        "acquisition_mode": {
+          "description": "V1.2 acquisition_mode, e.g. EMULATED, STATIC_ARTIFACT, STATIC_CONFIG, SOURCE_INSPECTION, SIGN_TOOL, BUILD, REPOSITORY",
+          "title": "Acquisition Mode",
+          "type": "string"
+        },
+        "fact": {
+          "title": "Fact",
+          "type": "string"
+        },
+        "locator": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "description": "e.g. uart.log:L12-L14",
+          "title": "Locator"
+        },
+        "observation_id": {
+          "title": "Observation Id",
+          "type": "string"
+        },
+        "origin": {
+          "$ref": "#/$defs/Origin"
+        },
+        "parser": {
+          "description": "parser id@version",
+          "title": "Parser",
+          "type": "string"
+        },
+        "source_artifact_ids": {
+          "items": {
+            "type": "string"
+          },
+          "title": "Source Artifact Ids",
+          "type": "array"
+        },
+        "subject": {
+          "enum": [
+            "deployed_state",
+            "candidate_state",
+            "transition",
+            "platform",
+            "toolchain"
+          ],
+          "title": "Subject",
+          "type": "string"
+        },
+        "test_id": {
+          "title": "Test Id",
+          "type": "string"
+        },
+        "unit": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Unit"
+        },
+        "value": {
+          "title": "Value"
+        }
+      },
+      "required": [
+        "observation_id",
+        "test_id",
+        "subject",
+        "fact",
+        "value",
+        "origin",
+        "acquisition_mode",
+        "parser"
+      ],
+      "title": "Observation",
+      "type": "object"
+    },
+    "ObservationEvent": {
+      "additionalProperties": false,
+      "properties": {
+        "observation": {
+          "$ref": "#/$defs/Observation"
+        },
+        "run_id": {
+          "title": "Run Id",
+          "type": "string"
+        },
+        "seq": {
+          "minimum": 0,
+          "title": "Seq",
+          "type": "integer"
+        },
+        "ts": {
+          "description": "RFC 3339 UTC timestamp",
+          "title": "Ts",
+          "type": "string"
+        },
+        "type": {
+          "const": "observation",
+          "default": "observation",
+          "title": "Type",
+          "type": "string"
+        }
+      },
+      "required": [
+        "seq",
+        "ts",
+        "run_id",
+        "observation"
+      ],
+      "title": "ObservationEvent",
+      "type": "object"
+    },
+    "Origin": {
+      "enum": [
+        "MEASURED_TOOL",
+        "OBSERVED_EMULATION",
+        "DECLARED",
+        "AI_PROPOSAL"
+      ],
+      "title": "Origin",
+      "type": "string"
+    },
+    "Stage": {
+      "enum": [
+        "PREPARING",
+        "DISCOVERY",
+        "AI_PLAN",
+        "BUILD_SIGN",
+        "EMULATION_TESTS",
+        "EVALUATION",
+        "NEXT_STEPS"
+      ],
+      "title": "Stage",
+      "type": "string"
+    },
+    "StageEvent": {
+      "additionalProperties": false,
+      "properties": {
+        "message": {
+          "default": "",
+          "title": "Message",
+          "type": "string"
+        },
+        "run_id": {
+          "title": "Run Id",
+          "type": "string"
+        },
+        "seq": {
+          "minimum": 0,
+          "title": "Seq",
+          "type": "integer"
+        },
+        "stage": {
+          "$ref": "#/$defs/Stage"
+        },
+        "status": {
+          "$ref": "#/$defs/StageStatus"
+        },
+        "ts": {
+          "description": "RFC 3339 UTC timestamp",
+          "title": "Ts",
+          "type": "string"
+        },
+        "type": {
+          "const": "stage",
+          "default": "stage",
+          "title": "Type",
+          "type": "string"
+        }
+      },
+      "required": [
+        "seq",
+        "ts",
+        "run_id",
+        "stage",
+        "status"
+      ],
+      "title": "StageEvent",
+      "type": "object"
+    },
+    "StageStatus": {
+      "enum": [
+        "QUEUED",
+        "RUNNING",
+        "SUCCEEDED",
+        "FAILED",
+        "INCONCLUSIVE",
+        "SKIPPED"
+      ],
+      "title": "StageStatus",
+      "type": "string"
+    },
+    "TestOutcome": {
+      "description": "Outcome of executing a test template. Not a migration verdict.\n\nPASS means the test observed what it was designed to check (a negative test that\nobserves the expected rejection is PASS). FAIL means the opposite was observed.",
+      "enum": [
+        "PASS",
+        "FAIL",
+        "INCONCLUSIVE",
+        "NOT_EXECUTED",
+        "ERROR"
+      ],
+      "title": "TestOutcome",
+      "type": "string"
+    },
+    "TestResultEvent": {
+      "additionalProperties": false,
+      "properties": {
+        "duration_ms": {
+          "minimum": 0,
+          "title": "Duration Ms",
+          "type": "integer"
+        },
+        "expected": {
+          "title": "Expected",
+          "type": "string"
+        },
+        "failure_class": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/FailureClass"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null
+        },
+        "observation_ids": {
+          "items": {
+            "type": "string"
+          },
+          "title": "Observation Ids",
+          "type": "array"
+        },
+        "observed": {
+          "title": "Observed",
+          "type": "string"
+        },
+        "outcome": {
+          "$ref": "#/$defs/TestOutcome"
+        },
+        "run_id": {
+          "title": "Run Id",
+          "type": "string"
+        },
+        "seq": {
+          "minimum": 0,
+          "title": "Seq",
+          "type": "integer"
+        },
+        "template_id": {
+          "title": "Template Id",
+          "type": "string"
+        },
+        "test_id": {
+          "title": "Test Id",
+          "type": "string"
+        },
+        "ts": {
+          "description": "RFC 3339 UTC timestamp",
+          "title": "Ts",
+          "type": "string"
+        },
+        "type": {
+          "const": "test_result",
+          "default": "test_result",
+          "title": "Type",
+          "type": "string"
+        }
+      },
+      "required": [
+        "seq",
+        "ts",
+        "run_id",
+        "test_id",
+        "template_id",
+        "outcome",
+        "expected",
+        "observed",
+        "duration_ms"
+      ],
+      "title": "TestResultEvent",
+      "type": "object"
+    }
+  },
+  "properties": {
+    "event": {
+      "discriminator": {
+        "mapping": {
+          "artifact": "#/$defs/ArtifactEvent",
+          "done": "#/$defs/DoneEvent",
+          "error": "#/$defs/ErrorEvent",
+          "log": "#/$defs/LogEvent",
+          "observation": "#/$defs/ObservationEvent",
+          "stage": "#/$defs/StageEvent",
+          "test_result": "#/$defs/TestResultEvent"
+        },
+        "propertyName": "type"
+      },
+      "oneOf": [
+        {
+          "$ref": "#/$defs/StageEvent"
+        },
+        {
+          "$ref": "#/$defs/LogEvent"
+        },
+        {
+          "$ref": "#/$defs/ArtifactEvent"
+        },
+        {
+          "$ref": "#/$defs/ObservationEvent"
+        },
+        {
+          "$ref": "#/$defs/TestResultEvent"
+        },
+        {
+          "$ref": "#/$defs/ErrorEvent"
+        },
+        {
+          "$ref": "#/$defs/DoneEvent"
+        }
+      ],
+      "title": "Event"
+    }
+  },
+  "required": [
+    "event"
+  ],
+  "title": "RunnerEventEnvelope",
+  "type": "object"
+}

@@ -1,0 +1,36 @@
+{
+  "run_id": "t2-20261001T082614Z-11ae80a6",
+  "experiment": "t2_interrupted_update",
+  "fault_injection_strategy": "event_second_uart_version_frame",
+  "injection_point": "first_star_frame_after_second_start_update_at_0x60000",
+  "trigger": "Kill Renode on the second UART version frame, after update load",
+  "expected_observables": [
+    "uart_factory_mark",
+    "uart_update_mark"
+  ],
+  "outcomes": [
+    {
+      "index": 1,
+      "executed": true,
+      "frames": [
+        1,
+        2
+      ],
+      "uart": "696e672076657273696f6e3a203078320d0a436865636b696e6720696e746567726974792e2e2e646f6e650d0d0a566572696679696e67207369676e61747572652e2e2e646f6e650d0d0a2a00000002",
+      "trigger_seen": true
+    },
+    {
+      "index": 2,
+      "executed": true,
+      "frames": [
+        1,
+        2
+      ],
+      "uart": "696e672076657273696f6e3a203078320d0a436865636b696e6720696e746567726974792e2e2e646f6e650d0d0a566572696679696e67207369676e61747572652e2e2e646f6e650d0d0a2a00000002",
+      "trigger_seen": true
+    }
+  ],
+  "reproducibility": "REPEATABLE",
+  "status": "CONCLUSIVE",
+  "notes": "Event-based interruption pre-registered before the run."
+}

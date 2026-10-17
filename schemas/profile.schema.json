@@ -1,0 +1,304 @@
+{
+  "$defs": {
+    "AlternativePlan": {
+      "additionalProperties": false,
+      "properties": {
+        "description": {
+          "title": "Description",
+          "type": "string"
+        },
+        "mechanism": {
+          "title": "Mechanism",
+          "type": "string"
+        },
+        "plan_id": {
+          "title": "Plan Id",
+          "type": "string"
+        },
+        "requires_rerun_tests": {
+          "default": false,
+          "title": "Requires Rerun Tests",
+          "type": "boolean"
+        },
+        "status": {
+          "default": "EXECUTABLE",
+          "enum": [
+            "EXECUTABLE",
+            "REQUIRES_EXTERNAL_VALIDATION"
+          ],
+          "title": "Status",
+          "type": "string"
+        },
+        "title": {
+          "title": "Title",
+          "type": "string"
+        }
+      },
+      "required": [
+        "plan_id",
+        "title",
+        "description",
+        "mechanism"
+      ],
+      "title": "AlternativePlan",
+      "type": "object"
+    },
+    "Board": {
+      "additionalProperties": false,
+      "properties": {
+        "emulator": {
+          "const": "renode",
+          "title": "Emulator",
+          "type": "string"
+        },
+        "id": {
+          "title": "Id",
+          "type": "string"
+        },
+        "name": {
+          "title": "Name",
+          "type": "string"
+        },
+        "platform_script": {
+          "title": "Platform Script",
+          "type": "string"
+        },
+        "soc": {
+          "title": "Soc",
+          "type": "string"
+        }
+      },
+      "required": [
+        "id",
+        "name",
+        "soc",
+        "emulator",
+        "platform_script"
+      ],
+      "title": "Board",
+      "type": "object"
+    },
+    "Bootloader": {
+      "additionalProperties": false,
+      "properties": {
+        "commit": {
+          "title": "Commit",
+          "type": "string"
+        },
+        "family": {
+          "enum": [
+            "wolfboot",
+            "mcuboot"
+          ],
+          "title": "Family",
+          "type": "string"
+        },
+        "license": {
+          "title": "License",
+          "type": "string"
+        },
+        "name": {
+          "title": "Name",
+          "type": "string"
+        },
+        "repo": {
+          "title": "Repo",
+          "type": "string"
+        },
+        "version_label": {
+          "title": "Version Label",
+          "type": "string"
+        }
+      },
+      "required": [
+        "family",
+        "name",
+        "repo",
+        "commit",
+        "version_label",
+        "license"
+      ],
+      "title": "Bootloader",
+      "type": "object"
+    },
+    "ChangeScenario": {
+      "additionalProperties": false,
+      "properties": {
+        "alternatives": {
+          "items": {
+            "$ref": "#/$defs/AlternativePlan"
+          },
+          "title": "Alternatives",
+          "type": "array"
+        },
+        "change_id": {
+          "title": "Change Id",
+          "type": "string"
+        },
+        "default_plan_id": {
+          "title": "Default Plan Id",
+          "type": "string"
+        },
+        "default_plan_title": {
+          "title": "Default Plan Title",
+          "type": "string"
+        },
+        "from_scheme": {
+          "title": "From Scheme",
+          "type": "string"
+        },
+        "optional_templates": {
+          "items": {
+            "type": "string"
+          },
+          "title": "Optional Templates",
+          "type": "array"
+        },
+        "required_templates": {
+          "items": {
+            "type": "string"
+          },
+          "title": "Required Templates",
+          "type": "array"
+        },
+        "summary": {
+          "title": "Summary",
+          "type": "string"
+        },
+        "title": {
+          "title": "Title",
+          "type": "string"
+        },
+        "to_scheme": {
+          "title": "To Scheme",
+          "type": "string"
+        }
+      },
+      "required": [
+        "change_id",
+        "title",
+        "summary",
+        "from_scheme",
+        "to_scheme",
+        "default_plan_id",
+        "default_plan_title",
+        "required_templates"
+      ],
+      "title": "ChangeScenario",
+      "type": "object"
+    },
+    "ProfileStatus": {
+      "enum": [
+        "SUPPORTED",
+        "EXPERIMENTAL",
+        "UNAVAILABLE"
+      ],
+      "title": "ProfileStatus",
+      "type": "string"
+    },
+    "Runner": {
+      "additionalProperties": false,
+      "properties": {
+        "image": {
+          "title": "Image",
+          "type": "string"
+        },
+        "service": {
+          "description": "Compose service name / base URL key",
+          "title": "Service",
+          "type": "string"
+        },
+        "timeout_seconds": {
+          "maximum": 3600,
+          "minimum": 60,
+          "title": "Timeout Seconds",
+          "type": "integer"
+        }
+      },
+      "required": [
+        "service",
+        "image",
+        "timeout_seconds"
+      ],
+      "title": "Runner",
+      "type": "object"
+    }
+  },
+  "additionalProperties": false,
+  "properties": {
+    "assessment_adapter": {
+      "title": "Assessment Adapter",
+      "type": "string"
+    },
+    "board": {
+      "$ref": "#/$defs/Board"
+    },
+    "bootloader": {
+      "$ref": "#/$defs/Bootloader"
+    },
+    "changes": {
+      "items": {
+        "$ref": "#/$defs/ChangeScenario"
+      },
+      "title": "Changes",
+      "type": "array"
+    },
+    "description": {
+      "title": "Description",
+      "type": "string"
+    },
+    "id": {
+      "title": "Id",
+      "type": "string"
+    },
+    "known_limitations": {
+      "items": {
+        "type": "string"
+      },
+      "title": "Known Limitations",
+      "type": "array"
+    },
+    "ruleset_version": {
+      "const": "1.2",
+      "title": "Ruleset Version",
+      "type": "string"
+    },
+    "runner": {
+      "$ref": "#/$defs/Runner"
+    },
+    "status": {
+      "$ref": "#/$defs/ProfileStatus"
+    },
+    "title": {
+      "title": "Title",
+      "type": "string"
+    },
+    "toolchain": {
+      "additionalProperties": {
+        "type": "string"
+      },
+      "title": "Toolchain",
+      "type": "object"
+    },
+    "version": {
+      "title": "Version",
+      "type": "string"
+    }
+  },
+  "required": [
+    "id",
+    "version",
+    "status",
+    "title",
+    "description",
+    "board",
+    "bootloader",
+    "toolchain",
+    "runner",
+    "changes",
+    "assessment_adapter",
+    "ruleset_version"
+  ],
+  "title": "Profile",
+  "type": "object"
+}

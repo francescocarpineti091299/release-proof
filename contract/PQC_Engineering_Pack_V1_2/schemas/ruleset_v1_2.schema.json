@@ -1,0 +1,170 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "urn:pqc:defense:ruleset:v1.2",
+  "title": "PQC V1.2 Ruleset Contract",
+  "type": "object",
+  "required": [
+    "ruleset_id",
+    "version",
+    "hash",
+    "required_invariants",
+    "rules"
+  ],
+  "properties": {
+    "ruleset_id": {
+      "type": "string"
+    },
+    "version": {
+      "type": "string"
+    },
+    "hash": {
+      "type": "string",
+      "description": "External version pin of the ruleset. Not the JCS digest of this file."
+    },
+    "wp1_status": {
+      "enum": [
+        "DRAFT",
+        "FROZEN"
+      ]
+    },
+    "coverage": {
+      "enum": [
+        "PARTIAL",
+        "COMPLETE"
+      ]
+    },
+    "required_invariants": {
+      "type": "array",
+      "minItems": 1,
+      "items": {"type": "string"},
+      "uniqueItems": true
+    },
+    "rules": {
+      "type": "array",
+      "items": {
+        "$ref": "#/$defs/rule"
+      }
+    }
+  },
+  "$defs": {
+    "rule": {
+      "type": "object",
+      "required": [
+        "rule_id",
+        "rule_kind",
+        "risk_category",
+        "applicable_phase",
+        "evaluator_id",
+        "inputs",
+        "critical_for_verdict",
+        "violation_effect"
+      ],
+      "properties": {
+        "rule_id": {
+          "type": "string"
+        },
+        "rule_kind": {
+          "enum": [
+            "CONSTRAINT",
+            "INVARIANT",
+            "POLICY"
+          ]
+        },
+        "risk_category": {
+          "enum": [
+            "AUTHENTICITY_SIGNATURE",
+            "LAYOUT_STORAGE",
+            "RUNTIME_RESOURCES",
+            "TRUST_ANCHORS_AUTHORIZATION",
+            "UPDATE_ROLLBACK_RECOVERY"
+          ]
+        },
+        "applicable_phase": {
+          "type": "array",
+          "minItems": 1,
+          "uniqueItems": true,
+          "items": {
+            "enum": [
+              "CURRENT",
+              "TRANSITION",
+              "TARGET"
+            ]
+          }
+        },
+        "evaluator_id": {
+          "type": "string",
+          "description": "Identifier resolved only through a whitelist/restricted evaluator; never executable code from data."
+        },
+        "inputs": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          },
+          "uniqueItems": true
+        },
+        "parameters": {
+          "type": "object",
+          "additionalProperties": {
+            "type": [
+              "string",
+              "number",
+              "integer",
+              "boolean",
+              "null"
+            ]
+          }
+        },
+        "critical_for_verdict": {
+          "type": "boolean"
+        },
+        "violation_effect": {
+          "enum": [
+            "BLOCKING",
+            "FINDING"
+          ]
+        },
+        "required_tests": {
+          "type": "array",
+          "items": {
+            "type": "string",
+            "pattern": "^[ER][0-9]{2}$"
+          },
+          "uniqueItems": true
+        },
+        "requirement_refs": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          },
+          "uniqueItems": true
+        },
+        "invariant_refs": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          },
+          "uniqueItems": true
+        },
+        "subject_type": {
+          "enum": ["STATE", "TRANSITION_STEP", "PLAN"]
+        },
+        "notes": {
+          "type": "string"
+        },
+        "wp0_status": {
+          "enum": [
+            "FROZEN",
+            "TO_CONFIRM",
+            "NOT_APPLICABLE"
+          ]
+        }
+      },
+      "additionalProperties": false,
+      "anyOf": [
+        {"required": ["requirement_refs"], "properties": {"requirement_refs": {"minItems": 1}}},
+        {"required": ["invariant_refs"], "properties": {"invariant_refs": {"minItems": 1}}}
+      ]
+    }
+  },
+  "additionalProperties": false
+}

@@ -1,0 +1,33 @@
+# Python
+__pycache__/
+*.py[cod]
+.venv/
+.pytest_cache/
+.ruff_cache/
+*.egg-info/
+
+# Node / Next.js
+node_modules/
+web/.next/
+web/out/
+*.tsbuildinfo
+
+# Runtime data (job DB, artifacts)
+data/
+*.sqlite
+*.sqlite-journal
+*.db
+
+# Secrets
+.env
+.env.*
+!.env.example
+*.pem
+*.key
+*.der
+
+# Build outputs / scratch
+build/
+dist/
+runners/**/work/
+.DS_Store

@@ -1,0 +1,8 @@
+{
+  "version": "1.2",
+  "description": "Expected canonical_hash values from evaluate() on WP0 projections. Regenerate only when the semantic core or projection changes intentionally.",
+  "baseline_assessment_id": "WP0-FREEZE-20261001",
+  "baseline_canonical_hash": "sha256:0a4a6ecbfe034f4965fd7b0f01085226083f0574c2db18813e1eaa1039e73d31",
+  "signer_bound_assessment_id": "WP0-A4-SIGNER-BOUND-20261001",
+  "signer_bound_canonical_hash": "sha256:d1db02985eefc5ef6d297e83a45540fb7d33f65a83073435bfdfa1667136a040"
+}

@@ -1,0 +1,76 @@
+id: nrf52840-mcuboot-pqc
+version: "1.0"
+status: EXPERIMENTAL   # becomes SUPPORTED only after the end-to-end acceptance gate passes
+title: Nordic nRF52840 + MCUboot (Zephyr)
+description: >
+  nRF52840 emulated in Renode running MCUboot built with Zephyr sysbuild and a demo application.
+  Same chip as the wolfBoot profile, different bootloader family and update model.
+board:
+  id: nordic-nrf52840
+  name: Nordic nRF52840
+  soc: nRF52840 (Arm Cortex-M4F, 1 MB flash, 256 KB RAM)
+  emulator: renode
+  platform_script: platforms/boards/nrf52840dk_nrf52840.repl + releaseproof NVMC model
+bootloader:
+  family: mcuboot
+  name: MCUboot
+  repo: https://github.com/zephyrproject-rtos/mcuboot
+  commit: PIN_AT_SPIKE   # resolved by `west manifest --freeze` in the runner image
+  version_label: Zephyr v4.2.0 manifest revision
+  license: Apache-2.0
+toolchain:
+  renode: "1.16.1"
+  zephyr: v4.2.0
+  zephyr-sdk: "0.17.4"
+runner:
+  service: runner-mcuboot
+  image: releaseproof/runner-mcuboot:0.1.0
+  timeout_seconds: 1200
+assessment_adapter: mcuboot_v1_2
+ruleset_version: "1.2"
+changes:
+  - change_id: ecdsa_p256_to_mldsa
+    title: Migrate firmware signatures from ECDSA P-256 to ML-DSA
+    summary: >
+      Move the MCUboot-verified firmware signature to a post-quantum scheme on devices already
+      deployed with an ECDSA P-256 MCUboot.
+    from_scheme: ECDSA_P256
+    to_scheme: ML_DSA
+    default_plan_id: mcuboot_field_update
+    default_plan_title: Over-the-air MCUboot replacement, then ML-DSA firmware
+    required_templates:
+      - mcuboot.discover
+      - mcuboot.bootloader_update_capability
+      - mcuboot.boot_current
+      - mcuboot.tampered_image_rejected
+      - mcuboot.pqc_sign_attempt
+      - mcuboot.cross_key_update
+    optional_templates:
+      - mcuboot.signed_update
+    alternatives:
+      - plan_id: depot_reflash_mcuboot
+        title: Re-flash MCUboot at a service depot
+        description: >
+          Devices are returned to a depot and MCUboot is re-flashed by debug probe. Removes the
+          field-update blocker but not the lack of a post-quantum verifier.
+        mechanism: depot_physical_reflash
+        requires_rerun_tests: false
+        status: EXECUTABLE
+      - plan_id: switch_to_wolfboot_depot
+        title: Replace MCUboot with a PQC-capable bootloader (wolfBoot) at a depot
+        description: >
+          Changes bootloader family. Must be assessed as a new configuration (see the
+          nRF52840 + wolfBoot profile); not provable from this run's evidence.
+        mechanism: bootloader_family_change
+        status: REQUIRES_EXTERNAL_VALIDATION
+      - plan_id: mcuboot_lms_branch
+        title: Adopt the upstream MCUboot LMS work (PR #2707)
+        description: >
+          Hash-based LMS signatures are in review upstream and simulator-only. Not executable on
+          the pinned toolchain.
+        mechanism: upstream_feature_pending
+        status: REQUIRES_EXTERNAL_VALIDATION
+known_limitations:
+  - Renode has no nRF52840 NVMC model upstream; ReleaseProof ships a minimal one (status/ready, page erase).
+  - Single-image MCUboot; no hardware crypto (CryptoCell) is emulated.
+  - The interrupted-swap behaviour is not observed; it stays UNKNOWN.

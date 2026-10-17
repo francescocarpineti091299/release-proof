@@ -1,0 +1,45 @@
+{
+  "run_id": "g2-3-20260930T152841Z-ef723311",
+  "phase": "g2_mldsa",
+  "clone_path": "/home/carpy/.cache/firmware-migration-assurance/workbench/wolfBoot",
+  "make_args": [
+    "SIGN=ML_DSA",
+    "ML_DSA_LEVEL=5",
+    "WOLFBOOT_SMALL_STACK=0",
+    "IMAGE_SIGNATURE_SIZE=4627",
+    "IMAGE_HEADER_SIZE=12288",
+    "WOLFBOOT_SECTOR_SIZE=0x3000"
+  ],
+  "build_attempted": true,
+  "sign_attempted": true,
+  "renode_attempted": true,
+  "boot_observed": true,
+  "uart_pattern": "Factory img: OK",
+  "artifacts": {
+    "wolfboot.bin": {
+      "path": "/home/carpy/.cache/firmware-migration-assurance/workbench/wolfBoot/wolfboot.bin",
+      "size_bytes": 22840,
+      "content_hash": "sha256:684da525ea47d51cb91c502bbf8173724fcc9609907d31bdd0a3cccaac82856b"
+    },
+    "wolfboot.elf": {
+      "path": "/home/carpy/.cache/firmware-migration-assurance/workbench/wolfBoot/wolfboot.elf",
+      "size_bytes": 172972,
+      "content_hash": "sha256:7890bdd0d81dc62a8f1763d1e163bc80a8780941fa5710a37dc58e4f49f04a60"
+    },
+    "test-app/image.bin": {
+      "path": "/home/carpy/.cache/firmware-migration-assurance/workbench/wolfBoot/test-app/image.bin",
+      "size_bytes": 588,
+      "content_hash": "sha256:920c5bf54c0745a1504b7bf44ea70dbc374d22557e1cd13e402b839694845172"
+    },
+    "test-app/image_v1_signed.bin": {
+      "path": "/home/carpy/.cache/firmware-migration-assurance/workbench/wolfBoot/test-app/image_v1_signed.bin",
+      "size_bytes": 12876,
+      "content_hash": "sha256:1dba1e74cc71c24e2a672edade6702590c81bd7246b7744703adcc3240282ccf"
+    }
+  },
+  "platform_dir": "/home/carpy/.cache/firmware-migration-assurance/workbench/wolfBoot",
+  "config": "config/examples/nrf52840.config",
+  "renode_script": "tools/renode/nrf52840_wolfboot.resc",
+  "build_exit_code": 0,
+  "signed_image_size": 12876
+}

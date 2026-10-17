@@ -1,0 +1,111 @@
+{
+  "$defs": {
+    "PlannedTemplate": {
+      "additionalProperties": false,
+      "properties": {
+        "priority": {
+          "description": "1 = run first",
+          "maximum": 10,
+          "minimum": 1,
+          "title": "Priority",
+          "type": "integer"
+        },
+        "rationale": {
+          "maxLength": 400,
+          "title": "Rationale",
+          "type": "string"
+        },
+        "template_id": {
+          "description": "Must be a template_id from the provided catalog",
+          "title": "Template Id",
+          "type": "string"
+        }
+      },
+      "required": [
+        "template_id",
+        "priority",
+        "rationale"
+      ],
+      "title": "PlannedTemplate",
+      "type": "object"
+    },
+    "SkippedTemplate": {
+      "additionalProperties": false,
+      "properties": {
+        "reason": {
+          "maxLength": 300,
+          "title": "Reason",
+          "type": "string"
+        },
+        "template_id": {
+          "title": "Template Id",
+          "type": "string"
+        }
+      },
+      "required": [
+        "template_id",
+        "reason"
+      ],
+      "title": "SkippedTemplate",
+      "type": "object"
+    },
+    "SuggestedTest": {
+      "additionalProperties": false,
+      "description": "A test idea that has no registered implementation. Never executed automatically.",
+      "properties": {
+        "purpose": {
+          "maxLength": 400,
+          "title": "Purpose",
+          "type": "string"
+        },
+        "title": {
+          "maxLength": 120,
+          "title": "Title",
+          "type": "string"
+        }
+      },
+      "required": [
+        "title",
+        "purpose"
+      ],
+      "title": "SuggestedTest",
+      "type": "object"
+    }
+  },
+  "additionalProperties": false,
+  "properties": {
+    "selected": {
+      "items": {
+        "$ref": "#/$defs/PlannedTemplate"
+      },
+      "title": "Selected",
+      "type": "array"
+    },
+    "skipped": {
+      "items": {
+        "$ref": "#/$defs/SkippedTemplate"
+      },
+      "title": "Skipped",
+      "type": "array"
+    },
+    "suggested_new_tests": {
+      "items": {
+        "$ref": "#/$defs/SuggestedTest"
+      },
+      "maxItems": 3,
+      "title": "Suggested New Tests",
+      "type": "array"
+    },
+    "summary": {
+      "maxLength": 600,
+      "title": "Summary",
+      "type": "string"
+    }
+  },
+  "required": [
+    "selected",
+    "summary"
+  ],
+  "title": "TestPlanProposal",
+  "type": "object"
+}

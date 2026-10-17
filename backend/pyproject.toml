@@ -1,0 +1,38 @@
+[project]
+name = "releaseproof"
+version = "0.1.0"
+description = "Evidence-backed firmware migration assurance (AMD Developer Hackathon ACT III)"
+requires-python = ">=3.12"
+license = { text = "MIT" }
+dependencies = [
+  "pydantic==2.12.4",
+  "jsonschema==4.23.0",
+  "jcs==0.2.1",
+  "fastapi==0.118.0",
+  "uvicorn[standard]==0.37.0",
+  "httpx==0.28.1",
+  "pyyaml==6.0.3",
+]
+
+[project.optional-dependencies]
+dev = ["pytest==8.3.4", "ruff==0.9.10"]
+
+[build-system]
+requires = ["setuptools>=69"]
+build-backend = "setuptools.build_meta"
+
+[tool.setuptools.packages.find]
+include = ["releaseproof*"]
+
+[tool.ruff]
+line-length = 100
+target-version = "py312"
+
+[tool.ruff.lint]
+select = ["E", "F", "I", "B", "UP", "SIM"]
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+pythonpath = ["."]
+addopts = "--tb=short -q"
+markers = ["integration: needs docker runners"]

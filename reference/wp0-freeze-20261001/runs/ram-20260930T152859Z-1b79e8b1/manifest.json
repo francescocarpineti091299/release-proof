@@ -1,0 +1,13 @@
+{
+  "run_id": "ram-20260930T152859Z-1b79e8b1",
+  "phase": "ram_stack",
+  "elf": "/home/carpy/.cache/firmware-migration-assurance/workbench/wolfBoot/wolfboot.elf",
+  "size_output": "   text\t   data\t    bss\t    dec\t    hex\tfilename\n  22744\t     96\t     40\t  22880\t   5960\t/home/carpy/.cache/firmware-migration-assurance/workbench/wolfBoot/wolfboot.elf\n",
+  "probe": {
+    "status": "CONCLUSIVE",
+    "method": "compiler_stack_usage_via_arm_none_eabi_size",
+    "acquisition_mode": "STATIC_ANALYSIS",
+    "limitations": "Section sizes only; not physical stack painting",
+    "run_id": "ram-20260930T152859Z-1b79e8b1"
+  }
+}

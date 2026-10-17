@@ -1,0 +1,12 @@
+{
+  "run_id": "ram-20261001T070402Z-3395f699",
+  "phase": "ram_stack",
+  "ram_length": "64K",
+  "probe": {
+    "status": "CONCLUSIVE",
+    "method": "static_linker_ram_region",
+    "acquisition_mode": "STATIC_ANALYSIS",
+    "limitations": "Declared RAM region from the linker script. Not compiler stack usage and not stack painting.",
+    "run_id": "ram-20261001T070402Z-3395f699"
+  }
+}

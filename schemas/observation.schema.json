@@ -1,0 +1,100 @@
+{
+  "$defs": {
+    "Origin": {
+      "enum": [
+        "MEASURED_TOOL",
+        "OBSERVED_EMULATION",
+        "DECLARED",
+        "AI_PROPOSAL"
+      ],
+      "title": "Origin",
+      "type": "string"
+    }
+  },
+  "additionalProperties": false,
+  "properties": {
+    "acquisition_mode": {
+      "description": "V1.2 acquisition_mode, e.g. EMULATED, STATIC_ARTIFACT, STATIC_CONFIG, SOURCE_INSPECTION, SIGN_TOOL, BUILD, REPOSITORY",
+      "title": "Acquisition Mode",
+      "type": "string"
+    },
+    "fact": {
+      "title": "Fact",
+      "type": "string"
+    },
+    "locator": {
+      "anyOf": [
+        {
+          "type": "string"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "default": null,
+      "description": "e.g. uart.log:L12-L14",
+      "title": "Locator"
+    },
+    "observation_id": {
+      "title": "Observation Id",
+      "type": "string"
+    },
+    "origin": {
+      "$ref": "#/$defs/Origin"
+    },
+    "parser": {
+      "description": "parser id@version",
+      "title": "Parser",
+      "type": "string"
+    },
+    "source_artifact_ids": {
+      "items": {
+        "type": "string"
+      },
+      "title": "Source Artifact Ids",
+      "type": "array"
+    },
+    "subject": {
+      "enum": [
+        "deployed_state",
+        "candidate_state",
+        "transition",
+        "platform",
+        "toolchain"
+      ],
+      "title": "Subject",
+      "type": "string"
+    },
+    "test_id": {
+      "title": "Test Id",
+      "type": "string"
+    },
+    "unit": {
+      "anyOf": [
+        {
+          "type": "string"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "default": null,
+      "title": "Unit"
+    },
+    "value": {
+      "title": "Value"
+    }
+  },
+  "required": [
+    "observation_id",
+    "test_id",
+    "subject",
+    "fact",
+    "value",
+    "origin",
+    "acquisition_mode",
+    "parser"
+  ],
+  "title": "Observation",
+  "type": "object"
+}

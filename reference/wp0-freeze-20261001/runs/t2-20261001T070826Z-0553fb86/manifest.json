@@ -1,0 +1,32 @@
+{
+  "run_id": "t2-20261001T070826Z-0553fb86",
+  "experiment": "t2_interrupted_update",
+  "fault_injection_strategy": "pause_0.2s_after_update_image_start",
+  "injection_point": "after_update_image_loaded_at_0x60000_before_full_swap_window",
+  "trigger": "Renode sleep 0.2 after the second start, then pause",
+  "expected_observables": [
+    "uart_factory_mark",
+    "uart_update_mark"
+  ],
+  "outcomes": [
+    {
+      "executed": true,
+      "exit_code": 0,
+      "uart": {
+        "factory": true,
+        "update": false
+      }
+    },
+    {
+      "executed": true,
+      "exit_code": 0,
+      "uart": {
+        "factory": true,
+        "update": true
+      }
+    }
+  ],
+  "reproducibility": "NOT_REPEATABLE",
+  "status": "INCONCLUSIVE",
+  "notes": "Interrupts the application update. Bootloader self-update is a separate fact."
+}

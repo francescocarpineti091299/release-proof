@@ -1,0 +1,196 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "urn:pqc:defense:semantic-result:v1.2",
+  "title": "SemanticAssessmentResult V1.2",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "assessment_id",
+    "lifecycle",
+    "official",
+    "migration_verdict",
+    "candidate_verdict",
+    "transition_verdict",
+    "candidate_state_assurance",
+    "transition_plan_assurance",
+    "requirement_evaluation_results",
+    "invariant_evaluation_results",
+    "conditions",
+    "findings",
+    "explanation_graph",
+    "errors",
+    "canonical_hash"
+  ],
+  "properties": {
+    "assessment_id": {"type": "string"},
+    "lifecycle": {
+      "enum": ["DRAFT", "READY", "RUNNING", "COMPLETED", "BLOCKED", "INCOMPLETE"]
+    },
+    "official": {"const": false},
+    "migration_verdict": {"$ref": "#/$defs/verdict"},
+    "candidate_verdict": {"$ref": "#/$defs/verdict"},
+    "transition_verdict": {"$ref": "#/$defs/verdict"},
+    "candidate_state_assurance": {"$ref": "#/$defs/assurance"},
+    "transition_plan_assurance": {"$ref": "#/$defs/assurance"},
+    "requirement_evaluation_results": {
+      "type": "array",
+      "items": {"$ref": "#/$defs/requirementResult"}
+    },
+    "invariant_evaluation_results": {
+      "type": "array",
+      "items": {"$ref": "#/$defs/invariantResult"}
+    },
+    "conditions": {
+      "type": "array",
+      "items": {"$ref": "#/$defs/conditionEvaluation"}
+    },
+    "findings": {
+      "type": "array",
+      "items": {"$ref": "#/$defs/finding"}
+    },
+    "explanation_graph": {"$ref": "#/$defs/explanationGraph"},
+    "errors": {
+      "type": "array",
+      "items": {"type": "string"}
+    },
+    "canonical_hash": {
+      "type": "string",
+      "pattern": "^sha256:[0-9a-f]{64}$"
+    }
+  },
+  "$defs": {
+    "verdict": {
+      "type": ["string", "null"],
+      "enum": ["COMPATIBLE", "CONDITIONAL", "INDETERMINATE", "INCOMPATIBLE", null]
+    },
+    "assurance": {
+      "type": ["object", "null"],
+      "additionalProperties": false,
+      "required": ["verdict"],
+      "properties": {
+        "verdict": {
+          "enum": ["COMPATIBLE", "CONDITIONAL", "INDETERMINATE", "INCOMPATIBLE"]
+        }
+      }
+    },
+    "requirementResult": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "requirement_id",
+        "phase",
+        "subject_type",
+        "subject_ref",
+        "state",
+        "critical_for_verdict",
+        "evidence_refs",
+        "gap_refs",
+        "rule_refs",
+        "provenance",
+        "findings"
+      ],
+      "properties": {
+        "requirement_id": {"type": "string"},
+        "phase": {"enum": ["CURRENT", "TRANSITION", "TARGET"]},
+        "subject_type": {"enum": ["STATE", "TRANSITION_STEP", "PLAN"]},
+        "subject_ref": {"type": "string"},
+        "state": {
+          "enum": ["SATISFIED", "VIOLATED", "UNKNOWN", "OPEN_CONDITION", "NOT_APPLICABLE"]
+        },
+        "critical_for_verdict": {"type": "boolean"},
+        "evidence_refs": {"type": "array", "items": {"type": "string"}},
+        "gap_refs": {"type": "array", "items": {"type": "string"}},
+        "rule_refs": {"type": "array", "items": {"type": "string"}},
+        "provenance": {"enum": ["MEASUREMENT", "DECLARATION", "GAP", "CONSTRAINT"]},
+        "findings": {
+          "type": "array",
+          "items": {"$ref": "#/$defs/finding"}
+        }
+      }
+    },
+    "invariantResult": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "invariant_id",
+        "phase",
+        "subject_type",
+        "subject_ref",
+        "state",
+        "critical_for_verdict",
+        "evidence_refs",
+        "gap_refs",
+        "rule_refs",
+        "provenance",
+        "findings"
+      ],
+      "properties": {
+        "invariant_id": {"type": "string"},
+        "phase": {"enum": ["CURRENT", "TRANSITION", "TARGET"]},
+        "subject_type": {"enum": ["STATE", "TRANSITION_STEP", "PLAN"]},
+        "subject_ref": {"type": "string"},
+        "state": {"enum": ["SATISFIED", "VIOLATED", "UNKNOWN"]},
+        "critical_for_verdict": {"type": "boolean"},
+        "evidence_refs": {"type": "array", "items": {"type": "string"}},
+        "gap_refs": {"type": "array", "items": {"type": "string"}},
+        "rule_refs": {"type": "array", "items": {"type": "string"}},
+        "provenance": {"enum": ["CONSTRAINT"]},
+        "findings": {"type": "array", "items": {"$ref": "#/$defs/finding"}}
+      }
+    },
+    "conditionEvaluation": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["condition_id", "step_id", "requirement_id", "allowed_by_profile"],
+      "properties": {
+        "condition_id": {"type": "string"},
+        "step_id": {"type": "string"},
+        "requirement_id": {"type": "string"},
+        "allowed_by_profile": {"type": "boolean"}
+      }
+    },
+    "finding": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["requirement_id", "observation"],
+      "properties": {
+        "requirement_id": {"type": "string"},
+        "observation": {"type": "string"}
+      }
+    },
+    "explanationGraph": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["nodes", "edges"],
+      "properties": {
+        "nodes": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "additionalProperties": false,
+            "required": ["id", "type"],
+            "properties": {
+              "id": {"type": "string"},
+              "type": {"type": "string"},
+              "verdict": {"type": "string"},
+              "kind": {"type": ["string", "null"]}
+            }
+          }
+        },
+        "edges": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "additionalProperties": false,
+            "required": ["from", "to", "relation"],
+            "properties": {
+              "from": {"type": "string"},
+              "to": {"type": "string"},
+              "relation": {"type": "string"}
+            }
+          }
+        }
+      }
+    }
+  }
+}

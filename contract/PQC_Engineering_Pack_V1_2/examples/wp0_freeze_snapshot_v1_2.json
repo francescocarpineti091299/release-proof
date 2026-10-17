@@ -1,0 +1,44 @@
+{
+  "freeze_at": "2026-10-01T07:09:31Z",
+  "board": "nRF52840",
+  "renode_platform": "nrf52840",
+  "wolfboot_commit": "4c79eee999b7083743811f37928322fe78b9fdb1",
+  "wolfcrypt_commit": "4aa1ad7a5b4f7be86d88cc26fe3880a31ff7de9f",
+  "partition_size_bytes": 262144,
+  "ecdsa": {
+    "signed_image_size_bytes": 840,
+    "unsigned_payload_size_bytes": 584,
+    "header_span_measured_bytes": 256,
+    "sector_size_bytes": 4096,
+    "bootloader_size_bytes": 23652,
+    "run_id": "g1-1-20261001T070631Z-d240aafd"
+  },
+  "mldsa87": {
+    "signed_image_size_bytes": 12876,
+    "unsigned_payload_size_bytes": 588,
+    "header_span_measured_bytes": 12288,
+    "image_header_size_declared": 12288,
+    "sector_size_bytes": 12288,
+    "bootloader_size_bytes": 22840,
+    "run_id": "g2-2-20261001T070236Z-c16fefd2"
+  },
+  "experiments": {
+    "t1_self_update_run_id": "t1-20261001T070826Z-3d2346b1",
+    "t1_bootloader_self_update_supported": false,
+    "t3_run_id": "t3-20261001T070859Z-028f05b9",
+    "t3_dual_build": "BUILD_FAILED",
+    "t3_dual_configuration": "UNSUPPORTED_CONFIGURATION_ON_FROZEN_COMMIT",
+    "t3_key_mismatch": "REJECT"
+  },
+  "a4_oversized": {
+    "measured_from_artifact": false,
+    "sign_refused": true,
+    "signing_result": "REJECTED",
+    "unsigned_payload_size_bytes": 250112,
+    "image_header_size_bytes": 12288,
+    "requested_image_size_bytes": 262400,
+    "max_signable_image_size_bytes": 249856,
+    "run_id": "a4-20261001T082614Z-047ee1bc",
+    "notes": "sign refused: Image size 262400 (header 12288 + firmware 250112) exceeds max 249856 (WOLFBOOT_PARTITION_SIZE 262144 - 1 x sector 12288). No signed file was emitted."
+  }
+}

@@ -1,0 +1,46 @@
+{
+  "run_id": "g2-3-20261001T070024Z-08225fca",
+  "phase": "g2_mldsa",
+  "clone_path": "/home/carpy/.cache/firmware-migration-assurance/workbench/wolfBoot",
+  "make_args": [
+    "SIGN=ML_DSA",
+    "ML_DSA_LEVEL=5",
+    "WOLFBOOT_SMALL_STACK=0",
+    "IMAGE_SIGNATURE_SIZE=4627",
+    "IMAGE_HEADER_SIZE=12288",
+    "WOLFBOOT_SECTOR_SIZE=0x3000"
+  ],
+  "build_attempted": true,
+  "sign_attempted": true,
+  "renode_attempted": true,
+  "boot_observed": true,
+  "uart_pattern": "Factory img: OK",
+  "artifacts": {
+    "wolfboot.bin": {
+      "path": "/mnt/c/Users/carpy/Desktop/ProgettiPersonali/firmware-migration-assurance/wp0/runs/g2-3-20261001T070024Z-08225fca/artifacts/wolfboot.bin",
+      "size_bytes": 22840,
+      "content_hash": "sha256:276ab14925d250cf794c789e948a825a2600d66f7d151cf88290daee734d2cde"
+    },
+    "wolfboot.elf": {
+      "path": "/mnt/c/Users/carpy/Desktop/ProgettiPersonali/firmware-migration-assurance/wp0/runs/g2-3-20261001T070024Z-08225fca/artifacts/wolfboot.elf",
+      "size_bytes": 172972,
+      "content_hash": "sha256:51ed5e9a884a63d10ce8561214ae36124985037495e5994c073bb9a990ec25e6"
+    },
+    "test-app/image.bin": {
+      "path": "/mnt/c/Users/carpy/Desktop/ProgettiPersonali/firmware-migration-assurance/wp0/runs/g2-3-20261001T070024Z-08225fca/artifacts/test-app_image.bin",
+      "size_bytes": 588,
+      "content_hash": "sha256:920c5bf54c0745a1504b7bf44ea70dbc374d22557e1cd13e402b839694845172"
+    },
+    "test-app/image_v1_signed.bin": {
+      "path": "/mnt/c/Users/carpy/Desktop/ProgettiPersonali/firmware-migration-assurance/wp0/runs/g2-3-20261001T070024Z-08225fca/artifacts/test-app_image_v1_signed.bin",
+      "size_bytes": 12876,
+      "content_hash": "sha256:c886ba118fe76e0ddbf572b48ce30b77fd60e088821f4f99d1a0d0307adc0849"
+    }
+  },
+  "platform_dir": "/home/carpy/.cache/firmware-migration-assurance/workbench/wolfBoot",
+  "config": "config/examples/nrf52840.config",
+  "renode_script": "tools/renode/nrf52840_wolfboot.resc",
+  "config_text": "ARCH?=ARM\nTARGET?=nrf52\nSIGN?=ECC256\nHASH?=SHA256\nDEBUG?=0\nDEBUG_UART?=1\nVTOR?=1\nCORTEX_M0?=0\nNO_ASM?=0\nNO_MPU=1\nEXT_FLASH?=0\nSPI_FLASH?=0\nALLOW_DOWNGRADE?=0\nNVM_FLASH_WRITEONCE?=0\nWOLFBOOT_VERSION?=0\nV?=0\nSPMATH?=1\nRAM_CODE?=0\nDUALBANK_SWAP?=0\nPKA?=0\nWOLFBOOT_PARTITION_SIZE?=0x40000\nWOLFBOOT_SECTOR_SIZE?=0x1000\nWOLFBOOT_PARTITION_BOOT_ADDRESS?=0x20000\nWOLFBOOT_PARTITION_UPDATE_ADDRESS?=0x60000\nWOLFBOOT_PARTITION_SWAP_ADDRESS?=0xe0000\n",
+  "build_exit_code": 0,
+  "signed_image_size": 12876
+}

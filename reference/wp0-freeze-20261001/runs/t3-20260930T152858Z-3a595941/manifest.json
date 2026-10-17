@@ -1,0 +1,49 @@
+{
+  "run_id": "t3-20260930T152858Z-3a595941",
+  "experiment": "t3_transitional_signature",
+  "static_inspection": {
+    "dual_header_fields": [
+      "hal/versal.h",
+      "hal/mpfs250_ddr.c",
+      "hal/pic32c.h",
+      "hal/pic32cz.c",
+      "hal/pic32c.c",
+      "hal/stm32l5.c",
+      "hal/stm32f7.c",
+      "hal/stm32h5.c",
+      "hal/zynq.h",
+      "hal/imx_rt.c",
+      "hal/stm32_tz.c",
+      "hal/pic32ck.c",
+      "hal/sim.c",
+      "hal/psoc6.c",
+      "hal/mpfs250.c"
+    ],
+    "verifier_symbols": [
+      "hal/mpfs250_ddr.c",
+      "hal/pic32cz.c",
+      "hal/renesas-rz.c",
+      "hal/nrf5340.c",
+      "hal/zynq7000.c",
+      "hal/aurix_tc3xx.c",
+      "hal/aurix_tc4xx.c",
+      "hal/library_fs.c",
+      "hal/sim.c",
+      "hal/nxp_lpc54s0xx.c",
+      "hal/mpfs250.c",
+      "hal/hal.c",
+      "hal/versal.c",
+      "hal/mpfs250.h",
+      "hal/mcxn.c"
+    ]
+  },
+  "behavioral_matrix": {
+    "ecdsa_only": "NOT_EXECUTED",
+    "mldsa_only": "NOT_EXECUTED",
+    "dual": "NOT_EXECUTED",
+    "key_mismatch": "NOT_EXECUTED"
+  },
+  "secondary_signature_behavior": null,
+  "status": "INCONCLUSIVE",
+  "notes": "Behavioral matrix requires signed image variants; semantics not inferred from config alone"
+}

@@ -1,0 +1,414 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "urn:pqc:defense:assessment:v1.2",
+  "title": "PQC Firmware Migration Assurance Assessment V1.2",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "assessment_id",
+    "contract_version",
+    "created_at",
+    "lifecycle",
+    "profile",
+    "platform_model",
+    "deployed_state",
+    "candidate_state",
+    "allowed_change_set",
+    "transition_plan"
+  ],
+  "properties": {
+    "assessment_id": {"type": "string", "minLength": 1},
+    "contract_version": {"const": "1.2"},
+    "created_at": {"type": "string"},
+    "lifecycle": {
+      "enum": ["DRAFT", "READY", "RUNNING", "COMPLETED", "BLOCKED", "INCOMPLETE"]
+    },
+    "canonical_hash": {
+      "type": "string",
+      "description": "Computed JCS identity of this assessment with only this top-level field omitted. Not a version pin and not an artifact byte hash."
+    },
+    "observed_recovery_mode": {
+      "enum": ["AUTOMATIC", "FIELD_SERVICE", "DEPOT_PHYSICAL_REFLASH", "NONE", "UNKNOWN"]
+    },
+    "profile": {"$ref": "#/$defs/profile"},
+    "platform_model": {"$ref": "#/$defs/platform"},
+    "deployed_state": {"$ref": "#/$defs/state"},
+    "candidate_state": {"$ref": "#/$defs/state"},
+    "allowed_change_set": {"$ref": "#/$defs/changeSet"},
+    "derived_effects": {
+      "type": "array",
+      "items": {"$ref": "#/$defs/derivedEffect"}
+    },
+    "transition_plan": {"$ref": "#/$defs/plan"},
+    "invariants": {
+      "type": "array",
+      "items": {"$ref": "#/$defs/invariantDef"}
+    },
+    "evidence": {
+      "type": "array",
+      "items": {"$ref": "#/$defs/evidence"}
+    },
+    "evidence_gaps": {
+      "type": "array",
+      "items": {"$ref": "#/$defs/gap"}
+    },
+    "coverage_assertions": {
+      "type": "array",
+      "items": {"$ref": "#/$defs/coverage"}
+    },
+    "ruleset_ref": {"$ref": "#/$defs/versionedRef"}
+  },
+  "$defs": {
+    "versionedRef": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["id", "version", "hash"],
+      "properties": {
+        "id": {"type": "string"},
+        "version": {"type": "string"},
+        "hash": {
+          "type": "string",
+          "description": "External version pin supplied with the referenced artifact. The engine does not recompute it."
+        }
+      }
+    },
+    "combination": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "evidence_kind": {"type": "array", "items": {"type": "string"}},
+        "source_role": {"type": "array", "items": {"type": "string"}},
+        "authority_context": {"type": "array", "items": {"type": "string"}},
+        "acquisition_mode": {"type": "array", "items": {"type": "string"}},
+        "review_status": {"type": "array", "items": {"type": "string"}}
+      }
+    },
+    "evidenceGroup": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["role", "min_satisfied", "accepted_combinations"],
+      "properties": {
+        "role": {"type": "string"},
+        "min_satisfied": {"type": "integer", "minimum": 1},
+        "accepted_combinations": {
+          "type": "array",
+          "minItems": 1,
+          "items": {"$ref": "#/$defs/combination"}
+        }
+      }
+    },
+    "evidencePolicy": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["required_evidence_groups"],
+      "properties": {
+        "required_evidence_groups": {
+          "type": "array",
+          "minItems": 1,
+          "items": {"$ref": "#/$defs/evidenceGroup"}
+        },
+        "operational_precondition_allowed": {"type": "boolean"}
+      }
+    },
+    "requirement": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "id",
+        "risk_category",
+        "applicable_phase",
+        "critical_for_verdict",
+        "criterion",
+        "scope_status",
+        "acceptable_evidence_policy"
+      ],
+      "properties": {
+        "id": {"type": "string"},
+        "risk_category": {"type": "string"},
+        "applicable_phase": {
+          "type": "array",
+          "minItems": 1,
+          "items": {"enum": ["CURRENT", "TRANSITION", "TARGET"]}
+        },
+        "applicable_subject_types": {
+          "type": "array",
+          "items": {"enum": ["STATE", "TRANSITION_STEP", "PLAN"]}
+        },
+        "critical_for_verdict": {"type": "boolean"},
+        "severity": {"type": ["string", "null"]},
+        "criterion": {"type": "string"},
+        "scope_status": {"enum": ["IN_SCOPE", "NOT_APPLICABLE", "OUT_OF_SCOPE"]},
+        "required_surface_ids": {"type": "array", "items": {"type": "string"}},
+        "rule_refs": {"type": "array", "items": {"type": "string"}},
+        "acceptable_evidence_policy": {"$ref": "#/$defs/evidencePolicy"}
+      }
+    },
+    "profile": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["id", "version", "hash", "requirements"],
+      "properties": {
+        "id": {"type": "string"},
+        "version": {"type": "string"},
+        "hash": {
+          "type": "string",
+          "description": "External version pin of the profile. Not the JCS digest."
+        },
+        "canonical_hash": {
+          "type": "string",
+          "description": "Optional publisher JCS digest of the profile. Not the assessment result hash."
+        },
+        "requirements": {"type": "array", "items": {"$ref": "#/$defs/requirement"}},
+        "acceptable_recovery_modes": {
+          "type": "array",
+          "items": {
+            "enum": ["AUTOMATIC", "FIELD_SERVICE", "DEPOT_PHYSICAL_REFLASH"]
+          }
+        },
+        "allowed_operational_preconditions": {
+          "type": "array",
+          "items": {"type": "string"}
+        }
+      }
+    },
+    "component": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["component_id", "component_type", "mutability"],
+      "properties": {
+        "component_id": {"type": "string"},
+        "component_type": {"type": "string"},
+        "mutability": {"type": "string"},
+        "attributes": {"type": "object"}
+      }
+    },
+    "authPath": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["path_id"],
+      "properties": {
+        "path_id": {"type": "string"},
+        "purpose": {"type": "string"},
+        "authorization_mode": {"type": "string"},
+        "component_refs": {"type": "array", "items": {"type": "string"}}
+      }
+    },
+    "platform": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["id", "version", "hash", "components"],
+      "properties": {
+        "id": {"type": "string"},
+        "version": {"type": "string"},
+        "hash": {
+          "type": "string",
+          "description": "External version pin of the platform model. Not the JCS digest."
+        },
+        "declared_surface_ids": {"type": "array", "items": {"type": "string"}},
+        "components": {"type": "array", "items": {"$ref": "#/$defs/component"}},
+        "authorization_paths": {"type": "array", "items": {"$ref": "#/$defs/authPath"}},
+        "recovery_modes": {
+          "type": "array",
+          "items": {
+            "enum": [
+              "AUTOMATIC",
+              "FIELD_SERVICE",
+              "DEPOT_PHYSICAL_REFLASH",
+              "NONE",
+              "UNKNOWN"
+            ]
+          }
+        }
+      }
+    },
+    "pathState": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["policy", "accepted_schemes"],
+      "properties": {
+        "policy": {
+          "enum": ["CLASSICAL_ONLY", "PQC_ONLY", "HYBRID_AND", "HYBRID_OR", "UNKNOWN"]
+        },
+        "accepted_schemes": {"type": "array", "items": {"type": "string"}}
+      }
+    },
+    "stateComponent": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["component_id", "configuration"],
+      "properties": {
+        "component_id": {"type": "string"},
+        "configuration": {"type": "object"}
+      }
+    },
+    "state": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["state_id", "components"],
+      "properties": {
+        "state_id": {"type": "string"},
+        "snapshot_hash": {"type": "string"},
+        "components": {"type": "array", "items": {"$ref": "#/$defs/stateComponent"}},
+        "authorization_path_states": {
+          "type": "object",
+          "additionalProperties": {"$ref": "#/$defs/pathState"}
+        },
+        "artifacts": {"type": "array"}
+      }
+    },
+    "changeSet": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["modifiable_components"],
+      "properties": {
+        "modifiable_components": {"type": "array", "items": {"type": "string"}},
+        "allowed_actions": {"type": "array", "items": {"type": "string"}}
+      }
+    },
+    "derivedEffect": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "effect_id",
+        "effect_type",
+        "target_ref",
+        "affected_field",
+        "derivation_rule_ref"
+      ],
+      "properties": {
+        "effect_id": {"type": "string"},
+        "effect_type": {"type": "string"},
+        "target_ref": {"type": "string"},
+        "affected_field": {"type": "string"},
+        "derivation_rule_ref": {"type": "string"}
+      }
+    },
+    "action": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["action_id", "action_type", "component_ref"],
+      "properties": {
+        "action_id": {"type": "string"},
+        "action_type": {"type": "string"},
+        "component_ref": {"type": "string"},
+        "parameters": {"type": "object"},
+        "derived_effect_refs": {"type": "array", "items": {"type": "string"}}
+      }
+    },
+    "condition": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["condition_id", "condition_type", "requirement_id"],
+      "properties": {
+        "condition_id": {"type": "string"},
+        "condition_type": {"type": "string"},
+        "requirement_id": {"type": "string"},
+        "closure_action": {"type": "string"},
+        "acceptance_criterion": {"type": "string"},
+        "responsible_role": {"type": "string"},
+        "environment": {"type": "string"},
+        "required_evidence": {"type": "string"}
+      }
+    },
+    "step": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["from", "to", "actions"],
+      "properties": {
+        "step_id": {"type": "string"},
+        "from": {"type": "string"},
+        "to": {"type": "string"},
+        "actions": {"type": "array", "items": {"$ref": "#/$defs/action"}},
+        "preconditions": {"type": "array", "items": {"$ref": "#/$defs/condition"}}
+      }
+    },
+    "plan": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["plan_id", "version", "hash", "states", "steps"],
+      "properties": {
+        "plan_id": {"type": "string"},
+        "version": {"type": "string"},
+        "hash": {
+          "type": "string",
+          "description": "External version pin of the declared plan. Not the JCS digest."
+        },
+        "states": {"type": "array", "items": {"$ref": "#/$defs/state"}},
+        "steps": {"type": "array", "items": {"$ref": "#/$defs/step"}}
+      }
+    },
+    "invariantDef": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["invariant_id", "critical_for_verdict", "evaluator_id"],
+      "properties": {
+        "invariant_id": {"type": "string"},
+        "critical_for_verdict": {"type": "boolean"},
+        "applicable_phase": {
+          "type": "array",
+          "items": {"enum": ["CURRENT", "TRANSITION", "TARGET"]}
+        },
+        "subject_type": {"enum": ["STATE", "TRANSITION_STEP", "PLAN"]},
+        "subject_ref": {"type": "string"},
+        "evaluator_id": {"type": "string"},
+        "rule_refs": {"type": "array", "items": {"type": "string"}}
+      }
+    },
+    "evidence": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["id", "evidence_kind"],
+      "properties": {
+        "id": {"type": "string"},
+        "evidence_kind": {"enum": ["MEASUREMENT", "DECLARATION", "INFERENCE"]},
+        "source_role": {"type": "string"},
+        "authority_context": {"type": "string"},
+        "acquisition_mode": {"type": "string"},
+        "review_status": {"type": "string"},
+        "status": {"type": "string"},
+        "source_identity": {"type": "string"},
+        "value": {},
+        "test_id": {"type": "string"},
+        "run_id": {"type": "string"},
+        "artifact_refs": {"type": "array", "items": {"type": "string"}},
+        "content_hash": {
+          "type": "string",
+          "description": "Digest of the raw artifact bytes. Preserved inside canonicalization; not a canonical_hash."
+        }
+      }
+    },
+    "gap": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["gap_id", "requirement_id", "reason"],
+      "properties": {
+        "gap_id": {"type": "string"},
+        "requirement_id": {"type": "string"},
+        "gap_type": {"type": "string"},
+        "reason": {"type": "string"},
+        "critical": {"type": "boolean"},
+        "requested_evidence": {"type": "string"}
+      }
+    },
+    "coverage": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["assertion_id", "claimed_items"],
+      "properties": {
+        "assertion_id": {"type": "string"},
+        "claimed_items": {"type": "array", "items": {"type": "string"}},
+        "subject": {"type": "string"},
+        "scope": {"type": "string"},
+        "source_role": {"type": "string"},
+        "authority_context": {"type": "string"},
+        "source_ref": {"type": "string"},
+        "timestamp": {"type": "string"},
+        "review_status": {"type": "string"},
+        "content_hash": {
+          "type": "string",
+          "description": "Digest of the raw source bytes. Preserved inside canonicalization; not a canonical_hash."
+        }
+      }
+    }
+  }
+}

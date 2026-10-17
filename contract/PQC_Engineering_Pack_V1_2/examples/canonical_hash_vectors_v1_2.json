@@ -1,0 +1,40 @@
+{
+  "version": "1.2",
+  "algorithm": "RFC8785-JCS then SHA-256 UTF-8",
+  "omit_top_level_field": "canonical_hash",
+  "vectors": [
+    {
+      "id": "HV01",
+      "description": "key order differs, same canonical_hash",
+      "objects": [
+        {"b": 2, "a": 1, "canonical_hash": "ignore-me"},
+        {"a": 1, "b": 2}
+      ],
+      "expected_equal": true,
+      "expected_canonical_json": "{\"a\":1,\"b\":2}",
+      "expected_sha256": "sha256:43258cff783fe7036d8a43033f830adfc60ec037382473548ac742b888292777"
+    },
+    {
+      "id": "HV02",
+      "description": "omit only top-level canonical_hash before hash",
+      "object": {"id": "x", "value": 1},
+      "with_hash_field": {"id": "x", "value": 1, "canonical_hash": "sha256:placeholder"},
+      "expected_canonical_json": "{\"id\":\"x\",\"value\":1}",
+      "expected_sha256": "sha256:85a0389d158dcf35ec21e18a034345a4faa8851923c286bd6a88e5e95213d256"
+    },
+    {
+      "id": "HV03",
+      "description": "nested content_hash preserved",
+      "object": {"id": "y", "artifact": {"content_hash": "sha256:abc"}},
+      "expected_canonical_json": "{\"artifact\":{\"content_hash\":\"sha256:abc\"},\"id\":\"y\"}",
+      "expected_sha256": "sha256:4b76f64fae6d94ea78becdec47092968ba0387f66d2cb4ee78824999779061ed"
+    },
+    {
+      "id": "HV04",
+      "description": "unicode and numeric normalization per JCS",
+      "object": {"n": 1.0, "s": "café"},
+      "expected_canonical_json": "{\"n\":1,\"s\":\"café\"}",
+      "expected_sha256": "sha256:4d4607cee76ee87a9184962fd495adcf119ac00aae0c22f3c5833195163a70e9"
+    }
+  ]
+}

@@ -1,0 +1,98 @@
+{
+  "version": "1.2",
+  "purpose": "Cross-object semantic validator cases; JSON Schema validity alone is insufficient.",
+  "base_fixture": "minimal_valid_assessment_v1_2.json",
+  "cases": [
+    {
+      "id": "SV01",
+      "mutation": "transition_plan final state snapshot differs from candidate_state",
+      "expected_lifecycle": "BLOCKED",
+      "expected_verdict": null
+    },
+    {
+      "id": "SV02",
+      "mutation": "transition action references nonexistent component_id",
+      "expected_lifecycle": "BLOCKED",
+      "expected_verdict": null
+    },
+    {
+      "id": "SV03",
+      "mutation": "valid action targets existing component outside AllowedChangeSet",
+      "expected_lifecycle": "COMPLETED",
+      "expected_verdict": "INCOMPATIBLE"
+    },
+    {
+      "id": "SV04",
+      "mutation": "critical fact explicitly UNKNOWN with reason/evidence gap",
+      "expected_lifecycle": "COMPLETED",
+      "expected_verdict": "INDETERMINATE"
+    },
+    {
+      "id": "SV05",
+      "mutation": "disallowed operational precondition used to avoid critical violation",
+      "expected_lifecycle": "COMPLETED",
+      "expected_verdict": "INCOMPATIBLE"
+    },
+    {
+      "id": "SV06",
+      "mutation": "TARGET requirement UNKNOWN but candidate assurance would be COMPATIBLE",
+      "expected_lifecycle": "COMPLETED",
+      "expected_verdict": "INDETERMINATE"
+    },
+    {
+      "id": "SV07",
+      "mutation": "CoverageAssertion claims unknown surface id",
+      "expected_lifecycle": "BLOCKED",
+      "expected_verdict": null
+    },
+    {
+      "id": "SV08",
+      "mutation": "S0 to S1 keystore change without action or derived effect",
+      "expected_lifecycle": "BLOCKED",
+      "expected_verdict": null
+    },
+    {
+      "id": "SV09",
+      "mutation": "client sends allowed_by_profile true but profile does not allow condition",
+      "expected_lifecycle": "BLOCKED",
+      "expected_verdict": null
+    },
+    {
+      "id": "SV10",
+      "mutation": "critical invariant applicable but no invariant evaluation result",
+      "expected_lifecycle": "INCOMPLETE",
+      "expected_verdict": null
+    },
+    {
+      "id": "SV11",
+      "mutation": "only CONDITION_CLOSURE evidence without HAZARD_OBSERVATION group",
+      "expected_lifecycle": "COMPLETED",
+      "expected_verdict": "CONDITIONAL"
+    },
+    {
+      "id": "SV12",
+      "mutation": "canonical_hash stable under key reorder",
+      "expected_lifecycle": null,
+      "expected_verdict": null,
+      "type": "hash_vector"
+    },
+    {
+      "id": "SV13",
+      "mutation": "TRANSITION_STEP scoped result must not aggregate as STATE",
+      "expected_lifecycle": "COMPLETED",
+      "expected_verdict": "INDETERMINATE"
+    },
+    {
+      "id": "SV14",
+      "mutation": "observed recovery DEPOT_PHYSICAL_REFLASH but profile accepts only FIELD_SERVICE",
+      "expected_lifecycle": "COMPLETED",
+      "expected_verdict": "INCOMPATIBLE"
+    },
+    {
+      "id": "SV15",
+      "mutation": "declaration closes requirement with declaration provenance path only",
+      "expected_lifecycle": "COMPLETED",
+      "expected_verdict": "COMPATIBLE"
+    }
+  ]
+}

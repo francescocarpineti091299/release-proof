@@ -1,0 +1,8 @@
+{
+  "run_id": "a4-20261001T082541Z-7610de44",
+  "experiment": "a4_oversized_layout",
+  "status": "BUILD_FAILED",
+  "signed_image_emitted": false,
+  "returncode": 2,
+  "notes": "G2 make did not produce test-app/image.bin."
+}

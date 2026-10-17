@@ -1,0 +1,16 @@
+{
+  "run_id": "t1-20260930T152858Z-4adfa712",
+  "experiment": "t1_self_update",
+  "authorization_mechanism_observed": null,
+  "path_reproducible": true,
+  "supported": null,
+  "notes": "Static paths found; behavioral proof not executed in this run",
+  "static_hits": [
+    "config/examples/sim-self-update-monolithic.config",
+    "config/examples/sim-self-update.config",
+    "config/examples/sim-self-update-ext.config",
+    "config/examples/aurix-tc375-hsm-self-update-wolfHSM-certs-rsa4096.config",
+    ".github/workflows/test-sim-self-update.yml"
+  ],
+  "status": "INCONCLUSIVE"
+}

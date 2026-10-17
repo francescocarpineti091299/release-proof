@@ -1,0 +1,71 @@
+{
+  "version": "1.0",
+  "description": "Data-driven gap closure hints. Interpreted by src.planner; not normative ruleset.",
+  "entries": [
+    {
+      "match": { "gap_id": "GAP-O05-DUAL-POLICY" },
+      "evidence_requirement_id": "ER-AUTH-POLICY",
+      "label": "Authorization policy characterization",
+      "suggested_test_id": "O05",
+      "suggested_open_question": "O05",
+      "default_status": "NOT_EXECUTABLE",
+      "default_reason": "Dual signature build failed on frozen commit; AND/OR not observed"
+    },
+    {
+      "match": { "gap_id": "GAP-E10-INTERRUPT" },
+      "evidence_requirement_id": "ER-INTERRUPTED-UPDATE",
+      "label": "Interrupted update with observed recovery",
+      "suggested_test_id": "E10",
+      "default_status": "NOT_EXECUTABLE",
+      "default_reason": "T2 interruption not repeatable on frozen point"
+    },
+    {
+      "match": { "gap_id": "GAP-E12-NON-ATOMIC" },
+      "evidence_requirement_id": "ER-NON-ATOMIC-WINDOW",
+      "label": "Non-atomic update window handled",
+      "suggested_test_id": "E12",
+      "default_status": "NOT_EXECUTABLE",
+      "default_reason": "Non-atomic window not observed on frozen commit"
+    },
+    {
+      "match": { "gap_id": "GAP-E07-RAM" },
+      "evidence_requirement_id": "ER-RAM-STACK",
+      "label": "RAM/stack beyond linker region",
+      "suggested_test_id": "E07",
+      "default_status": "NOT_EXECUTABLE",
+      "default_reason": "Stack painting not run; linker region only"
+    },
+    {
+      "match": { "requirement_id": "INV-I2", "state": "UNKNOWN" },
+      "evidence_requirement_id": "ER-RECOVERY-MODE",
+      "label": "Observed recovery mode",
+      "suggested_test_id": "E12",
+      "default_status": "MISSING",
+      "default_reason": "Recovery mode not observed on assessment"
+    },
+    {
+      "match": { "requirement_id": "INV-I3", "state": "UNKNOWN" },
+      "evidence_requirement_id": "ER-AUTH-POLICY",
+      "label": "Authorization policy on critical path",
+      "suggested_test_id": "O05",
+      "default_status": "MISSING",
+      "default_reason": "Policy UNKNOWN on candidate or transition states"
+    },
+    {
+      "match": { "requirement_id": "INV-I4", "state": "UNKNOWN" },
+      "evidence_requirement_id": "ER-NON-ATOMIC-WINDOW",
+      "label": "Non-atomic window evidence",
+      "suggested_test_id": "E12",
+      "default_status": "MISSING",
+      "default_reason": "I4 requires E10/E12 or equivalent measurement"
+    },
+    {
+      "match": { "requirement_id": "REQ-MAINTENANCE-WINDOW", "state": "OPEN_CONDITION" },
+      "evidence_requirement_id": "ER-MAINTENANCE-WINDOW",
+      "label": "Maintenance window still open",
+      "suggested_test_id": "E10",
+      "default_status": "MISSING",
+      "default_reason": "Operational maintenance precondition admitted but not yet closed"
+    }
+  ]
+}

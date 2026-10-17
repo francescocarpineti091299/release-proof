@@ -1,0 +1,67 @@
+{
+  "$defs": {
+    "PlannedTest": {
+      "additionalProperties": false,
+      "properties": {
+        "params": {
+          "additionalProperties": true,
+          "title": "Params",
+          "type": "object"
+        },
+        "template_id": {
+          "title": "Template Id",
+          "type": "string"
+        }
+      },
+      "required": [
+        "template_id"
+      ],
+      "title": "PlannedTest",
+      "type": "object"
+    }
+  },
+  "additionalProperties": false,
+  "properties": {
+    "artifact_dir": {
+      "description": "Absolute path (shared volume) for this run's artifacts",
+      "title": "Artifact Dir",
+      "type": "string"
+    },
+    "change_id": {
+      "title": "Change Id",
+      "type": "string"
+    },
+    "profile_id": {
+      "title": "Profile Id",
+      "type": "string"
+    },
+    "run_id": {
+      "pattern": "^[A-Za-z0-9_.-]{6,80}$",
+      "title": "Run Id",
+      "type": "string"
+    },
+    "tests": {
+      "items": {
+        "$ref": "#/$defs/PlannedTest"
+      },
+      "title": "Tests",
+      "type": "array"
+    },
+    "timeout_seconds": {
+      "default": 900,
+      "maximum": 3600,
+      "minimum": 30,
+      "title": "Timeout Seconds",
+      "type": "integer"
+    }
+  },
+  "required": [
+    "run_id",
+    "profile_id",
+    "change_id",
+    "tests",
+    "artifact_dir"
+  ],
+  "title": "RunnerRequest",
+  "type": "object"
+}

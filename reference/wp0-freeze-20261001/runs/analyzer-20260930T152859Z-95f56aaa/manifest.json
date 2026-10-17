@@ -1,0 +1,27 @@
+{
+  "run_id": "analyzer-20260930T152859Z-95f56aaa",
+  "phase": "analyzer",
+  "artifact": "/home/carpy/.cache/firmware-migration-assurance/workbench/wolfBoot/wolfboot.bin",
+  "tool": "strings+crypto_heuristic",
+  "hits": {
+    "Component": [],
+    "CryptoAsset": [
+      "info: ML-DSA %d verify_signature: pubkey %d, sig %d",
+      "error: ML-DSA pubkey not found",
+      "error: wc_MlDsaKey_Init returned %d",
+      "error: wc_MlDsaKey_SetParams(%d) returned %d",
+      "error: wc_MlDsaKey_GetPubLen returned %d"
+    ],
+    "AuthorizationSurface": [],
+    "ArtifactRelation": []
+  },
+  "probe": {
+    "status": "CONCLUSIVE",
+    "tool": "strings+crypto_heuristic",
+    "normalized_entities": [
+      "CryptoAsset"
+    ],
+    "run_id": "analyzer-20260930T152859Z-95f56aaa",
+    "notes": "Reproducible heuristic signals; replace with Ghidra if needed"
+  }
+}

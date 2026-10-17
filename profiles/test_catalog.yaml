@@ -1,0 +1,127 @@
+version: "1.0"
+tests:
+  D01: Source, toolchain and configuration discovery
+  E01: Current (deployed) state boots with the classical signature
+  E02: Candidate state boots with the post-quantum signature
+  E03: Image with an invalid signature is rejected
+  E04: Image header and manifest coherence
+  E05: Signed image fits the boot slot
+  E08: Valid firmware update is applied
+  E11: Bootloader can be updated in the field
+  E12: Interrupted bootloader update recovers (non-atomic window)
+  O05: Dual-signature (hybrid) policy builds and is observable
+  P01: Candidate bootloader rejects classically-signed images (PQC-only policy)
+  X01: Deployed bootloader receives a candidate-signed update (cross-generation)
+templates:
+  # ------------------------------------------------------------------ wolfBoot
+  - template_id: wolfboot.discover
+    test_id: D01
+    family: wolfboot
+    title: Discover pinned source, toolchain and partition layout
+    description: Records wolfBoot/wolfCrypt commits, tool versions and the nRF52840 partition map from the pinned config.
+    expected: Pins and layout recorded
+    est_seconds: 5
+  - template_id: wolfboot.self_update_capability
+    test_id: E11
+    family: wolfboot
+    title: Bootloader self-update capability (source inspection)
+    description: Inspects the pinned HAL and example configs for a supported bootloader self-update path on this board.
+    expected: Capability recorded as SUPPORTED or UNSUPPORTED
+    est_seconds: 5
+  - template_id: wolfboot.boot_current
+    test_id: E01
+    family: wolfboot
+    title: Build, sign and boot the current ECDSA P-256 image
+    description: Builds wolfBoot with SIGN=ECC256, signs v1 and v2 test images, boots v1 in Renode and applies the v2 update.
+    expected: Version 1 boots; version 2 update applied
+    est_seconds: 60
+  - template_id: wolfboot.boot_candidate
+    test_id: E02
+    family: wolfboot
+    title: Build, sign and boot the candidate ML-DSA-87 image
+    description: Builds wolfBoot with SIGN=ML_DSA level 5, signs images, boots in Renode and measures signed size against the boot slot.
+    expected: Version 1 boots; signed image fits the slot
+    est_seconds: 70
+  - template_id: wolfboot.tampered_image_rejected
+    test_id: E03
+    family: wolfboot
+    title: Tampered image is rejected (negative)
+    description: Flips one byte of the signed factory image and boots it; the bootloader must refuse it.
+    negative: true
+    expected: Boot refused (no application version frame)
+    est_seconds: 40
+  - template_id: wolfboot.cross_generation_update
+    test_id: X01
+    family: wolfboot
+    title: Deployed ECDSA bootloader receives an ML-DSA-signed update (negative)
+    description: Boots the deployed ECDSA bootloader with a v1 ECDSA image and stages a v2 update signed with ML-DSA-87.
+    negative: true
+    expected: Update not applied (device stays on version 1)
+    est_seconds: 70
+  - template_id: wolfboot.candidate_rejects_classical
+    test_id: P01
+    family: wolfboot
+    title: Candidate ML-DSA bootloader rejects an ECDSA-signed image (negative)
+    description: Boots the candidate ML-DSA-87 bootloader with an ECDSA-signed factory image to observe the authorization policy.
+    negative: true
+    expected: Boot refused (PQC-only policy observed)
+    est_seconds: 50
+  - template_id: wolfboot.dual_signature_build
+    test_id: O05
+    family: wolfboot
+    title: Hybrid dual-signature build (ECDSA + ML-DSA)
+    description: Attempts SIGN=ECC256 SIGN_SECONDARY=ML_DSA on the pinned commit.
+    expected: Build outcome recorded
+    est_seconds: 60
+  # ------------------------------------------------------------------ MCUboot
+  - template_id: mcuboot.discover
+    test_id: D01
+    family: mcuboot
+    title: Discover pinned source, toolchain, partitions and signing algorithms
+    description: Records Zephyr/MCUboot pins, the flash partition map from zephyr.dts and the key types supported by imgtool.
+    expected: Pins, partitions and algorithms recorded
+    est_seconds: 10
+  - template_id: mcuboot.bootloader_update_capability
+    test_id: E11
+    family: mcuboot
+    title: Bootloader field-update capability (partition map + config)
+    description: Checks whether the built configuration provides any partition or mechanism to replace MCUboot in the field.
+    expected: Capability recorded as SUPPORTED or UNSUPPORTED
+    est_seconds: 5
+  - template_id: mcuboot.boot_current
+    test_id: E01
+    family: mcuboot
+    title: Build, sign and boot the current ECDSA P-256 image
+    description: Builds MCUboot (ECDSA P-256) and the demo application v1 with Zephyr, signs with imgtool and boots in Renode.
+    expected: MCUboot validates slot 0 and the application reports version 1
+    est_seconds: 120
+  - template_id: mcuboot.signed_update
+    test_id: E08
+    family: mcuboot
+    title: Valid signed update v1 -> v2 is applied
+    description: Stages a v2 image signed with the deployed key in slot 1 and reboots.
+    expected: MCUboot swaps and the application reports version 2
+    est_seconds: 60
+  - template_id: mcuboot.tampered_image_rejected
+    test_id: E03
+    family: mcuboot
+    title: Tampered update is rejected (negative)
+    description: Stages a v2 image with one flipped payload byte in slot 1 and reboots.
+    negative: true
+    expected: MCUboot rejects slot 1; version 1 keeps running
+    est_seconds: 60
+  - template_id: mcuboot.pqc_sign_attempt
+    test_id: E02
+    family: mcuboot
+    title: Produce a post-quantum (ML-DSA) signed image with the pinned imgtool
+    description: Attempts to generate an ML-DSA key and sign the candidate image with the pinned MCUboot imgtool.
+    expected: Signed image produced, or refusal recorded with the tool output
+    est_seconds: 10
+  - template_id: mcuboot.cross_key_update
+    test_id: X01
+    family: mcuboot
+    title: Deployed bootloader receives an update signed with a new key (negative)
+    description: Stages a v2 image signed with a key the deployed MCUboot does not embed and reboots.
+    negative: true
+    expected: MCUboot rejects the update; version 1 keeps running
+    est_seconds: 60

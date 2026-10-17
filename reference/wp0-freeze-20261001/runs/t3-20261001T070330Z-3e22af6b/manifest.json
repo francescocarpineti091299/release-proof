@@ -1,0 +1,13 @@
+{
+  "run_id": "t3-20261001T070330Z-3e22af6b",
+  "experiment": "t3_transitional_signature",
+  "behavioral_matrix": {
+    "ecdsa_only": "ACCEPT",
+    "mldsa_only": "ACCEPT",
+    "dual": "BUILD_FAILED",
+    "key_mismatch": "REJECT"
+  },
+  "secondary_signature_behavior": "UNSUPPORTED",
+  "status": "CONCLUSIVE",
+  "notes": "Single-algorithm boots come from G1 and G2. Dual semantics stay unset unless a dual image is booted."
+}

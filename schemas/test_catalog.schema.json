@@ -1,0 +1,93 @@
+{
+  "$defs": {
+    "TestTemplate": {
+      "additionalProperties": false,
+      "properties": {
+        "description": {
+          "title": "Description",
+          "type": "string"
+        },
+        "est_seconds": {
+          "minimum": 1,
+          "title": "Est Seconds",
+          "type": "integer"
+        },
+        "expected": {
+          "title": "Expected",
+          "type": "string"
+        },
+        "family": {
+          "enum": [
+            "wolfboot",
+            "mcuboot"
+          ],
+          "title": "Family",
+          "type": "string"
+        },
+        "negative": {
+          "default": false,
+          "title": "Negative",
+          "type": "boolean"
+        },
+        "params_schema": {
+          "additionalProperties": true,
+          "title": "Params Schema",
+          "type": "object"
+        },
+        "template_id": {
+          "title": "Template Id",
+          "type": "string"
+        },
+        "test_id": {
+          "description": "Bootloader-agnostic catalog test (E01, E02, E03, X01, ...)",
+          "title": "Test Id",
+          "type": "string"
+        },
+        "title": {
+          "title": "Title",
+          "type": "string"
+        }
+      },
+      "required": [
+        "template_id",
+        "test_id",
+        "family",
+        "title",
+        "description",
+        "expected",
+        "est_seconds"
+      ],
+      "title": "TestTemplate",
+      "type": "object"
+    }
+  },
+  "additionalProperties": false,
+  "properties": {
+    "templates": {
+      "items": {
+        "$ref": "#/$defs/TestTemplate"
+      },
+      "title": "Templates",
+      "type": "array"
+    },
+    "tests": {
+      "additionalProperties": {
+        "type": "string"
+      },
+      "description": "test_id -> generic meaning",
+      "title": "Tests",
+      "type": "object"
+    },
+    "version": {
+      "title": "Version",
+      "type": "string"
+    }
+  },
+  "required": [
+    "version",
+    "tests",
+    "templates"
+  ],
+  "title": "TestCatalog",
+  "type": "object"
+}

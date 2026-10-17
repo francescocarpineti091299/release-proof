@@ -1,0 +1,41 @@
+{
+  "run_id": "g1-2-20261001T070649Z-98d583d5",
+  "phase": "g1_ecdsa",
+  "clone_path": "/home/carpy/.cache/firmware-migration-assurance/workbench/wolfBoot",
+  "make_args": [
+    "SIGN=ECC256"
+  ],
+  "build_attempted": true,
+  "sign_attempted": true,
+  "renode_attempted": true,
+  "boot_observed": true,
+  "uart_pattern": "Factory img: OK",
+  "artifacts": {
+    "wolfboot.bin": {
+      "path": "/mnt/c/Users/carpy/Desktop/ProgettiPersonali/firmware-migration-assurance/wp0/runs/g1-2-20261001T070649Z-98d583d5/artifacts/wolfboot.bin",
+      "size_bytes": 23652,
+      "content_hash": "sha256:5315e2b51a1cfc53bc465c364743fc40c65df6f3f8112a3747b0940db32a5f27"
+    },
+    "wolfboot.elf": {
+      "path": "/mnt/c/Users/carpy/Desktop/ProgettiPersonali/firmware-migration-assurance/wp0/runs/g1-2-20261001T070649Z-98d583d5/artifacts/wolfboot.elf",
+      "size_bytes": 183888,
+      "content_hash": "sha256:fadb00a8d3ccf0906cad4e032dec512f440bbaded09ed73c19504425cefd615e"
+    },
+    "test-app/image.bin": {
+      "path": "/mnt/c/Users/carpy/Desktop/ProgettiPersonali/firmware-migration-assurance/wp0/runs/g1-2-20261001T070649Z-98d583d5/artifacts/test-app_image.bin",
+      "size_bytes": 584,
+      "content_hash": "sha256:06342971d9ab6d71853c52d4d00ffcd7ce1551ed8af3314036969e232463476f"
+    },
+    "test-app/image_v1_signed.bin": {
+      "path": "/mnt/c/Users/carpy/Desktop/ProgettiPersonali/firmware-migration-assurance/wp0/runs/g1-2-20261001T070649Z-98d583d5/artifacts/test-app_image_v1_signed.bin",
+      "size_bytes": 840,
+      "content_hash": "sha256:22f16f81aee6c4582b0b9f784ff553cd568d844614a0b1567327d856e56953a0"
+    }
+  },
+  "platform_dir": "/home/carpy/.cache/firmware-migration-assurance/workbench/wolfBoot",
+  "config": "config/examples/nrf52840.config",
+  "renode_script": "tools/renode/nrf52840_wolfboot.resc",
+  "config_text": "ARCH?=ARM\nTARGET?=nrf52\nSIGN?=ECC256\nHASH?=SHA256\nDEBUG?=0\nDEBUG_UART?=1\nVTOR?=1\nCORTEX_M0?=0\nNO_ASM?=0\nNO_MPU=1\nEXT_FLASH?=0\nSPI_FLASH?=0\nALLOW_DOWNGRADE?=0\nNVM_FLASH_WRITEONCE?=0\nWOLFBOOT_VERSION?=0\nV?=0\nSPMATH?=1\nRAM_CODE?=0\nDUALBANK_SWAP?=0\nPKA?=0\nWOLFBOOT_PARTITION_SIZE?=0x40000\nWOLFBOOT_SECTOR_SIZE?=0x1000\nWOLFBOOT_PARTITION_BOOT_ADDRESS?=0x20000\nWOLFBOOT_PARTITION_UPDATE_ADDRESS?=0x60000\nWOLFBOOT_PARTITION_SWAP_ADDRESS?=0xe0000\n",
+  "build_exit_code": 0,
+  "signed_image_size": 840
+}

@@ -1,0 +1,15 @@
+{
+  "run_id": "t2-20260930T152858Z-a8dcee8a",
+  "experiment": "t2_interrupted_update",
+  "fault_injection_strategy": "renode_pause_before_swap_metadata_commit",
+  "injection_point": "before_swap_metadata_commit",
+  "trigger": "Renode pause hook on flash write count threshold",
+  "expected_observables": [
+    "partial_flash_state",
+    "bootability_after_reset",
+    "recovery_path_observed"
+  ],
+  "reproducibility": "NOT_EXECUTED",
+  "status": "INCONCLUSIVE",
+  "notes": "Injection manifest prefilled; behavioral run requires Renode script integration"
+}

@@ -1,0 +1,13 @@
+{
+  "run_id": "g1-3-20260930T150431Z-10618d43",
+  "phase": "g1_ecdsa",
+  "clone_path": "/mnt/c/Users/carpy/Desktop/ProgettiPersonali/firmware-migration-assurance/wp0/workbench/wolfBoot",
+  "build_attempted": false,
+  "sign_attempted": false,
+  "renode_attempted": false,
+  "boot_observed": false,
+  "uart_pattern": "Booting",
+  "artifacts": {},
+  "platform_dir": "/mnt/c/Users/carpy/Desktop/ProgettiPersonali/firmware-migration-assurance/wp0/workbench/wolfBoot/hal",
+  "notes": "Platform Makefile not found"
+}

@@ -1,0 +1,96 @@
+{
+  "$defs": {
+    "CitedStatement": {
+      "additionalProperties": false,
+      "properties": {
+        "citations": {
+          "description": "IDs of evidence, requirement, invariant or gap present in the context",
+          "items": {
+            "type": "string"
+          },
+          "minItems": 1,
+          "title": "Citations",
+          "type": "array"
+        },
+        "text": {
+          "maxLength": 500,
+          "title": "Text",
+          "type": "string"
+        }
+      },
+      "required": [
+        "text",
+        "citations"
+      ],
+      "title": "CitedStatement",
+      "type": "object"
+    }
+  },
+  "additionalProperties": false,
+  "properties": {
+    "executive_summary": {
+      "maxLength": 800,
+      "title": "Executive Summary",
+      "type": "string"
+    },
+    "headline": {
+      "maxLength": 200,
+      "title": "Headline",
+      "type": "string"
+    },
+    "main_causes": {
+      "items": {
+        "$ref": "#/$defs/CitedStatement"
+      },
+      "maxItems": 3,
+      "minItems": 1,
+      "title": "Main Causes",
+      "type": "array"
+    },
+    "unknowns": {
+      "items": {
+        "$ref": "#/$defs/CitedStatement"
+      },
+      "maxItems": 6,
+      "title": "Unknowns",
+      "type": "array"
+    },
+    "verdict_echo": {
+      "additionalProperties": {
+        "anyOf": [
+          {
+            "type": "string"
+          },
+          {
+            "type": "null"
+          }
+        ]
+      },
+      "propertyNames": {
+        "enum": [
+          "migration",
+          "candidate",
+          "transition"
+        ]
+      },
+      "title": "Verdict Echo",
+      "type": "object"
+    },
+    "verified": {
+      "items": {
+        "$ref": "#/$defs/CitedStatement"
+      },
+      "maxItems": 8,
+      "title": "Verified",
+      "type": "array"
+    }
+  },
+  "required": [
+    "headline",
+    "verdict_echo",
+    "main_causes",
+    "executive_summary"
+  ],
+  "title": "NarrativeReport",
+  "type": "object"
+}

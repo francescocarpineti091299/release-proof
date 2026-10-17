@@ -1,0 +1,71 @@
+id: nrf52840-wolfboot-pqc
+version: "1.0"
+status: EXPERIMENTAL   # becomes SUPPORTED only after the end-to-end acceptance gate passes
+title: Nordic nRF52840 + wolfBoot
+description: >
+  nRF52840 (Cortex-M4F) emulated in Renode with the wolfBoot secure bootloader pinned to the
+  commit used by the WP0 reference run. Supports a classical-to-post-quantum signature migration.
+board:
+  id: nordic-nrf52840
+  name: Nordic nRF52840
+  soc: nRF52840 (Arm Cortex-M4F, 1 MB flash, 256 KB RAM)
+  emulator: renode
+  platform_script: platforms/cpus/nrf52840.repl
+bootloader:
+  family: wolfboot
+  name: wolfBoot
+  repo: https://github.com/wolfSSL/wolfBoot
+  commit: 4c79eee999b7083743811f37928322fe78b9fdb1
+  version_label: master@4c79eee (nearest tag v2.9.0, ancestry unproven)
+  license: GPL-3.0 (fetched at build time inside the runner image; not redistributed)
+toolchain:
+  renode: "1.16.1"
+  arm-none-eabi-gcc: "14.2.rel1"
+  wolfcrypt_commit: 4aa1ad7a5b4f7be86d88cc26fe3880a31ff7de9f
+runner:
+  service: runner-wolfboot
+  image: releaseproof/runner-wolfboot:0.1.0
+  timeout_seconds: 900
+assessment_adapter: wolfboot_v1_2
+ruleset_version: "1.2"
+changes:
+  - change_id: ecdsa_p256_to_mldsa87
+    title: Migrate firmware signatures from ECDSA P-256 to ML-DSA-87
+    summary: >
+      Replace the classical signature verified by the bootloader with the post-quantum ML-DSA-87
+      (FIPS 204, CNSA 2.0) signature, on devices already deployed with an ECDSA bootloader.
+    from_scheme: ECDSA_P256
+    to_scheme: ML_DSA_87
+    default_plan_id: bootloader_self_update
+    default_plan_title: Over-the-air bootloader self-update, then ML-DSA firmware
+    required_templates:
+      - wolfboot.discover
+      - wolfboot.self_update_capability
+      - wolfboot.boot_current
+      - wolfboot.boot_candidate
+      - wolfboot.tampered_image_rejected
+      - wolfboot.cross_generation_update
+    optional_templates:
+      - wolfboot.candidate_rejects_classical
+      - wolfboot.dual_signature_build
+    alternatives:
+      - plan_id: field_service_reflash
+        title: Re-flash the bootloader during a field-service maintenance window
+        description: >
+          A technician replaces the ECDSA bootloader with the ML-DSA bootloader through the debug
+          port in a planned maintenance window, then the ML-DSA firmware is installed.
+        mechanism: field_service_reflash
+        requires_rerun_tests: false
+        status: EXECUTABLE
+      - plan_id: staged_hybrid_dual_signature
+        title: Staged hybrid bootloader accepting ECDSA and ML-DSA
+        description: >
+          Ship an intermediate bootloader that verifies both signatures, then move to ML-DSA only.
+          Requires a working dual-signature build on the pinned commit.
+        mechanism: hybrid_dual_signature
+        requires_rerun_tests: true
+        status: EXECUTABLE
+known_limitations:
+  - Renode models nRF52840 flash as plain memory (no NVMC); erase/write timing faults are not reproduced.
+  - RAM usage comes from the linker region, not from runtime stack measurement.
+  - The interrupted-update (non-atomic window) behaviour is not observed; it stays UNKNOWN.

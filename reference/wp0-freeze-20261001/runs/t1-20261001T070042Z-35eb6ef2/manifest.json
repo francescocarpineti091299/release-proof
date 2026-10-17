@@ -1,0 +1,10 @@
+{
+  "run_id": "t1-20261001T070042Z-35eb6ef2",
+  "experiment": "t1_self_update",
+  "nrf_self_update_paths": [],
+  "application_update_script": true,
+  "authorization_mechanism_observed": null,
+  "supported": false,
+  "status": "CONCLUSIVE",
+  "notes": "No nRF52840 bootloader self-update config or HAL path. Application update remains available through the Renode test script."
+}

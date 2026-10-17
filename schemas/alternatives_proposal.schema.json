@@ -1,0 +1,88 @@
+{
+  "$defs": {
+    "ChangeProposal": {
+      "additionalProperties": false,
+      "properties": {
+        "addresses": {
+          "description": "Blocking requirement/invariant IDs it addresses",
+          "items": {
+            "type": "string"
+          },
+          "title": "Addresses",
+          "type": "array"
+        },
+        "evidence_still_needed": {
+          "items": {
+            "type": "string"
+          },
+          "maxItems": 6,
+          "title": "Evidence Still Needed",
+          "type": "array"
+        },
+        "plan_id": {
+          "description": "Must be one of the allowed alternative plan_ids",
+          "title": "Plan Id",
+          "type": "string"
+        },
+        "preconditions": {
+          "items": {
+            "type": "string"
+          },
+          "maxItems": 6,
+          "title": "Preconditions",
+          "type": "array"
+        },
+        "rationale": {
+          "maxLength": 600,
+          "title": "Rationale",
+          "type": "string"
+        },
+        "title": {
+          "maxLength": 120,
+          "title": "Title",
+          "type": "string"
+        },
+        "tradeoffs": {
+          "items": {
+            "type": "string"
+          },
+          "maxItems": 4,
+          "title": "Tradeoffs",
+          "type": "array"
+        }
+      },
+      "required": [
+        "plan_id",
+        "title",
+        "rationale",
+        "addresses"
+      ],
+      "title": "ChangeProposal",
+      "type": "object"
+    }
+  },
+  "additionalProperties": false,
+  "properties": {
+    "not_addressable": {
+      "description": "Blockers no allowed plan can address",
+      "items": {
+        "type": "string"
+      },
+      "title": "Not Addressable",
+      "type": "array"
+    },
+    "proposals": {
+      "items": {
+        "$ref": "#/$defs/ChangeProposal"
+      },
+      "maxItems": 4,
+      "title": "Proposals",
+      "type": "array"
+    }
+  },
+  "required": [
+    "proposals"
+  ],
+  "title": "AlternativesProposal",
+  "type": "object"
+}

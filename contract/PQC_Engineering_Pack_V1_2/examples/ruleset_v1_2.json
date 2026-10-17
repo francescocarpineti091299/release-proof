@@ -1,0 +1,84 @@
+{
+  "ruleset_id": "RULESET-V1.2",
+  "version": "1.2",
+  "hash": "version-pin:ruleset-v1.2",
+  "coverage": "PARTIAL",
+  "wp1_status": "DRAFT",
+  "required_invariants": ["INV-I1", "INV-I2", "INV-I3", "INV-I4"],
+  "rules": [
+    {
+      "rule_id": "INV-I1",
+      "rule_kind": "INVARIANT",
+      "risk_category": "AUTHENTICITY_SIGNATURE",
+      "applicable_phase": ["TRANSITION"],
+      "evaluator_id": "BOOTABLE_IMAGE_EXISTS",
+      "inputs": ["bootable"],
+      "critical_for_verdict": true,
+      "violation_effect": "BLOCKING",
+      "invariant_refs": ["INV-I1"],
+      "subject_type": "STATE"
+    },
+    {
+      "rule_id": "INV-I2",
+      "rule_kind": "INVARIANT",
+      "risk_category": "UPDATE_ROLLBACK_RECOVERY",
+      "applicable_phase": ["TRANSITION"],
+      "evaluator_id": "RECOVERY_MODE_ACCEPTABLE",
+      "inputs": ["observed_recovery_mode"],
+      "critical_for_verdict": true,
+      "violation_effect": "BLOCKING",
+      "invariant_refs": ["INV-I2"],
+      "subject_type": "TRANSITION_STEP"
+    },
+    {
+      "rule_id": "INV-I3",
+      "rule_kind": "INVARIANT",
+      "risk_category": "TRUST_ANCHORS_AUTHORIZATION",
+      "applicable_phase": ["TRANSITION", "TARGET"],
+      "evaluator_id": "NO_CLASSICAL_ONLY_CRITICAL_AUTH_PATH",
+      "inputs": ["policy"],
+      "critical_for_verdict": true,
+      "violation_effect": "BLOCKING",
+      "invariant_refs": ["INV-I3"],
+      "subject_type": "PLAN"
+    },
+    {
+      "rule_id": "INV-I4",
+      "rule_kind": "INVARIANT",
+      "risk_category": "UPDATE_ROLLBACK_RECOVERY",
+      "applicable_phase": ["TRANSITION"],
+      "evaluator_id": "NON_ATOMIC_WINDOW_HANDLED",
+      "inputs": ["non_atomic_handled"],
+      "critical_for_verdict": true,
+      "violation_effect": "BLOCKING",
+      "invariant_refs": ["INV-I4"],
+      "subject_type": "TRANSITION_STEP"
+    },
+    {
+      "rule_id": "RULE-LAYOUT",
+      "rule_kind": "CONSTRAINT",
+      "risk_category": "LAYOUT_STORAGE",
+      "applicable_phase": ["TARGET", "TRANSITION"],
+      "evaluator_id": "LEQ",
+      "inputs": ["signed_artifact_size", "boot_slot_capacity"],
+      "critical_for_verdict": true,
+      "violation_effect": "BLOCKING",
+      "requirement_refs": ["REQ-LAYOUT"],
+      "invariant_refs": [],
+      "subject_type": "STATE"
+    },
+    {
+      "rule_id": "RULE-SIGN-BOUND",
+      "rule_kind": "CONSTRAINT",
+      "risk_category": "LAYOUT_STORAGE",
+      "applicable_phase": ["TARGET"],
+      "evaluator_id": "LEQ",
+      "inputs": ["requested_image_size", "max_signable_image_size"],
+      "critical_for_verdict": true,
+      "violation_effect": "BLOCKING",
+      "requirement_refs": ["REQ-SIGN-BOUND"],
+      "subject_type": "STATE",
+      "notes": "Operands are the signer refusal line. Not a signed artifact size."
+    }
+  ]
+}

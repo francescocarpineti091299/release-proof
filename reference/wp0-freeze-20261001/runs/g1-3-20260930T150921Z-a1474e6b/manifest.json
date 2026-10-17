@@ -1,0 +1,20 @@
+{
+  "run_id": "g1-3-20260930T150921Z-a1474e6b",
+  "phase": "g1_ecdsa",
+  "clone_path": "/mnt/c/Users/carpy/Desktop/ProgettiPersonali/firmware-migration-assurance/wp0/workbench/wolfBoot",
+  "make_args": [
+    "SIGN=ECC256"
+  ],
+  "build_attempted": true,
+  "sign_attempted": true,
+  "renode_attempted": true,
+  "boot_observed": false,
+  "uart_pattern": "Factory img: OK",
+  "artifacts": {},
+  "platform_dir": "/mnt/c/Users/carpy/Desktop/ProgettiPersonali/firmware-migration-assurance/wp0/workbench/wolfBoot",
+  "config": "config/examples/nrf52840.config",
+  "renode_script": "tools/renode/nrf52840_wolfboot.resc",
+  "build_exit_code": 2,
+  "failure_class": "ENVIRONMENT_SETUP",
+  "notes": "nRF52840 Renode factory boot did not succeed"
+}
