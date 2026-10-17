@@ -1,8 +1,8 @@
 """Minimal HTTP server exposing a runner family (stdlib only).
 
-  GET  /health   -> {"status": "ok", "family": ..., "busy": bool, "tool_versions": {...}}
-  POST /execute  -> chunked application/x-ndjson stream of runner events
-                    409 if a run is already executing on this runner
+GET  /health   -> {"status": "ok", "family": ..., "busy": bool, "tool_versions": {...}}
+POST /execute  -> chunked application/x-ndjson stream of runner events
+                  409 if a run is already executing on this runner
 """
 
 from __future__ import annotations
@@ -54,13 +54,17 @@ def validate_request(request: Any, family: Family, artifact_root: Path) -> dict[
     expected = root / "runs" / run_id / "artifacts"
     artifact_dir = Path(request["artifact_dir"]).resolve()
     if artifact_dir != expected or root not in artifact_dir.parents:
-        raise ValueError("artifact_dir must be data/runs/<run_id>/artifacts (without symlink redirects)")
+        raise ValueError(
+            "artifact_dir must be data/runs/<run_id>/artifacts (without symlink redirects)"
+        )
     if artifact_dir.exists() and (not artifact_dir.is_dir() or any(artifact_dir.iterdir())):
         raise ValueError("artifact_dir must be empty; existing evidence cannot be overwritten")
     return {**request, "artifact_dir": str(artifact_dir), "timeout_seconds": timeout}
 
 
-def create_server(family: Family, host: str = "0.0.0.0", port: int | None = None) -> ThreadingHTTPServer:
+def create_server(
+    family: Family, host: str = "0.0.0.0", port: int | None = None
+) -> ThreadingHTTPServer:
     """Construct a server; separated from serve_forever for offline HTTP tests."""
     port = port if port is not None else int(os.environ.get("RUNNER_PORT", "8080"))
     lock = threading.Lock()

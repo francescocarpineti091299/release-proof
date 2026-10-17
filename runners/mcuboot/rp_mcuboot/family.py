@@ -39,7 +39,10 @@ class McubootFamily(Family):
                 missing.append(exe)
         if missing:
             raise EnvironmentFailure("runner image incomplete: " + ", ".join(missing))
-        for src, name in ((C.MANIFEST_FREEZE, "west-manifest.freeze.yml"), (C.PIP_FREEZE, "pip-freeze.txt")):
+        for src, name in (
+            (C.MANIFEST_FREEZE, "west-manifest.freeze.yml"),
+            (C.PIP_FREEZE, "pip-freeze.txt"),
+        ):
             if src.exists():
                 dst = ctx.artifact_path("toolchain", name)
                 dst.write_bytes(src.read_bytes())
@@ -47,7 +50,9 @@ class McubootFamily(Family):
                 if name.startswith("west"):
                     ctx.cache["manifest_path"] = dst
                     ctx.cache["manifest_aid"] = aid
-        ctx.sink.log("runner", f"workdir {ctx.workdir}; Zephyr {C.ZEPHYR_VERSION}, Renode {C.RENODE_VERSION}")
+        ctx.sink.log(
+            "runner", f"workdir {ctx.workdir}; Zephyr {C.ZEPHYR_VERSION}, Renode {C.RENODE_VERSION}"
+        )
 
     def tool_versions(self) -> dict[str, str]:
         global _versions
@@ -67,8 +72,12 @@ class McubootFamily(Family):
     def source_pins(self) -> dict[str, str]:
         pins: dict[str, str] = {"zephyr_version": C.ZEPHYR_VERSION}
         try:
-            head = subprocess.run(["git", "-C", str(C.ZEPHYR_BASE), "rev-parse", "HEAD"],
-                                  capture_output=True, text=True, timeout=20).stdout.strip()
+            head = subprocess.run(
+                ["git", "-C", str(C.ZEPHYR_BASE), "rev-parse", "HEAD"],
+                capture_output=True,
+                text=True,
+                timeout=20,
+            ).stdout.strip()
             if head:
                 pins["zephyr"] = head
         except (OSError, subprocess.TimeoutExpired):
@@ -79,5 +88,7 @@ class McubootFamily(Family):
                 if len(parts) >= 3 and parts[0] != "manifest":
                     pins[parts[0]] = parts[2]
         if C.SVD_PATH.with_suffix(".gz.sha256").exists():
-            pins["nrf52840_svd_sha256"] = C.SVD_PATH.with_suffix(".gz.sha256").read_text().split()[0]
+            pins["nrf52840_svd_sha256"] = (
+                C.SVD_PATH.with_suffix(".gz.sha256").read_text().split()[0]
+            )
         return pins

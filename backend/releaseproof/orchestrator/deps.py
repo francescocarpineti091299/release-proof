@@ -1,15 +1,6 @@
-"""Dependency injection for modules owned by other workstreams (adapters, AI gateway).
+"""Lazy adapter and AI dependencies, with injectable factories restricted to tests.
 
-They are imported lazily so the orchestrator works (and fails honestly) while they are absent,
-and tests can inject fakes. Expected seams:
-
-* ``releaseproof.adapters.get_adapter(name) -> AssessmentAdapter`` (contracts/services.py)
-* ``releaseproof.adapters.evidence_index(*, assessment, observations, artifacts)`` (optional)
-  ``-> list[EvidenceView dict]`` in assessment order (a ``{evidence_id: hints}`` mapping is
-  also accepted); presentation only, never an input of ``evaluate()``.
-* ``releaseproof.ai.service.AIService`` implementing ``AIServiceProtocol``, built with
-  ``AIService.from_env(trace_sink)`` or ``AIService(settings, trace_sink)`` where settings come
-  from ``releaseproof.ai.config``.
+Evidence indexing is presentation-only and never feeds the semantic evaluator.
 """
 
 from __future__ import annotations

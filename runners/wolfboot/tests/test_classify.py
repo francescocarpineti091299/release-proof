@@ -1,7 +1,7 @@
 """Offline unit tests of the UART / classification logic (stdlib unittest, no Docker needed).
 
-    set PYTHONPATH=runners\\common;runners\\wolfboot
-    backend\\.venv\\Scripts\\python.exe -m unittest discover -s runners\\wolfboot\\tests -v
+set PYTHONPATH=runners\\common;runners\\wolfboot
+backend\\.venv\\Scripts\\python.exe -m unittest discover -s runners\\wolfboot\\tests -v
 """
 
 from __future__ import annotations
@@ -12,12 +12,19 @@ from pathlib import Path
 from rp_wolfboot.builds import build_update_image
 from rp_wolfboot.emulation import Emulation, Phase
 from rp_wolfboot.family import _tool_failure, classify_boot, classify_staged_update
-from rp_wolfboot.parsers import BOOT_REFUSAL_MARKERS, parse_config, parse_image_header, parse_target_h, parse_uart
+from rp_wolfboot.parsers import (
+    BOOT_REFUSAL_MARKERS,
+    parse_config,
+    parse_image_header,
+    parse_target_h,
+    parse_uart,
+)
 
 BOOT_V1 = (
     b"Boot partition: 0x20000 (sz 584, ver 0x1, type 0x201)\r\n"
     b"Partition 1 header magic 0x00000000 invalid at 0x60000\r\n"
-    b"Booting version: 0x1\r\nChecking integrity...done\r\r\nVerifying signature...done\r\r\n*\x00\x00\x00\x01"
+    b"Booting version: 0x1\r\nChecking integrity...done\r\r\n"
+    b"Verifying signature...done\r\r\n*\x00\x00\x00\x01"
 )
 PANIC = (
     b"Booting version: 0x1\r\nChecking integrity...Boot failed: Hdr 1, Hash 0, Sig 0\r\n"
@@ -36,7 +43,9 @@ class UartTests(unittest.TestCase):
         cap = parse_uart(BOOT_V1)
         self.assertEqual(cap.versions(), [1])
         self.assertEqual(cap.booting_versions(), [1])
-        self.assertEqual(cap.markers(BOOT_REFUSAL_MARKERS), {})  # empty-update-partition line is not a refusal
+        self.assertEqual(
+            cap.markers(BOOT_REFUSAL_MARKERS), {}
+        )  # empty-update-partition line is not a refusal
 
     def test_truncated_frame_is_not_a_version(self) -> None:
         self.assertEqual(parse_uart(b"*\x00\x00").versions(), [])
@@ -50,14 +59,21 @@ class UartTests(unittest.TestCase):
 
     def test_staged_update(self) -> None:
         boot = phase("boot", BOOT_V1)
-        self.assertEqual(classify_staged_update(boot, phase("update", UPDATE_APPLIED), 2)[0], "APPLIED")
-        self.assertEqual(classify_staged_update(boot, phase("update", UPDATE_REJECTED), 2)[0], "NOT_APPLIED")
+        self.assertEqual(
+            classify_staged_update(boot, phase("update", UPDATE_APPLIED), 2)[0], "APPLIED"
+        )
+        self.assertEqual(
+            classify_staged_update(boot, phase("update", UPDATE_REJECTED), 2)[0], "NOT_APPLIED"
+        )
         self.assertEqual(classify_staged_update(boot, phase("update", b""), 2)[0], "UNKNOWN")
         self.assertEqual(
-            classify_staged_update(boot, phase("update", b"Update verify failed: Hdr 0\r\n"), 2)[0], "UNKNOWN"
+            classify_staged_update(boot, phase("update", b"Update verify failed: Hdr 0\r\n"), 2)[0],
+            "UNKNOWN",
         )
-        self.assertEqual(classify_staged_update(phase("boot", b""), phase("update", UPDATE_REJECTED), 2)[0],
-                          "UNKNOWN")
+        self.assertEqual(
+            classify_staged_update(phase("boot", b""), phase("update", UPDATE_REJECTED), 2)[0],
+            "UNKNOWN",
+        )
 
     def test_announcement_before_verification_is_not_applied(self) -> None:
         update = phase("update", b"Booting version: 0x2\r\nChecking integrity...Boot failed\r\n")
@@ -66,7 +82,12 @@ class UartTests(unittest.TestCase):
     def test_conflicting_frames_or_panic_are_not_success(self) -> None:
         self.assertEqual(classify_boot(phase("boot", BOOT_V1 + PANIC))[0], "UNKNOWN")
         self.assertEqual(classify_boot(phase("boot", BOOT_V1 + b"*\x00\x00\x00\x02"))[0], "UNKNOWN")
-        self.assertEqual(classify_staged_update(phase("boot", BOOT_V1), phase("update", UPDATE_APPLIED + BOOT_V1), 2)[0], "UNKNOWN")
+        self.assertEqual(
+            classify_staged_update(
+                phase("boot", BOOT_V1), phase("update", UPDATE_APPLIED + BOOT_V1), 2
+            )[0],
+            "UNKNOWN",
+        )
 
     def test_failed_emulator_with_partial_uart_is_error(self) -> None:
         for code, timeout in [(1, False), (None, True)]:
@@ -93,7 +114,9 @@ class ConfigTests(unittest.TestCase):
             "        #define WOLFBOOT_PARTITION_BOOT_ADDRESS   (ARCH_FLASH_OFFSET + 0x20000)\n"
             "    #define WOLFBOOT_PARTITION_BOOT_ADDRESS   0x20000\n"
         )
-        self.assertEqual(th, {"WOLFBOOT_SECTOR_SIZE": 0x3000, "WOLFBOOT_PARTITION_BOOT_ADDRESS": 0x20000})
+        self.assertEqual(
+            th, {"WOLFBOOT_SECTOR_SIZE": 0x3000, "WOLFBOOT_PARTITION_BOOT_ADDRESS": 0x20000}
+        )
 
     def test_update_image_layout(self) -> None:
         img = build_update_image(b"WOLF" + b"\x00" * 10, 0x40000)

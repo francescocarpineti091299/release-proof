@@ -6,7 +6,7 @@ import json
 from dataclasses import dataclass
 from typing import Any
 
-from releaseproof.ai.prompts import alternatives_v1, assistant_v1, explainer_v1, planner_v1
+from releaseproof.ai.prompts import alternatives_v1, assistant_v1, explainer_v2, planner_v1
 
 
 @dataclass(frozen=True)
@@ -41,10 +41,10 @@ TEMPLATES: dict[str, PromptTemplate] = {
         f"{_COMMON_RULES}{planner_v1.RULES}{_JSON_RULES}",
     ),
     "explainer": PromptTemplate(
-        explainer_v1.TEMPLATE_ID,
+        explainer_v2.TEMPLATE_ID,
         "explainer",
-        f"ReleaseProof prompt template: {explainer_v1.TEMPLATE_ID}\n{explainer_v1.ROLE}\n"
-        f"{_COMMON_RULES}{explainer_v1.RULES}{_JSON_RULES}",
+        f"ReleaseProof prompt template: {explainer_v2.TEMPLATE_ID}\n{explainer_v2.ROLE}\n"
+        f"{_COMMON_RULES}{explainer_v2.RULES}{_JSON_RULES}",
     ),
     "alternatives": PromptTemplate(
         alternatives_v1.TEMPLATE_ID,

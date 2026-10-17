@@ -374,9 +374,9 @@ def build_a4_oversized_assessment(
     partition = int(snap["partition_size_bytes"])
     assessment["candidate_state"]["state_id"] = "S2-A4"
     assessment["candidate_state"]["snapshot_hash"] = "sha256:wp0-s2-a4-oversized"
-    assessment["candidate_state"]["components"][1]["configuration"][
-        "signed_image_size_bytes"
-    ] = signed_size
+    assessment["candidate_state"]["components"][1]["configuration"]["signed_image_size_bytes"] = (
+        signed_size
+    )
     assessment["transition_plan"]["plan_id"] = "PLAN-WP0-S0-S2-A4"
     assessment["transition_plan"]["version"] = "1.1"
     assessment["transition_plan"]["hash"] = "version-pin:plan-wp0-s0-s2-a4"
@@ -394,9 +394,7 @@ def build_a4_oversized_assessment(
     assessment["candidate_state"]["snapshot_hash"] = final_hash
 
     assessment["evidence"] = [
-        item
-        for item in assessment["evidence"]
-        if item.get("id") != "EV-E05-LAYOUT-G2"
+        item for item in assessment["evidence"] if item.get("id") != "EV-E05-LAYOUT-G2"
     ]
     assessment["evidence"].append(
         layout_measurement(

@@ -90,9 +90,7 @@ def render_dossier_markdown(
     for row in result.get("invariant_evaluation_results") or []:
         if not row.get("critical_for_verdict"):
             continue
-        lines.append(
-            f"- `{row.get('invariant_id')}` ({row.get('phase')}) → **{row.get('state')}**"
-        )
+        lines.append(f"- `{row.get('invariant_id')}` ({row.get('phase')}) → **{row.get('state')}**")
     lines.extend(["", "## 8. Evidence", ""])
     for item in assessment.get("evidence") or []:
         eid = item.get("id")

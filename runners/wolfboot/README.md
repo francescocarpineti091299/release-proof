@@ -31,8 +31,9 @@ backend\.venv\Scripts\python.exe -m unittest discover -s runners\wolfboot\tests 
 ```
 
 The build context is limited by `Dockerfile.dockerignore` to `runners/common/rp_runner/*.py` and
-`runners/wolfboot/rp_wolfboot/`. The container runs as root so that the shared `/data` volume is
-writable whatever its owner; the baked source tree is `chmod a-w` and never used as a build dir.
+`runners/wolfboot/rp_wolfboot/`. The container runs as UID 10001, matching the API's artifact
+ownership. Compose mounts only the `runs/` volume subpath, so the database is not visible;
+all capabilities are dropped. The baked source tree is `chmod a-w` and is never a build dir.
 
 ## Pins (verified at image build, `test` fails the build on mismatch)
 

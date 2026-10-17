@@ -48,9 +48,6 @@ OE = "OBSERVED_EMULATION"
 UNKNOWN = "UNKNOWN"
 
 
-# ------------------------------------------------------------------ helpers
-
-
 class Obs:
     """Collects observation ids emitted by one template run."""
 
@@ -102,7 +99,9 @@ def _frames_locator(ctx: RunContext, phase: Phase) -> str:
     rel = _rel(ctx, phase.uart_path)
     if not phase.capture.frames:
         return f"{rel}: no version frame (0x2A + 4-byte BE version)"
-    return "; ".join(f"{rel}@0x{f.offset:x} [{f.raw_hex}] -> {f.version}" for f in phase.capture.frames)
+    return "; ".join(
+        f"{rel}@0x{f.offset:x} [{f.raw_hex}] -> {f.version}" for f in phase.capture.frames
+    )
 
 
 def _emu_problem(emu: Emulation) -> str:
@@ -114,7 +113,7 @@ def _emu_problem(emu: Emulation) -> str:
 
 
 def classify_boot(phase: Phase) -> tuple[str, Any, dict[str, list[int]]]:
-    """BOOT_OK only with a version frame; FAIL only with an explicit refusal marker; else UNKNOWN."""
+    """Require a version frame for BOOT_OK or a refusal marker for FAIL; otherwise UNKNOWN."""
     cap = phase.capture
     refusals = cap.markers(BOOT_REFUSAL_MARKERS)
     if refusals and cap.frames:
@@ -142,35 +141,71 @@ def classify_staged_update(boot: Phase, update: Phase, new_version: int) -> tupl
     if boot.capture.markers(BOOT_REFUSAL_MARKERS) or update.capture.markers(BOOT_REFUSAL_MARKERS):
         return UNKNOWN, "boot refusal in the capture; no unambiguous completed update"
     if len(set(before)) != 1 or len(set(after)) != 1:
-        return UNKNOWN, f"missing or conflicting application frames (before {before}, after {after})"
+        return (
+            UNKNOWN,
+            f"missing or conflicting application frames (before {before}, after {after})",
+        )
     if new_version in after:
         return "APPLIED", f"after reset: frames {after}, 'Booting version' {booting_after}"
-    if before and after and all(v == before[0] for v in after) and before[0] != new_version and new_version not in booting_after:
-        return "NOT_APPLIED", f"version {before[0]} before and after reset (frames {before} -> {after})"
+    if (
+        before
+        and after
+        and all(v == before[0] for v in after)
+        and before[0] != new_version
+        and new_version not in booting_after
+    ):
+        return (
+            "NOT_APPLIED",
+            f"version {before[0]} before and after reset (frames {before} -> {after})",
+        )
     return UNKNOWN, f"no decisive frame (before {before}, after {after})"
 
 
 def _static_facts(obs: Obs, test_id: str, subject: str, build: Build) -> None:
     aid = build.artifact_ids
     obs.add(
-        test_id, subject, "signed_image_size_bytes", build.size("image_v1"),
-        origin=MO, mode="STATIC_ARTIFACT", parser=P_STAT, sources=[aid["image_v1"]],
-        locator=f"build_{build.name}/test-app_image_v1_signed.bin", unit="bytes",
+        test_id,
+        subject,
+        "signed_image_size_bytes",
+        build.size("image_v1"),
+        origin=MO,
+        mode="STATIC_ARTIFACT",
+        parser=P_STAT,
+        sources=[aid["image_v1"]],
+        locator=f"build_{build.name}/test-app_image_v1_signed.bin",
+        unit="bytes",
     )
     obs.add(
-        test_id, subject, "bootloader_size_bytes", build.size("wolfboot_bin"),
-        origin=MO, mode="STATIC_ARTIFACT", parser=P_STAT, sources=[aid["wolfboot_bin"]],
-        locator=f"build_{build.name}/wolfboot.bin", unit="bytes",
+        test_id,
+        subject,
+        "bootloader_size_bytes",
+        build.size("wolfboot_bin"),
+        origin=MO,
+        mode="STATIC_ARTIFACT",
+        parser=P_STAT,
+        sources=[aid["wolfboot_bin"]],
+        locator=f"build_{build.name}/wolfboot.bin",
+        unit="bytes",
     )
     try:
         key_type, size, pub = keystore_pubkey(build.files["keystore"])
         value: Any = sha256_hex(pub)
-        loc = f"build_{build.name}/keystore.der slot 0 (key_type 0x{key_type:02x}, pubkey {size} B @16)"
+        loc = (
+            f"build_{build.name}/keystore.der slot 0 "
+            f"(key_type 0x{key_type:02x}, pubkey {size} B @16)"
+        )
     except (OSError, ValueError) as exc:
         value, loc = UNKNOWN, f"keystore.der unparsable: {exc}"
     obs.add(
-        test_id, subject, "public_key_sha256", value,
-        origin=MO, mode="STATIC_ARTIFACT", parser=P_KEYSTORE, sources=[aid["keystore"]], locator=loc,
+        test_id,
+        subject,
+        "public_key_sha256",
+        value,
+        origin=MO,
+        mode="STATIC_ARTIFACT",
+        parser=P_KEYSTORE,
+        sources=[aid["keystore"]],
+        locator=loc,
     )
 
 
@@ -188,9 +223,6 @@ def _tool_failure(emu: Emulation, what: str) -> TemplateResult | None:
     if emu.returncode != 0:
         return TemplateResult("ERROR", f"{what}: {_emu_problem(emu)}", failure_class="TOOL_FAILURE")
     return None
-
-
-# ------------------------------------------------------------------ templates
 
 
 class Discover(Template):
@@ -211,17 +243,41 @@ class Discover(Template):
         shutil.copyfile(settings.BAKED_TREE / settings.BOARD_CONFIG, cfg_copy)
         cfg_id = ctx.sink.artifact(cfg_copy, kind="config", test_id=self.test_id)
 
-        obs.add(self.test_id, "toolchain", "bootloader_commit", pins.get("wolfboot_commit") or UNKNOWN,
-                origin=MO, mode="REPOSITORY", parser=P_GIT, sources=[pins_id],
-                locator=f"git -C {settings.BAKED_TREE} rev-parse HEAD")
-        obs.add(self.test_id, "toolchain", "crypto_commit", pins.get("wolfssl_commit") or UNKNOWN,
-                origin=MO, mode="REPOSITORY", parser=P_GIT, sources=[pins_id],
-                locator=f"git -C {settings.BAKED_TREE}/lib/wolfssl rev-parse HEAD")
+        obs.add(
+            self.test_id,
+            "toolchain",
+            "bootloader_commit",
+            pins.get("wolfboot_commit") or UNKNOWN,
+            origin=MO,
+            mode="REPOSITORY",
+            parser=P_GIT,
+            sources=[pins_id],
+            locator=f"git -C {settings.BAKED_TREE} rev-parse HEAD",
+        )
+        obs.add(
+            self.test_id,
+            "toolchain",
+            "crypto_commit",
+            pins.get("wolfssl_commit") or UNKNOWN,
+            origin=MO,
+            mode="REPOSITORY",
+            parser=P_GIT,
+            sources=[pins_id],
+            locator=f"git -C {settings.BAKED_TREE}/lib/wolfssl rev-parse HEAD",
+        )
         layout, lines = layout_from_config(parse_config(cfg_copy.read_text(encoding="utf-8")))
         complete = all(isinstance(v, int) for v in layout.values())
-        obs.add(self.test_id, "platform", "partition_layout", layout if complete else UNKNOWN,
-                origin=MO, mode="STATIC_CONFIG", parser=P_CONFIG, sources=[cfg_id],
-                locator=f"{settings.BOARD_CONFIG.as_posix()}:L{','.join(map(str, lines))}")
+        obs.add(
+            self.test_id,
+            "platform",
+            "partition_layout",
+            layout if complete else UNKNOWN,
+            origin=MO,
+            mode="STATIC_CONFIG",
+            parser=P_CONFIG,
+            sources=[cfg_id],
+            locator=f"{settings.BOARD_CONFIG.as_posix()}:L{','.join(map(str, lines))}",
+        )
 
         wb_ok = pins.get("wolfboot_commit") == settings.PINNED_WOLFBOOT_COMMIT
         ssl_ok = pins.get("wolfssl_commit") == settings.PINNED_WOLFSSL_COMMIT
@@ -262,7 +318,9 @@ class SelfUpdateCapability(Template):
         ram_value = ram_code[-1][1].split("=", 1)[1].strip() if ram_code else None
         report["board_config_RAM_CODE"] = ram_value
         upd = tree / "src" / "update_flash.c"
-        gate = find_lines(upd, r"^#ifdef RAM_CODE|wolfBoot_check_self_update\(|HDR_IMG_TYPE_WOLFBOOT")
+        gate = find_lines(
+            upd, r"^#ifdef RAM_CODE|wolfBoot_check_self_update\(|HDR_IMG_TYPE_WOLFBOOT"
+        )
         report["update_flash_self_update_gate"] = [f"src/update_flash.c:L{n} {s}" for n, s in gate]
 
         if nrf_examples or hal_hits:
@@ -273,7 +331,8 @@ class SelfUpdateCapability(Template):
             value = UNKNOWN
         report["value"] = value
         report["rule"] = (
-            "SUPPORTED if an nRF52 self-update example config or an nRF52 HAL self-update path exists; "
+            "SUPPORTED if an nRF52 self-update example config "
+            "or an nRF52 HAL self-update path exists; "
             "UNSUPPORTED if neither exists and the board config does not enable RAM_CODE (the "
             "self-update path in src/update_flash.c is compiled only under RAM_CODE); else UNKNOWN."
         )
@@ -283,14 +342,29 @@ class SelfUpdateCapability(Template):
         rpath.write_text(json.dumps(report, indent=2), encoding="utf-8")
         rid = ctx.sink.artifact(rpath, kind="manifest", test_id=self.test_id)
         locator_parts = (
-            [f"config/examples/*self-update* ({len(examples)} files, nRF52: {nrf_examples or 'none'})"]
+            [
+                f"config/examples/*self-update* "
+                f"({len(examples)} files, nRF52: {nrf_examples or 'none'})"
+            ]
             + [f"hal/nrf52.c self-update refs: {report['hal_nrf52_self_update_lines'] or 'none'}"]
-            + [f"{settings.BOARD_CONFIG.as_posix()}:L{ram_code[-1][0]} RAM_CODE={ram_value}" if ram_code else "RAM_CODE not set"]
+            + [
+                f"{settings.BOARD_CONFIG.as_posix()}:L{ram_code[-1][0]} RAM_CODE={ram_value}"
+                if ram_code
+                else "RAM_CODE not set"
+            ]
             + [", ".join(f"src/update_flash.c:L{n}" for n, _ in gate)]
         )
-        obs.add(self.test_id, "platform", "bootloader_field_update", value,
-                origin=MO, mode="SOURCE_INSPECTION", parser=P_SCAN, sources=[rid],
-                locator="; ".join(locator_parts))
+        obs.add(
+            self.test_id,
+            "platform",
+            "bootloader_field_update",
+            value,
+            origin=MO,
+            mode="SOURCE_INSPECTION",
+            parser=P_SCAN,
+            sources=[rid],
+            locator="; ".join(locator_parts),
+        )
         observed = f"bootloader_field_update={value}; " + "; ".join(locator_parts)
         return _result("PASS" if value != UNKNOWN else "INCONCLUSIVE", observed, obs)
 
@@ -305,9 +379,14 @@ class BootCurrent(Template):
 
     def run(self, ctx: RunContext) -> TemplateResult:
         b = get_build(ctx, "ecc", self.test_id)
-        emu = emulate(ctx, test_id=self.test_id, label="E01_boot_current",
-                      elf=b.files["wolfboot_elf"], boot_image=b.files["image_v1"],
-                      update_image=b.files["update_image"])
+        emu = emulate(
+            ctx,
+            test_id=self.test_id,
+            label="E01_boot_current",
+            elf=b.files["wolfboot_elf"],
+            boot_image=b.files["image_v1"],
+            update_image=b.files["update_image"],
+        )
         failed = _tool_failure(emu, "E01 emulation")
         if failed:
             return failed
@@ -316,15 +395,41 @@ class BootCurrent(Template):
         assert boot is not None and update is not None
         srcs = emu.artifact_ids + [b.artifact_ids["wolfboot_elf"], b.artifact_ids["image_v1"]]
         outcome, version, refusals = classify_boot(boot)
-        obs.add(self.test_id, "deployed_state", "boot_outcome", outcome, origin=OE, mode="EMULATED",
-                parser=P_UART, sources=srcs,
-                locator=_frames_locator(ctx, boot) + ("; " + _marker_locator(ctx, boot, refusals) if refusals else ""))
-        obs.add(self.test_id, "deployed_state", "observed_version", version, origin=OE, mode="EMULATED",
-                parser=P_UART, sources=srcs, locator=_frames_locator(ctx, boot))
+        obs.add(
+            self.test_id,
+            "deployed_state",
+            "boot_outcome",
+            outcome,
+            origin=OE,
+            mode="EMULATED",
+            parser=P_UART,
+            sources=srcs,
+            locator=_frames_locator(ctx, boot)
+            + ("; " + _marker_locator(ctx, boot, refusals) if refusals else ""),
+        )
+        obs.add(
+            self.test_id,
+            "deployed_state",
+            "observed_version",
+            version,
+            origin=OE,
+            mode="EMULATED",
+            parser=P_UART,
+            sources=srcs,
+            locator=_frames_locator(ctx, boot),
+        )
         upd, why = classify_staged_update(boot, update, settings.TEST_UPDATE_VERSION)
-        obs.add("E08", "deployed_state", "update_outcome", upd, origin=OE, mode="EMULATED", parser=P_UART,
-                sources=srcs + [b.artifact_ids["update_image"], b.artifact_ids["image_v2"]],
-                locator=_frames_locator(ctx, update))
+        obs.add(
+            "E08",
+            "deployed_state",
+            "update_outcome",
+            upd,
+            origin=OE,
+            mode="EMULATED",
+            parser=P_UART,
+            sources=srcs + [b.artifact_ids["update_image"], b.artifact_ids["image_v2"]],
+            locator=_frames_locator(ctx, update),
+        )
         _static_facts(obs, self.test_id, "deployed_state", b)
         observed = (
             f"boot={outcome} version={version}; update v1->v2 (ECC256) {upd}: {why}; "
@@ -348,8 +453,13 @@ class BootCandidate(Template):
 
     def run(self, ctx: RunContext) -> TemplateResult:
         b = get_build(ctx, "mldsa", self.test_id)
-        emu = emulate(ctx, test_id=self.test_id, label="E02_boot_candidate",
-                      elf=b.files["wolfboot_elf"], boot_image=b.files["image_v1"])
+        emu = emulate(
+            ctx,
+            test_id=self.test_id,
+            label="E02_boot_candidate",
+            elf=b.files["wolfboot_elf"],
+            boot_image=b.files["image_v1"],
+        )
         failed = _tool_failure(emu, "E02 emulation")
         if failed:
             return failed
@@ -358,33 +468,82 @@ class BootCandidate(Template):
         assert boot is not None
         srcs = emu.artifact_ids + [b.artifact_ids["wolfboot_elf"], b.artifact_ids["image_v1"]]
         outcome, version, refusals = classify_boot(boot)
-        obs.add(self.test_id, "candidate_state", "boot_outcome", outcome, origin=OE, mode="EMULATED",
-                parser=P_UART, sources=srcs,
-                locator=_frames_locator(ctx, boot) + ("; " + _marker_locator(ctx, boot, refusals) if refusals else ""))
-        obs.add(self.test_id, "candidate_state", "observed_version", version, origin=OE, mode="EMULATED",
-                parser=P_UART, sources=srcs, locator=_frames_locator(ctx, boot))
+        obs.add(
+            self.test_id,
+            "candidate_state",
+            "boot_outcome",
+            outcome,
+            origin=OE,
+            mode="EMULATED",
+            parser=P_UART,
+            sources=srcs,
+            locator=_frames_locator(ctx, boot)
+            + ("; " + _marker_locator(ctx, boot, refusals) if refusals else ""),
+        )
+        obs.add(
+            self.test_id,
+            "candidate_state",
+            "observed_version",
+            version,
+            origin=OE,
+            mode="EMULATED",
+            parser=P_UART,
+            sources=srcs,
+            locator=_frames_locator(ctx, boot),
+        )
         _static_facts(obs, self.test_id, "candidate_state", b)
 
         signed = b.files["image_v1"].read_bytes()
         unsigned_len = b.size("app_bin")
         hdr = parse_image_header(signed)
-        span = len(signed) - hdr.fw_size if hdr.magic_ok and hdr.fw_size == unsigned_len else len(signed) - unsigned_len
+        span = (
+            len(signed) - hdr.fw_size
+            if hdr.magic_ok and hdr.fw_size == unsigned_len
+            else len(signed) - unsigned_len
+        )
         header_value = {"image_header_size_bytes": b.header_size, "header_span_bytes": span}
-        obs.add("E04", "candidate_state", "image_header", header_value, origin=MO, mode="STATIC_ARTIFACT",
-                parser=P_HEADER, sources=[b.artifact_ids["image_v1"], b.artifact_ids["app_bin"]],
-                locator=(f"IMAGE_HEADER_SIZE={b.header_size} (make args); header span = signed {len(signed)} B - "
-                         f"payload {unsigned_len} B; manifest magic_ok={hdr.magic_ok} fw_size={hdr.fw_size} "
-                         f"version={hdr.version} type=0x{(hdr.image_type or 0):04x}"))
+        obs.add(
+            "E04",
+            "candidate_state",
+            "image_header",
+            header_value,
+            origin=MO,
+            mode="STATIC_ARTIFACT",
+            parser=P_HEADER,
+            sources=[b.artifact_ids["image_v1"], b.artifact_ids["app_bin"]],
+            locator=(
+                f"IMAGE_HEADER_SIZE={b.header_size} (make args); "
+                f"header span = signed {len(signed)} B - "
+                f"payload {unsigned_len} B; manifest magic_ok={hdr.magic_ok} fw_size={hdr.fw_size} "
+                f"version={hdr.version} type=0x{(hdr.image_type or 0):04x}"
+            ),
+        )
         capacity = b.target.get("WOLFBOOT_PARTITION_SIZE")
-        fit = {"signed_artifact_size": len(signed), "boot_slot_capacity": capacity if capacity else UNKNOWN}
-        obs.add("E05", "candidate_state", "layout_fit", fit, origin=MO, mode="STATIC_ARTIFACT", parser=P_STAT,
-                sources=[b.artifact_ids["image_v1"], b.artifact_ids["target_h"]],
-                locator=f"build_{b.name}/include_target.h WOLFBOOT_PARTITION_SIZE; test-app_image_v1_signed.bin size")
+        fit = {
+            "signed_artifact_size": len(signed),
+            "boot_slot_capacity": capacity if capacity else UNKNOWN,
+        }
+        obs.add(
+            "E05",
+            "candidate_state",
+            "layout_fit",
+            fit,
+            origin=MO,
+            mode="STATIC_ARTIFACT",
+            parser=P_STAT,
+            sources=[b.artifact_ids["image_v1"], b.artifact_ids["target_h"]],
+            locator=(
+                f"build_{b.name}/include_target.h WOLFBOOT_PARTITION_SIZE; "
+                "test-app_image_v1_signed.bin size"
+            ),
+        )
         fits = bool(capacity) and len(signed) <= capacity
         observed = (
             f"boot={outcome} version={version}; ML-DSA-87 signed v1 {len(signed)} B "
-            f"(header span {span} B) vs boot slot {capacity} B -> {'fits' if fits else 'does not fit'}; "
-            f"wolfboot.bin {b.size('wolfboot_bin')} B; emulation {emu.duration_ms} ms {_emu_problem(emu)}".strip()
+            f"(header span {span} B) vs boot slot {capacity} B -> "
+            f"{'fits' if fits else 'does not fit'}; "
+            f"wolfboot.bin {b.size('wolfboot_bin')} B; "
+            f"emulation {emu.duration_ms} ms {_emu_problem(emu)}".strip()
         )
         if outcome == "BOOT_OK" and version == 1 and fits:
             return _result("PASS", observed, obs, emu)
@@ -412,13 +571,18 @@ def _refusal_test(
         locator = _frames_locator(ctx, boot)
     elif refusals:
         value = "REJECT"
-        why = "explicit refusal: " + "; ".join(
-            f"'{cap.lines[lines[0] - 1].strip()}'" for lines in refusals.values()
-        ) + "; no version frame"
+        why = (
+            "explicit refusal: "
+            + "; ".join(f"'{cap.lines[lines[0] - 1].strip()}'" for lines in refusals.values())
+            + "; no version frame"
+        )
         locator = _marker_locator(ctx, boot, refusals) + "; " + _frames_locator(ctx, boot)
     else:
         value = UNKNOWN
-        why = f"no version frame and no refusal marker ({len(cap.raw)} UART bytes) {_emu_problem(emu)}".strip()
+        why = (
+            f"no version frame and no refusal marker ({len(cap.raw)} UART bytes) "
+            f"{_emu_problem(emu)}"
+        ).strip()
         locator = _frames_locator(ctx, boot)
     return value, why, emu.artifact_ids + extra_sources, emu, locator
 
@@ -444,18 +608,35 @@ class TamperedImageRejected(Template):
         tampered.parent.mkdir(parents=True, exist_ok=True)
         tampered.write_bytes(bytes(data))
         tid = ctx.sink.artifact(tampered, kind="signed_image", test_id=self.test_id)
-        ctx.sink.log("runner", f"E03: flipped payload byte at offset {offset} (0x{original:02x} -> "
-                     f"0x{data[offset]:02x}) of {len(data)}-byte ECC256 image", test_id=self.test_id)
+        ctx.sink.log(
+            "runner",
+            f"E03: flipped payload byte at offset {offset} (0x{original:02x} -> "
+            f"0x{data[offset]:02x}) of {len(data)}-byte ECC256 image",
+            test_id=self.test_id,
+        )
         value, why, srcs, emu, locator = _refusal_test(
-            ctx, self.test_id, "E03_tampered_image_rejected", b.files["wolfboot_elf"], tampered,
+            ctx,
+            self.test_id,
+            "E03_tampered_image_rejected",
+            b.files["wolfboot_elf"],
+            tampered,
             [tid, b.artifact_ids["wolfboot_elf"], b.artifact_ids["image_v1"]],
         )
         failed = _tool_failure(emu, "E03 emulation")
         if failed:
             return failed
         obs = Obs(ctx)
-        obs.add(self.test_id, "deployed_state", "auth_negative", value, origin=OE, mode="EMULATED",
-                parser=P_UART, sources=srcs, locator=locator)
+        obs.add(
+            self.test_id,
+            "deployed_state",
+            "auth_negative",
+            value,
+            origin=OE,
+            mode="EMULATED",
+            parser=P_UART,
+            sources=srcs,
+            locator=locator,
+        )
         observed = f"auth_negative={value} (payload byte {offset} flipped): {why}"
         outcome = {"REJECT": "PASS", "ACCEPT": "FAIL"}.get(value, "INCONCLUSIVE")
         return _result(outcome, observed, obs, emu)
@@ -478,10 +659,16 @@ class CrossGenerationUpdate(Template):
         dep_layout, cand_layout = dep.layout(), cand.layout()
         part = dep_layout["partition_size_bytes"]
         if not isinstance(part, int):
-            return TemplateResult("ERROR", "deployed partition size not found in include/target.h",
-                                  failure_class="TOOL_FAILURE")
+            return TemplateResult(
+                "ERROR",
+                "deployed partition size not found in include/target.h",
+                failure_class="TOOL_FAILURE",
+            )
         # Self-check: the Python layout must reproduce the make-built same-scheme update image.
-        selfcheck = build_update_image(dep.files["image_v2"].read_bytes(), part) == dep.files["update_image"].read_bytes()
+        selfcheck = (
+            build_update_image(dep.files["image_v2"].read_bytes(), part)
+            == dep.files["update_image"].read_bytes()
+        )
         image = out / "renode-test-update-mldsa.bin"
         image.write_bytes(build_update_image(cand.files["image_v2"].read_bytes(), part))
         img_id = ctx.sink.artifact(image, kind="signed_image", test_id=self.test_id)
@@ -493,9 +680,17 @@ class CrossGenerationUpdate(Template):
             "candidate_image_header_size": cand.header_size,
             "update_image": {
                 "payload": "candidate test-app/image_v2_signed.bin (ML-DSA-87)",
-                "placed_at": f"0x{dep_layout['update_partition_address']:x}" if dep_layout["update_partition_address"] else None,
-                "trailer": f"'pBOOT' at partition offset {part - 5} (IMG_STATE_UPDATING + magic), 0xFF fill",
-                "trailer_note": "NVM_FLASH_WRITEONCE=0 -> trailer at partition end, independent of the sector size",
+                "placed_at": f"0x{dep_layout['update_partition_address']:x}"
+                if dep_layout["update_partition_address"]
+                else None,
+                "trailer": (
+                    f"'pBOOT' at partition offset {part - 5} "
+                    "(IMG_STATE_UPDATING + magic), 0xFF fill"
+                ),
+                "trailer_note": (
+                    "NVM_FLASH_WRITEONCE=0 -> trailer at partition end, "
+                    "independent of the sector size"
+                ),
                 "python_layout_matches_make_layout_for_ecc_v2": selfcheck,
             },
         }
@@ -503,10 +698,19 @@ class CrossGenerationUpdate(Template):
         npath.write_text(json.dumps(note, indent=2), encoding="utf-8")
         nid = ctx.sink.artifact(npath, kind="manifest", test_id=self.test_id)
         if not selfcheck:
-            return TemplateResult("ERROR", "update image layout self-check failed (Python vs make)",
-                                  failure_class="INTERNAL")
-        emu = emulate(ctx, test_id=self.test_id, label="X01_cross_generation_update",
-                      elf=dep.files["wolfboot_elf"], boot_image=dep.files["image_v1"], update_image=image)
+            return TemplateResult(
+                "ERROR",
+                "update image layout self-check failed (Python vs make)",
+                failure_class="INTERNAL",
+            )
+        emu = emulate(
+            ctx,
+            test_id=self.test_id,
+            label="X01_cross_generation_update",
+            elf=dep.files["wolfboot_elf"],
+            boot_image=dep.files["image_v1"],
+            update_image=image,
+        )
         failed = _tool_failure(emu, "X01 emulation")
         if failed:
             return failed
@@ -519,13 +723,30 @@ class CrossGenerationUpdate(Template):
         locator = _frames_locator(ctx, boot) + " | " + _frames_locator(ctx, update)
         if refusals:
             locator += "; " + _marker_locator(ctx, update, refusals)
-        srcs = emu.artifact_ids + [img_id, nid, dep.artifact_ids["wolfboot_elf"], dep.artifact_ids["image_v1"],
-                                   cand.artifact_ids["image_v2"]]
-        obs.add(self.test_id, "transition", "cross_update_outcome", value, origin=OE, mode="EMULATED",
-                parser=P_UART, sources=srcs, locator=locator)
-        marker_text = "; ".join(
-            f"'{update.capture.lines[l[0] - 1].strip()}'" for l in refusals.values()
-        ) or "no explicit update refusal line"
+        srcs = emu.artifact_ids + [
+            img_id,
+            nid,
+            dep.artifact_ids["wolfboot_elf"],
+            dep.artifact_ids["image_v1"],
+            cand.artifact_ids["image_v2"],
+        ]
+        obs.add(
+            self.test_id,
+            "transition",
+            "cross_update_outcome",
+            value,
+            origin=OE,
+            mode="EMULATED",
+            parser=P_UART,
+            sources=srcs,
+            locator=locator,
+        )
+        marker_text = (
+            "; ".join(
+                f"'{update.capture.lines[lines[0] - 1].strip()}'" for lines in refusals.values()
+            )
+            or "no explicit update refusal line"
+        )
         same = all(v for k, v in note["addresses_equal"].items() if k != "sector_size_bytes")
         observed = (
             f"cross_update_outcome={value}: {why}; bootloader said: {marker_text}; "
@@ -551,14 +772,18 @@ class CandidateRejectsClassical(Template):
         cand = get_build(ctx, "mldsa", self.test_id)
         # Cell A: the deployed ECC256 v1 artifact exactly as shipped (256-byte header).
         value_a, why_a, srcs_a, emu_a, loc_a = _refusal_test(
-            ctx, self.test_id, "P01_candidate_rejects_classical", cand.files["wolfboot_elf"], dep.files["image_v1"],
+            ctx,
+            self.test_id,
+            "P01_candidate_rejects_classical",
+            cand.files["wolfboot_elf"],
+            dep.files["image_v1"],
             [cand.artifact_ids["wolfboot_elf"], dep.artifact_ids["image_v1"]],
         )
         failed = _tool_failure(emu_a, "P01 emulation")
         if failed:
             return failed
-        # Cell B: candidate payload ECC256-signed with the deployed key but the candidate header size,
-        # so that only the signature algorithm differs from what the candidate expects.
+        # Cell B matches the candidate header size but uses the deployed ECC256 key,
+        # isolating the signature algorithm from the image layout.
         value_b, why_b, srcs_b, loc_b = self._header_matched_cell(ctx, dep, cand)
         if value_a == "ACCEPT" or value_b == "ACCEPT":
             value = "ACCEPT"
@@ -567,17 +792,28 @@ class CandidateRejectsClassical(Template):
         else:
             value = UNKNOWN
         obs = Obs(ctx)
-        obs.add(self.test_id, "candidate_state", "classical_image_on_candidate", value, origin=OE,
-                mode="EMULATED", parser=P_UART, sources=srcs_a + srcs_b,
-                locator=f"A: {loc_a} | B: {loc_b}")
+        obs.add(
+            self.test_id,
+            "candidate_state",
+            "classical_image_on_candidate",
+            value,
+            origin=OE,
+            mode="EMULATED",
+            parser=P_UART,
+            sources=srcs_a + srcs_b,
+            locator=f"A: {loc_a} | B: {loc_b}",
+        )
         observed = (
-            f"classical_image_on_candidate={value}. A (deployed ECC256 v1 image, {dep.header_size}-byte header) "
-            f"{value_a}: {why_a}. B (ECC256 signature, {cand.header_size}-byte header) {value_b}: {why_b}"
+            f"classical_image_on_candidate={value}. "
+            f"A (deployed ECC256 v1 image, {dep.header_size}-byte header) {value_a}: {why_a}. "
+            f"B (ECC256 signature, {cand.header_size}-byte header) {value_b}: {why_b}"
         )
         outcome = {"REJECT": "PASS", "ACCEPT": "FAIL"}.get(value, "INCONCLUSIVE")
         return _result(outcome, observed, obs, emu_a)
 
-    def _header_matched_cell(self, ctx: RunContext, dep: Build, cand: Build) -> tuple[str, str, list[str], str]:
+    def _header_matched_cell(
+        self, ctx: RunContext, dep: Build, cand: Build
+    ) -> tuple[str, str, list[str], str]:
         label = "P01_candidate_rejects_classical_hdr_matched"
         work = ctx.workdir / "p01_sign"
         work.mkdir(parents=True, exist_ok=True)
@@ -592,20 +828,41 @@ class CandidateRejectsClassical(Template):
         out = ctx.artifact_dir / label
         out.mkdir(parents=True, exist_ok=True)
         res = run_cmd(
-            [str(dep.tree / "tools" / "keytools" / "sign"), "--ecc256", "--sha256", str(work / "image.bin"),
-             str(key), "1"],
-            cwd=work, log_path=out / "sign.log", sink=ctx.sink, stream="sign", test_id=self.test_id,
-            env=env, timeout_s=min(120, ctx.remaining()),
+            [
+                str(dep.tree / "tools" / "keytools" / "sign"),
+                "--ecc256",
+                "--sha256",
+                str(work / "image.bin"),
+                str(key),
+                "1",
+            ],
+            cwd=work,
+            log_path=out / "sign.log",
+            sink=ctx.sink,
+            stream="sign",
+            test_id=self.test_id,
+            env=env,
+            timeout_s=min(120, ctx.remaining()),
         )
         log_id = ctx.sink.artifact(res.log_path, kind="log", test_id=self.test_id)
         signed = work / "image_v1_signed.bin"
         if not res.ok or not signed.is_file():
-            return "NOT_EXECUTED", f"sign tool failed (exit {res.returncode})", [log_id], _rel(ctx, res.log_path)
+            return (
+                "NOT_EXECUTED",
+                f"sign tool failed (exit {res.returncode})",
+                [log_id],
+                _rel(ctx, res.log_path),
+            )
         image = out / "image_v1_signed_ecc256_hdr_matched.bin"
         shutil.copyfile(signed, image)
         img_id = ctx.sink.artifact(image, kind="signed_image", test_id=self.test_id)
         value, why, srcs, _emu, loc = _refusal_test(
-            ctx, self.test_id, label, cand.files["wolfboot_elf"], image, [img_id, log_id],
+            ctx,
+            self.test_id,
+            label,
+            cand.files["wolfboot_elf"],
+            image,
+            [img_id, log_id],
         )
         return value, why, srcs, loc
 
@@ -627,8 +884,12 @@ class DualSignatureBuild(Template):
         obs = Obs(ctx)
         if failed and failed[0] != "build":
             label, res = failed
-            return TemplateResult("ERROR", f"hybrid build preparation step '{label}' failed "
-                                  f"(exit {res.returncode}, timeout={res.timed_out})", failure_class="TOOL_FAILURE")
+            return TemplateResult(
+                "ERROR",
+                f"hybrid build preparation step '{label}' failed "
+                f"(exit {res.returncode}, timeout={res.timed_out})",
+                failure_class="TOOL_FAILURE",
+            )
         if failed and failed[1].timed_out:
             return TemplateResult("ERROR", "hybrid build timed out", failure_class="TIMEOUT")
         build_log = results[-1][1].log_path
@@ -638,26 +899,43 @@ class DualSignatureBuild(Template):
             value = "BUILD_FAILED"
             locator = "; ".join(f"{rel}:L{n}" for n, _ in errs) or rel
             detail = " | ".join(s for _, s in errs[:3]) or f"make exit {failed[1].returncode}"
-            observed = f"dual_signature_build=BUILD_FAILED (make {' '.join(args)} exit {failed[1].returncode}): {detail}"
+            observed = (
+                f"dual_signature_build=BUILD_FAILED "
+                f"(make {' '.join(args)} exit {failed[1].returncode}): {detail}"
+            )
             outcome = "FAIL"
         else:
             bin_path = tree / "wolfboot.bin"
             value = "BUILT_NOT_BOOTED" if bin_path.is_file() else "BUILD_FAILED"
             locator = rel
-            observed = f"dual_signature_build={value} (make {' '.join(args)} exit 0); hybrid image not booted"
+            observed = (
+                f"dual_signature_build={value} (make {' '.join(args)} exit 0); "
+                "hybrid image not booted"
+            )
             outcome = "INCONCLUSIVE" if value == "BUILT_NOT_BOOTED" else "FAIL"
-        obs.add(self.test_id, "candidate_state", "dual_signature_build", value, origin=MO, mode="BUILD",
-                parser=P_MAKE, sources=list(log_ids.values()), locator=locator)
+        obs.add(
+            self.test_id,
+            "candidate_state",
+            "dual_signature_build",
+            value,
+            origin=MO,
+            mode="BUILD",
+            parser=P_MAKE,
+            sources=list(log_ids.values()),
+            locator=locator,
+        )
         return _result(outcome, observed, obs)
-
-
-# ------------------------------------------------------------------ family
 
 
 def _git(path: Path, *args: str) -> str | None:
     try:
-        out = subprocess.run(["git", "-c", "safe.directory=*", "-C", str(path), *args],
-                             capture_output=True, text=True, timeout=30, check=False)
+        out = subprocess.run(
+            ["git", "-c", "safe.directory=*", "-C", str(path), *args],
+            capture_output=True,
+            text=True,
+            timeout=30,
+            check=False,
+        )
     except (OSError, subprocess.TimeoutExpired):
         return None
     return out.stdout.strip() if out.returncode == 0 and out.stdout.strip() else None
@@ -701,7 +979,11 @@ class WolfbootFamily(Family):
         self._versions: dict[str, str] = {}
 
     def prepare(self, ctx: RunContext) -> None:
-        missing = [t for t in ("renode", "make", "git", "gcc", "arm-none-eabi-gcc") if shutil.which(t) is None]
+        missing = [
+            t
+            for t in ("renode", "make", "git", "gcc", "arm-none-eabi-gcc")
+            if shutil.which(t) is None
+        ]
         if missing:
             raise EnvironmentFailure(f"tools missing from the runner image: {missing}")
         if not (settings.BAKED_TREE / "Makefile").is_file():
@@ -709,7 +991,10 @@ class WolfbootFamily(Family):
         if not (settings.BAKED_TREE / "tools" / "keytools" / "sign").is_file():
             raise EnvironmentFailure("pre-built wolfBoot keytools missing from the image")
         pins = git_pins()
-        ctx.sink.log("runner", f"pinned tree {settings.BAKED_TREE}: {json.dumps(pins)}; workdir {ctx.workdir}")
+        ctx.sink.log(
+            "runner",
+            f"pinned tree {settings.BAKED_TREE}: {json.dumps(pins)}; workdir {ctx.workdir}",
+        )
 
     def tool_versions(self) -> dict[str, str]:
         if not self._versions:

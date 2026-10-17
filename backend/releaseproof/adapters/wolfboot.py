@@ -1,35 +1,12 @@
-"""wolfBoot (nRF52840) live facts → V1.2 assessment (adapter ``wolfboot_v1_2``).
+"""Project live nRF52840/wolfBoot facts into a V1.2 assessment.
 
-Structure follows the reference freeze builder (``core/projection/wp0.py``): the same
-requirements family, platform, S0 → S1 → S2 plan, derived effects and ruleset, and the same
-evidence ids where the meaning matches (EV-E01-BOOT, EV-E02-BOOT, EV-E03-PANIC,
-EV-E05-LAYOUT-G2, EV-LAYOUT-PARTITION, EV-E04-HEADER-SPAN, EV-E11-SELF-UPDATE,
-EV-PIN-WOLFBOOT, EV-E12-WINDOW, EV-BOOTLOADER-SIZE-G1/G2) so ``merge_trust_chain`` and UI
-labels keep working. Every value comes from a live observation; nothing is copied from the
-freeze. See ``_common`` for the gating rules that keep missing facts out of SATISFIED.
+Evidence IDs retain the reference builder's meanings, but values come only from
+the live run. Layout coverage requires candidate sizes and agreeing capacities;
+candidate boot and deployed-verifier rejection have separate requirements.
 
-Requirement map (requirement ← decisive fact, coverage surface, group acquisition):
-
-* REQ-LAYOUT (TARGET+TRANSITION, critical) ← E05 ``layout_fit`` on the candidate, with the
-  slot capacity from D01 ``partition_layout`` (or E05 when D01 is absent); RULE-LAYOUT/LEQ.
-  Not covered when sizes are missing or the two capacity sources disagree.
-* REQ-CANDIDATE-BOOT (TARGET, critical) ← E02 ``boot_outcome``. Without it a candidate
-  that never booted could be COMPATIBLE.
-* REQ-BOOT-S0S1 (TRANSITION/steps, critical) ← E11 ``bootloader_field_update``;
-  SOURCE_INSPECTION only (the freeze group also accepted EMULATED, which would let any
-  emulated failure violate it and any emulated row satisfy it).
-* REQ-AUTH-NEGATIVE (TRANSITION/plan, critical) ← E03 via RULE-AUTH-NEGATIVE (D05).
-* REQ-RAM (TARGET, non-critical) ← never measured; stays UNKNOWN with GAP-E07-RAM.
-* REQ-HYBRID-BUILD (staged hybrid plan only) ← O05 ``dual_signature_build``; BUILD only.
-* REQ-MAINTENANCE-WINDOW (field-service plan only) ← admitted precondition, OPEN_CONDITION.
-
-Informational rows (no requirement): D01 pins, E01/E02 sizes/version/key, E04, E08, X01,
-P01. X01/E08/P01 keep their raw CAPS values, which are not generic failure tokens.
-
-Candidate policy (INV-I3): ``PQC_ONLY`` only when P01 observed REJECT (the candidate
-bootloader refused an ECDSA image); otherwise ``UNKNOWN``. S1 carries the same bootloader
-as S2 in the bootloader-first plans, so it gets the same policy. The hybrid S1 policy stays
-``UNKNOWN``: AND/OR is not observable from O05 (V12-12, no invented hybrid).
+PQC_ONLY policy requires P01 to observe rejection of a classical image. O05 proves
+only that a hybrid configuration builds, not its AND/OR authorization policy.
+RAM and interrupted-update recovery remain UNKNOWN when unmeasured.
 """
 
 from __future__ import annotations
@@ -91,7 +68,6 @@ def build_wolfboot_v1_2_assessment(
     facts = c.Facts(observations, artifacts, test_results)
     ev = c.EvidenceSet(facts, evidence_run_id)
 
-    # ---------------------------------------------------------------- I1 inputs
     boots = c.boot_rows(
         ev,
         [("EV-E01-BOOT", "E01", "NOT_BOOTABLE"), ("EV-E02-BOOT", "E02", "FAIL")],
@@ -119,7 +95,6 @@ def build_wolfboot_v1_2_assessment(
             requested="E02 candidate ML-DSA image boots in emulation",
         )
 
-    # ---------------------------------------------------------------- D01
     bl_commit = ev.add_identity_fact("EV-PIN-WOLFBOOT", "D01", "bootloader_commit")
     c.check_pin(bl_commit, profile.bootloader.commit, "wolfBoot")
     crypto = ev.add_identity_fact("EV-PIN-WOLFCRYPT", "D01", "crypto_commit")
@@ -127,7 +102,6 @@ def build_wolfboot_v1_2_assessment(
     if pinned_crypto:
         c.check_pin(crypto, pinned_crypto, "wolfCrypt")
 
-    # ---------------------------------------------------------------- E11
     field_update = ev.add_enum_fact(
         "EV-E11-SELF-UPDATE", "E11", "bootloader_field_update", _FIELD_UPDATE
     )
@@ -135,7 +109,6 @@ def build_wolfboot_v1_2_assessment(
     if field_update is not None and e11 is not None:
         ev.cover(c.SURFACE_BL_UPDATE, e11, subject="STEP-S0-S1", scope="E11 source inspection")
 
-    # ---------------------------------------------------------------- E01 / E02 statics
     bl_g1 = ev.add_dict_fact("EV-BOOTLOADER-SIZE-G1", "E01", "bootloader_size_bytes")
     fw_g1 = ev.add_dict_fact("EV-E01-SIGNED-SIZE", "E01", "signed_image_size_bytes")
     key_g1 = ev.add_dict_fact("EV-E01-PUBKEY", "E01", "public_key_sha256")
@@ -146,7 +119,6 @@ def build_wolfboot_v1_2_assessment(
     ev.add_scalar_fact("EV-E02-VERSION", "E02", "observed_version")
     ev.add_enum_fact("EV-E08-UPDATE", "E08", "update_outcome", _UPDATE)
 
-    # ---------------------------------------------------------------- E04 / E05 layout
     header = facts.get("E04", "image_header")
     if header is not None and isinstance(header.value, dict):
         ev.add(
@@ -161,7 +133,6 @@ def build_wolfboot_v1_2_assessment(
         )
     _layout(ev, facts)
 
-    # ---------------------------------------------------------------- E03 / X01 / P01 / O05
     auth = ev.add_enum_fact("EV-E03-PANIC", "E03", "auth_negative", _AUTH_NEGATIVE)
     e03 = facts.get("E03", "auth_negative")
     if auth is not None and e03 is not None:
@@ -192,7 +163,6 @@ def build_wolfboot_v1_2_assessment(
             requested="E11 bootloader self-update capability on the pinned port",
         )
 
-    # ---------------------------------------------------------------- policy
     if p01 == "REJECT":
         candidate_policy = {"policy": "PQC_ONLY", "accepted_schemes": [change.to_scheme]}
     else:
@@ -208,14 +178,11 @@ def build_wolfboot_v1_2_assessment(
             requested="P01 candidate bootloader rejects a classically signed image",
         )
 
-    # ---------------------------------------------------------------- states
     s0_bl = _config(
         from_cfg, size=bl_g1, key=key_g1, sha=_sha(facts, "E01", "bootloader_size_bytes")
     )
     s0_fw = _config(from_cfg, image=fw_g1, sha=_sha(facts, "E01", "signed_image_size_bytes"))
-    s2_bl = _config(
-        to_cfg, size=bl_g2, key=key_g2, sha=_sha(facts, "E02", "bootloader_size_bytes")
-    )
+    s2_bl = _config(to_cfg, size=bl_g2, key=key_g2, sha=_sha(facts, "E02", "bootloader_size_bytes"))
     s2_fw = _config(to_cfg, image=fw_g2, sha=_sha(facts, "E02", "signed_image_size_bytes"))
     classical = {"policy": "CLASSICAL_ONLY", "accepted_schemes": [change.from_scheme]}
 
@@ -248,12 +215,18 @@ def build_wolfboot_v1_2_assessment(
                 "to": "S1",
                 "actions": [
                     c.action(
-                        "ACT-FIRMWARE-S0S1", "UPDATE_FIRMWARE", "firmware",
-                        effects=[], signature="dual",
+                        "ACT-FIRMWARE-S0S1",
+                        "UPDATE_FIRMWARE",
+                        "firmware",
+                        effects=[],
+                        signature="dual",
                     ),
                     c.action(
-                        "ACT-BOOTLOADER-S0S1", "UPDATE_BOOTLOADER", "bootloader",
-                        effects=["DE-AUTH-S1"], mechanism="bootloader_self_update",
+                        "ACT-BOOTLOADER-S0S1",
+                        "UPDATE_BOOTLOADER",
+                        "bootloader",
+                        effects=["DE-AUTH-S1"],
+                        mechanism="bootloader_self_update",
                         target="hybrid_dual_signature",
                     ),
                 ],
@@ -265,11 +238,16 @@ def build_wolfboot_v1_2_assessment(
                 "to": "S2",
                 "actions": [
                     c.action(
-                        "ACT-BOOTLOADER-S1S2", "UPDATE_BOOTLOADER", "bootloader",
-                        effects=["DE-AUTH-S2"], mechanism="bootloader_self_update",
+                        "ACT-BOOTLOADER-S1S2",
+                        "UPDATE_BOOTLOADER",
+                        "bootloader",
+                        effects=["DE-AUTH-S2"],
+                        mechanism="bootloader_self_update",
                     ),
                     c.action(
-                        "ACT-FIRMWARE-S1S2", "UPDATE_FIRMWARE", "firmware",
+                        "ACT-FIRMWARE-S1S2",
+                        "UPDATE_FIRMWARE",
+                        "firmware",
                         effects=["DE-AUTH-S2"],
                     ),
                 ],
@@ -299,8 +277,11 @@ def build_wolfboot_v1_2_assessment(
                 "to": "S1",
                 "actions": [
                     c.action(
-                        "ACT-BOOTLOADER-S0S1", "UPDATE_BOOTLOADER", "bootloader",
-                        effects=["DE-AUTH-S1"], mechanism=bl_mechanism,
+                        "ACT-BOOTLOADER-S0S1",
+                        "UPDATE_BOOTLOADER",
+                        "bootloader",
+                        effects=["DE-AUTH-S1"],
+                        mechanism=bl_mechanism,
                     )
                 ],
                 "preconditions": [],
@@ -311,7 +292,9 @@ def build_wolfboot_v1_2_assessment(
                 "to": "S2",
                 "actions": [
                     c.action(
-                        "ACT-FIRMWARE-S1S2", "UPDATE_FIRMWARE", "firmware",
+                        "ACT-FIRMWARE-S1S2",
+                        "UPDATE_FIRMWARE",
+                        "firmware",
                         effects=["DE-AUTH-S2"],
                     )
                 ],
@@ -386,9 +369,6 @@ def build_wolfboot_v1_2_assessment(
         "coverage_assertions": ev.coverage,
         "ruleset_ref": dict(c.RULESET_REF),
     }
-
-
-# --------------------------------------------------------------------------- helpers
 
 
 def _scheme(scheme: str) -> dict[str, Any]:

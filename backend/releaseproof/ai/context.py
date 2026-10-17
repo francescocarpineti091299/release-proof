@@ -35,9 +35,6 @@ def engine_verdicts(result: dict[str, Any]) -> dict[str, str | None]:
     return out
 
 
-# ------------------------------------------------------------------ planner
-
-
 @dataclass
 class PlannerContext:
     data: dict[str, Any]
@@ -88,9 +85,6 @@ def planner_context(
         ],
     }
     return PlannerContext(data=data, allowed=allowed, required=required, optional=optional)
-
-
-# ------------------------------------------------------------------ results grouping
 
 
 def _group_results(
@@ -196,9 +190,6 @@ def _tests(test_results: list[dict[str, Any]], observed_limit: int) -> list[dict
     return out
 
 
-# ------------------------------------------------------------------ explainer
-
-
 @dataclass
 class ExplainContext:
     data: dict[str, Any]
@@ -286,9 +277,6 @@ def _evidence_ids_only(evidence: list[dict[str, Any]]) -> list[dict[str, Any]]:
     ]
 
 
-# ------------------------------------------------------------------ alternatives
-
-
 @dataclass
 class AlternativesContext:
     data: dict[str, Any]
@@ -358,9 +346,6 @@ def alternatives_context(
             a.plan_id for a in alternatives if a.status == "REQUIRES_EXTERNAL_VALIDATION"
         },
     )
-
-
-# ------------------------------------------------------------------ assistant
 
 
 def assistant_context(context: dict[str, Any], budget_chars: int) -> Any:

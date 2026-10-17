@@ -1,4 +1,4 @@
-"""AMD AI gateway (WS-D): planner, explainer, alternatives and assistant on AMD-hosted LLMs."""
+"""Planner, explainer, alternatives and assistant for AMD-hosted LLMs."""
 
 from releaseproof.ai.config import AISettings
 from releaseproof.ai.service import AI_UNAVAILABLE_TEXT, AIService, InjectedTransportRefused

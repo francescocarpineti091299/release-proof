@@ -20,11 +20,15 @@ from releaseproof.core.validation import service as validation_service
 
 
 def _requirement(result, identifier):
-    return next(row for row in result.requirement_evaluation_results if row["requirement_id"] == identifier)
+    return next(
+        row for row in result.requirement_evaluation_results if row["requirement_id"] == identifier
+    )
 
 
 def _invariant(result, identifier):
-    return next(row for row in result.invariant_evaluation_results if row["invariant_id"] == identifier)
+    return next(
+        row for row in result.invariant_evaluation_results if row["invariant_id"] == identifier
+    )
 
 
 @pytest.mark.parametrize(
@@ -82,7 +86,8 @@ def test_matching_snapshot_pin_does_not_allow_different_final_state_id():
 def test_unknown_authorization_path_in_top_level_state_blocks(location):
     assessment = build_wp0_baseline_assessment()
     assessment[location]["authorization_path_states"]["missing"] = {
-        "policy": "PQC_ONLY", "accepted_schemes": ["ML_DSA_87"]
+        "policy": "PQC_ONLY",
+        "accepted_schemes": ["ML_DSA_87"],
     }
     assert not validation_service.validate_assessment(assessment).ready
 
@@ -91,7 +96,8 @@ def test_effect_for_one_path_does_not_explain_another_path_delta():
     assessment = build_wp0_baseline_assessment()
     assessment["platform_model"]["declared_surface_ids"].append("second-path")
     assessment["transition_plan"]["states"][1]["authorization_path_states"]["second-path"] = {
-        "policy": "PQC_ONLY", "accepted_schemes": ["ML_DSA_87"]
+        "policy": "PQC_ONLY",
+        "accepted_schemes": ["ML_DSA_87"],
     }
     result = validation_service.validate_assessment(assessment)
     assert not result.ready
@@ -110,7 +116,9 @@ def test_a4_projection_updates_the_renamed_state_references():
     assessment = build_a4_oversized_assessment(measurement={"signed_image_size_bytes": 999999})
     assert assessment["transition_plan"]["steps"][-1]["to"] == "S2-A4"
     assert validation_service.validate_assessment(assessment).ready
-    assert _requirement(evaluate(assessment), "REQ-LAYOUT")["state"] == RequirementResultState.VIOLATED
+    assert (
+        _requirement(evaluate(assessment), "REQ-LAYOUT")["state"] == RequirementResultState.VIOLATED
+    )
 
 
 @pytest.mark.parametrize("status", ["INVALID", "REVOKED", None])
@@ -151,7 +159,9 @@ def test_contradictory_e12_evidence_is_not_first_row_wins(reverse):
 
 def test_structured_e12_fact_does_not_crash_the_invariant_evaluator():
     assessment = build_wp0_baseline_assessment()
-    next(item for item in assessment["evidence"] if item.get("test_id") == "E12")["value"] = {"result": "PASS"}
+    next(item for item in assessment["evidence"] if item.get("test_id") == "E12")["value"] = {
+        "result": "PASS"
+    }
     result = evaluate(assessment)
     assert result.lifecycle == AssessmentLifecycle.INCOMPLETE
 
@@ -190,7 +200,9 @@ def test_malformed_layout_operands_stay_unknown_without_coercion_or_crashes(size
 
 @pytest.mark.parametrize("operand", ["123", True, -1, float("nan"), float("inf"), {}, []])
 def test_leq_rejects_invalid_capacity_operands(operand):
-    result = run_evaluator("LEQ", context={"signed_artifact_size": operand, "boot_slot_capacity": 200})
+    result = run_evaluator(
+        "LEQ", context={"signed_artifact_size": operand, "boot_slot_capacity": 200}
+    )
     assert result["status"] == "UNKNOWN"
 
 
@@ -212,9 +224,9 @@ def test_unrelated_static_artifact_does_not_replace_missing_layout_measurements(
 
 
 def test_scenario_named_evidence_does_not_magically_close_recovery_gaps():
-    chain = trust_chain_from_evidence([
-        {"id": "EV-SCENARIO-RECOVERY", "status": "VALID", "evidence_kind": "DECLARATION"}
-    ])
+    chain = trust_chain_from_evidence(
+        [{"id": "EV-SCENARIO-RECOVERY", "status": "VALID", "evidence_kind": "DECLARATION"}]
+    )
     recovery = next(node for node in chain["nodes"] if node["node_id"] == "recovery")
     assert recovery["status"] == "GAP"
     assert recovery["gap_ids"]

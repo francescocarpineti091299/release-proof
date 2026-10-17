@@ -36,6 +36,9 @@ select = ["E", "F", "I", "B", "UP", "SIM"]
 "releaseproof/core/**" = ["E501"]
 "tests/unit/**" = ["E501"]
 
+[tool.ruff.format]
+line-ending = "lf"
+
 [tool.pytest.ini_options]
 testpaths = ["tests"]
 pythonpath = ["."]

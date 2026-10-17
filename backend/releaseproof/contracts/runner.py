@@ -66,9 +66,6 @@ class TestOutcome(StrEnum):
     ERROR = "ERROR"
 
 
-# ---------------------------------------------------------------- request
-
-
 class PlannedTest(_Strict):
     template_id: str
     params: dict[str, Any] = Field(default_factory=dict)
@@ -79,13 +76,8 @@ class RunnerRequest(_Strict):
     profile_id: str
     change_id: str
     tests: list[PlannedTest]
-    artifact_dir: str = Field(
-        description="Absolute path (shared volume) for this run's artifacts"
-    )
+    artifact_dir: str = Field(description="Absolute path (shared volume) for this run's artifacts")
     timeout_seconds: int = Field(default=900, ge=30, le=3600)
-
-
-# ---------------------------------------------------------------- events
 
 
 class _EventBase(_Strict):

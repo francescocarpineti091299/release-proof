@@ -8,8 +8,6 @@ import struct
 from dataclasses import dataclass, field
 from pathlib import Path
 
-# ------------------------------------------------------------------ configs
-
 
 def parse_config(text: str) -> dict[str, tuple[str, int]]:
     """Parse literal Make assignments with ?= and += semantics (no make evaluation)."""
@@ -28,7 +26,9 @@ def parse_config(text: str) -> dict[str, tuple[str, int]]:
     return values
 
 
-def apply_make_args(base: dict[str, tuple[str, int]], args: list[str]) -> dict[str, tuple[str, int]]:
+def apply_make_args(
+    base: dict[str, tuple[str, int]], args: list[str]
+) -> dict[str, tuple[str, int]]:
     merged = dict(base)
     for arg in args:
         key, sep, value = arg.partition("=")
@@ -73,9 +73,6 @@ def parse_target_h(text: str) -> dict[str, int]:
     for m in re.finditer(pattern, text, re.M):
         out.setdefault(m.group(1), int(m.group(2), 0))
     return out
-
-
-# ------------------------------------------------------------------ keystore / image
 
 
 def keystore_pubkey(path: Path) -> tuple[int, int, bytes]:
@@ -131,8 +128,6 @@ def parse_image_header(data: bytes) -> ImageHeader:
         off += 4 + tlv_len
     return ImageHeader(magic == WOLFBOOT_MAGIC, fw_size, version, image_type)
 
-
-# ------------------------------------------------------------------ UART
 
 FRAME_START = 0x2A  # test-app: '*' followed by the 4-byte big-endian firmware version
 _MAX_PLAUSIBLE_VERSION = 0xFFFF

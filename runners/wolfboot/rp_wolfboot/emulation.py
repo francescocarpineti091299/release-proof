@@ -66,7 +66,7 @@ def write_resc(
     boot_s: float,
     update_s: float,
 ) -> None:
-    """Same sequence as tools/renode/nrf52840_wolfboot.resc, but RunFor instead of wall-clock sleep."""
+    """Follow nrf52840_wolfboot.resc using virtual RunFor time instead of wall-clock sleep."""
     lines = [
         ":name: ReleaseProof nRF52840 wolfBoot (generated per run)",
         "using sysbus",

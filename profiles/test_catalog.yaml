@@ -13,7 +13,7 @@ tests:
   P01: Candidate bootloader rejects classically-signed images (PQC-only policy)
   X01: Deployed bootloader receives a candidate-signed update (cross-generation)
 templates:
-  # ------------------------------------------------------------------ wolfBoot
+  # wolfBoot
   - template_id: wolfboot.discover
     test_id: D01
     family: wolfboot
@@ -73,7 +73,7 @@ templates:
     description: Attempts SIGN=ECC256 SIGN_SECONDARY=ML_DSA on the pinned commit.
     expected: Build outcome recorded
     est_seconds: 60
-  # ------------------------------------------------------------------ MCUboot
+  # MCUboot
   - template_id: mcuboot.discover
     test_id: D01
     family: mcuboot

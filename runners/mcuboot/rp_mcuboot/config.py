@@ -33,10 +33,6 @@ FLASH_SIZE = 0x100000
 HEADER_SIZE = 0x200
 ALIGN = 4
 
-# The signing key is staged at a fixed path so the generated Kconfig (and ccache keys) do not
-# depend on the per-run directory. One run at a time per runner process (server lock).
-KEY_STAGE_DIR = Path(os.environ.get("RP_KEY_STAGE_DIR", "/tmp/rp-mcuboot-key"))
-
 RENODE_VERSION = "1.16.1"
 ZEPHYR_VERSION = "v4.2.0"
 SDK_VERSION = "0.17.4"

@@ -17,11 +17,7 @@ from releaseproof.core.domain.enums import (
 from releaseproof.core.domain.schemas import ValidationResult
 from releaseproof.core.paths import CONTRACT_PACK
 
-_SCHEMA_PATH = (
-    CONTRACT_PACK
-    / "schemas"
-    / "pqc_assessment_v1_2.schema.json"
-)
+_SCHEMA_PATH = CONTRACT_PACK / "schemas" / "pqc_assessment_v1_2.schema.json"
 
 _ALLOWED_SCOPE: dict[str, frozenset[str]] = {
     EvaluationPhase.CURRENT.value: frozenset({EvaluationSubjectType.STATE.value}),
@@ -87,10 +83,9 @@ def _validate_cross_object(assessment: dict[str, Any]) -> list[str]:
     errors.extend(_duplicate_ids((assessment.get("profile") or {}).get("requirements") or [], "id"))
     if states:
         final = states[-1]
-        if (
-            final.get("state_id") != candidate.get("state_id")
-            or final.get("snapshot_hash") != candidate.get("snapshot_hash")
-        ):
+        if final.get("state_id") != candidate.get("state_id") or final.get(
+            "snapshot_hash"
+        ) != candidate.get("snapshot_hash"):
             errors.append("Stato finale del piano non coerente con candidate_state")
 
     allowed = assessment.get("allowed_change_set") or {}
@@ -111,7 +106,9 @@ def _validate_cross_object(assessment: dict[str, Any]) -> list[str]:
         state_ids = {state["state_id"] for state in states}
         for endpoint in ("from", "to"):
             if step[endpoint] not in state_ids:
-                errors.append(f"TransitionStep {endpoint} riferisce state_id inesistente: {step[endpoint]}")
+                errors.append(
+                    f"TransitionStep {endpoint} riferisce state_id inesistente: {step[endpoint]}"
+                )
         for action in step.get("actions") or []:
             cid = action.get("component_ref")
             if cid not in component_ids:
@@ -130,7 +127,9 @@ def _validate_cross_object(assessment: dict[str, Any]) -> list[str]:
         errors.extend(_duplicate_ids(state.get("components") or [], "component_id"))
         for component in state.get("components") or []:
             if component["component_id"] not in component_ids:
-                errors.append(f"State riferisce component_id inesistente: {component['component_id']}")
+                errors.append(
+                    f"State riferisce component_id inesistente: {component['component_id']}"
+                )
         for path_id in state.get("authorization_path_states") or {}:
             if path_id not in declared_surfaces and path_id not in {
                 p.get("path_id") for p in platform.get("authorization_paths") or []
@@ -211,8 +210,12 @@ def _delta_keys(before: dict[str, Any], after: dict[str, Any]) -> set[str]:
     for comp_id in set(before["components"]) | set(after["components"]):
         if before["components"].get(comp_id) != after["components"].get(comp_id):
             keys.add(f"component:{comp_id}")
-    for path_id in set(before["authorization_path_states"]) | set(after["authorization_path_states"]):
-        if before["authorization_path_states"].get(path_id) != after["authorization_path_states"].get(path_id):
+    for path_id in set(before["authorization_path_states"]) | set(
+        after["authorization_path_states"]
+    ):
+        if before["authorization_path_states"].get(path_id) != after[
+            "authorization_path_states"
+        ].get(path_id):
             keys.add(f"authorization_path:{path_id}")
     return keys
 

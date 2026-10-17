@@ -9,9 +9,10 @@ from __future__ import annotations
 import hashlib
 import json
 import threading
+from collections.abc import Callable
 from datetime import datetime, timezone
 from pathlib import Path
-from typing import Any, Callable
+from typing import Any
 
 STAGES = (
     "PREPARING",
@@ -55,8 +56,6 @@ class EventSink:
         self._lock = threading.Lock()
         self._artifact_ids: set[str] = set()
         self._observation_ids: set[str] = set()
-
-    # -------------------------------------------------------------- primitives
 
     def emit(self, payload: dict[str, Any]) -> None:
         with self._lock:

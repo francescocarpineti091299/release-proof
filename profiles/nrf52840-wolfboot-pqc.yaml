@@ -45,8 +45,9 @@ changes:
       - wolfboot.boot_candidate
       - wolfboot.tampered_image_rejected
       - wolfboot.cross_generation_update
-    optional_templates:
+      # P01 is the only evidence for the candidate's PQC-only policy (critical invariant I3)
       - wolfboot.candidate_rejects_classical
+    optional_templates:
       - wolfboot.dual_signature_build
     alternatives:
       - plan_id: field_service_reflash

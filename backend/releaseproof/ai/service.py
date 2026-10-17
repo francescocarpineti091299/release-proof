@@ -15,7 +15,7 @@ from typing import Any, TypeVar
 import httpx
 from pydantic import BaseModel, ValidationError
 
-from releaseproof.ai.client import AIUnavailableError, AMDChatClient
+from releaseproof.ai.client import AIUnavailableError, AMDChatClient, ChatResult
 from releaseproof.ai.config import MODULES, AISettings
 from releaseproof.ai.context import (
     alternatives_context,
@@ -25,6 +25,7 @@ from releaseproof.ai.context import (
 )
 from releaseproof.ai.guardrails import (
     check_alternatives,
+    check_assistant,
     check_report,
     format_validation_error,
     parse_json_object,
@@ -89,8 +90,6 @@ class AIService:
     def close(self) -> None:
         self._client.close()
 
-    # ------------------------------------------------------------------ core loop
-
     def _structured(
         self,
         *,
@@ -135,13 +134,25 @@ class AIService:
         for attempt in range(2):  # first answer + one repair retry
             stats = self._client.new_stats(module)
             try:
-                reply = self._client.complete(
-                    module=module,
-                    messages=messages,
-                    stats=stats,
-                    schema_name=model_cls.__name__,
-                    schema=schema,
-                )
+                if self.settings.structured_stream:
+                    pieces = []
+                    size = 0
+                    for piece in self._client.stream(
+                        module=module, messages=messages, stats=stats, json_output=True
+                    ):
+                        size += len(piece)
+                        if size > 64000:
+                            raise AIUnavailableError("structured response exceeds the output limit")
+                        pieces.append(piece)
+                    reply = ChatResult(content="".join(pieces), stats=stats)
+                else:
+                    reply = self._client.complete(
+                        module=module,
+                        messages=messages,
+                        stats=stats,
+                        schema_name=model_cls.__name__,
+                        schema=schema,
+                    )
             except AIUnavailableError as exc:
                 emit(stats, AIStatus.AI_UNAVAILABLE, exc.reason)
                 return _Outcome(AIStatus.AI_UNAVAILABLE, trace_ids=trace_ids, message=exc.reason)
@@ -176,8 +187,6 @@ class AIService:
             trace_ids=trace_ids,
             message=f"rejected after one repair retry: {self._client.scrub(last_error)}",
         )
-
-    # ------------------------------------------------------------------ planner
 
     def plan_tests(
         self,
@@ -216,8 +225,6 @@ class AIService:
             proposal=out.value if out.status == AIStatus.OK else None,
             blocked_templates=blocked if out.status == AIStatus.OK else [],
         )
-
-    # ------------------------------------------------------------------ explainer
 
     def explain(
         self,
@@ -265,8 +272,6 @@ class AIService:
             message=out.message,
             report=out.value if out.status == AIStatus.OK else None,
         )
-
-    # ------------------------------------------------------------------ alternatives
 
     def alternatives(
         self,
@@ -318,8 +323,6 @@ class AIService:
             alternatives=out.value if out.status == AIStatus.OK else None,
         )
 
-    # ------------------------------------------------------------------ assistant
-
     def assistant_stream(
         self,
         *,
@@ -355,35 +358,44 @@ class AIService:
         for m in messages[-12:]:
             chat.append({"role": m.role, "content": m.content[:4000]})
 
-        emitted = False
+        buffered: list[str] = []
+        length = 0
         think = _ThinkFilter()
         try:
             for chunk in self._client.stream(module="assistant", messages=chat, stats=stats):
                 text = think.feed(chunk)
                 if text:
-                    emitted = True
-                    yield text
+                    length += len(text)
+                    if length > 16000:
+                        raise AIUnavailableError("assistant response exceeds the output limit")
+                    buffered.append(text)
             tail = think.flush()
             if tail:
-                emitted = True
-                yield tail
+                buffered.append(tail)
         except AIUnavailableError as exc:
             emit(AIStatus.AI_UNAVAILABLE, exc.reason)
-            if emitted:
-                yield f"\n\n[{AI_UNAVAILABLE_TEXT}: the AMD stream was interrupted]"
-            else:
-                yield f"{AI_UNAVAILABLE_TEXT}: {exc.reason}. No other AI provider is used."
+            yield f"{AI_UNAVAILABLE_TEXT}: {exc.reason}. No other AI provider is used."
             return
         except GeneratorExit:
-            emit(AIStatus.OK, "client disconnected before the end of the stream")
+            emit(AIStatus.AI_UNAVAILABLE, "client disconnected before validation")
             raise
-        if not emitted:
+        answer = "".join(buffered).strip()
+        if not answer:
             emit(AIStatus.SCHEMA_INVALID, "empty answer from the model")
             yield f"{AI_UNAVAILABLE_TEXT}: the AMD model returned an empty answer."
             return
+        problems = check_assistant(answer, context)
+        if problems:
+            emit(AIStatus.REJECTED_BY_GUARDRAIL, "; ".join(problems))
+            yield (
+                "AI response withheld: citation or verdict validation failed. "
+                "The engine result is unchanged."
+            )
+            return
         emit(AIStatus.OK)
-
-    # ------------------------------------------------------------------ info
+        # Keep the existing HTTP text-stream contract, but only release validated content.
+        for start in range(0, len(answer), 200):
+            yield answer[start : start + 200]
 
     def provider_info(self) -> dict[str, Any]:
         s = self.settings

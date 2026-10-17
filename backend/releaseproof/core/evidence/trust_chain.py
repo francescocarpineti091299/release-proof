@@ -16,7 +16,8 @@ _CHAIN_ORDER = (
 
 def _evidence_index(evidence: list[dict[str, Any]]) -> dict[str, dict[str, Any]]:
     return {
-        str(item["id"]): item for item in evidence
+        str(item["id"]): item
+        for item in evidence
         if item.get("id") and item.get("status") == "VALID"
     }
 
@@ -78,8 +79,11 @@ def trust_chain_from_evidence(evidence: list[dict[str, Any]]) -> dict[str, Any]:
             "node_id": "signed_image",
             "role": "Artifact",
             "status": (
-                "UNKNOWN" if not sizes_valid
-                else "SATISFIED" if signed_size <= capacity else "VIOLATED"
+                "UNKNOWN"
+                if not sizes_valid
+                else "SATISFIED"
+                if signed_size <= capacity
+                else "VIOLATED"
             ),
             "evidence_ids": ["EV-E05-LAYOUT-G2", "EV-LAYOUT-PARTITION"],
             "detail": {
@@ -172,9 +176,7 @@ def trust_chain_explanation_fragment(
             }
         )
         for eid in node.get("evidence_ids") or []:
-            graph_edges.append(
-                {"from": graph_id, "to": eid, "relation": "SUPPORTED_BY_EVIDENCE"}
-            )
+            graph_edges.append({"from": graph_id, "to": eid, "relation": "SUPPORTED_BY_EVIDENCE"})
         for gid in node.get("gap_ids") or []:
             graph_edges.append({"from": graph_id, "to": gid, "relation": "OPEN_GAP"})
     for edge in chain["edges"]:

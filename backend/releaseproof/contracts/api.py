@@ -1,4 +1,4 @@
-"""Public HTTP API view models (consumed by the web UI; TS types generated from OpenAPI)."""
+"""Public HTTP API view models consumed by the web UI."""
 
 from __future__ import annotations
 

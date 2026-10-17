@@ -26,6 +26,8 @@ class Settings:
     sse_heartbeat_seconds: float = 15.0
     runner_connect_timeout: float = 10.0
     runner_grace_seconds: int = 120
+    max_active_runs: int = 8
+    mutation_requests_per_minute: int = 20
 
     @property
     def db_path(self) -> Path:
@@ -67,4 +69,6 @@ class Settings:
             runner_urls=runner_urls,
             cors_origins=tuple(origins),
             sse_heartbeat_seconds=float(env.get("RELEASEPROOF_SSE_HEARTBEAT_SECONDS", "15")),
+            max_active_runs=max(1, int(env.get("RELEASEPROOF_MAX_ACTIVE_RUNS", "8"))),
+            mutation_requests_per_minute=max(1, int(env.get("RELEASEPROOF_MUTATION_RPM", "20"))),
         )

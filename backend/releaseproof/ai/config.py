@@ -65,11 +65,10 @@ class AISettings:
     temperature: float = 0.1
     max_tokens: Mapping[str, int] = field(default_factory=dict)
     response_format: ResponseFormatMode = "auto"
+    structured_stream: bool = False
     extra_body: Mapping[str, Any] = field(default_factory=dict)
     max_context_chars: int = 24000
     env: str = "dev"
-
-    # ------------------------------------------------------------------ construction
 
     @classmethod
     def from_env(cls, env: Mapping[str, str] | None = None) -> AISettings:
@@ -116,12 +115,12 @@ class AISettings:
             temperature=min(_float(env, "AMD_LLM_TEMPERATURE", 0.1), 0.5),
             max_tokens=max_tokens,
             response_format=rf,  # type: ignore[arg-type]
+            structured_stream=env.get("AMD_LLM_STRUCTURED_STREAM", "0").strip().lower()
+            in {"1", "true", "yes"},
             extra_body=extra,
             max_context_chars=_int(env, "AMD_LLM_MAX_CONTEXT_CHARS", 24000),
             env=(env.get("RELEASEPROOF_ENV") or "dev").strip().lower(),
         )
-
-    # ------------------------------------------------------------------ derived
 
     @property
     def endpoint_host(self) -> str:

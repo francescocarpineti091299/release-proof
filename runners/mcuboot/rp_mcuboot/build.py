@@ -16,9 +16,6 @@ from rp_runner.proc import run_cmd
 from rp_mcuboot import config as C
 
 
-# ------------------------------------------------------------------ artifacts
-
-
 def register(ctx: RunContext, path: Path, kind: str, test_id: str | None = None) -> str:
     """Register a file under artifact_dir once per run; returns its artifact id."""
     reg: dict[str, str] = ctx.cache.setdefault("artifacts", {})
@@ -28,7 +25,9 @@ def register(ctx: RunContext, path: Path, kind: str, test_id: str | None = None)
     return reg[key]
 
 
-def publish(ctx: RunContext, src: Path, rel: str, kind: str, test_id: str | None = None) -> tuple[Path, str]:
+def publish(
+    ctx: RunContext, src: Path, rel: str, kind: str, test_id: str | None = None
+) -> tuple[Path, str]:
     dst = ctx.artifact_path(*rel.split("/"))
     shutil.copyfile(src, dst)
     return dst, register(ctx, dst, kind, test_id)
@@ -36,9 +35,6 @@ def publish(ctx: RunContext, src: Path, rel: str, kind: str, test_id: str | None
 
 def rel_artifact(ctx: RunContext, path: Path) -> str:
     return path.resolve().relative_to(ctx.artifact_dir.resolve()).as_posix()
-
-
-# ------------------------------------------------------------------ keys
 
 
 @dataclass
@@ -93,11 +89,11 @@ def ensure_key(ctx: RunContext, label: str, test_id: str | None = None) -> Key:
     aid = register(ctx, pub, "other", test_id)
     key = Key(label, priv, pub, hashlib.sha256(der).hexdigest(), aid)
     keys[label] = key
-    ctx.sink.log("sign", f"ephemeral {label} key ecdsa-p256 public sha256={key.public_sha256}", test_id)
+    ctx.sink.log(
+        "sign", f"ephemeral {label} key ecdsa-p256 public sha256={key.public_sha256}", test_id
+    )
     return key
 
-
-# ------------------------------------------------------------------ devicetree parsing
 
 _PART_RE = re.compile(
     r"(?P<label>[A-Za-z0-9_]+)\s*:\s*partition@(?P<unit>[0-9a-fA-F]+)\s*\{(?P<body>[^{}]*)\}",
@@ -151,9 +147,6 @@ def parse_kconfig(path: Path) -> dict[str, tuple[str, int]]:
     return out
 
 
-# ------------------------------------------------------------------ build
-
-
 @dataclass
 class Build:
     build_dir: Path
@@ -182,41 +175,67 @@ class Build:
 def ensure_build(ctx: RunContext, test_id: str | None = None) -> Build:
     """One sysbuild (MCUboot embedding this run's deployed key + demo app) per run."""
     cached = ctx.cache.get("build")
-    if isinstance(cached, BuildFailed):
+    if isinstance(cached, BuildFailed | EnvironmentFailure):
         raise cached
     if cached is not None:
         return cached
     try:
         build = _build(ctx, test_id)
-    except BuildFailed as exc:
+    except (BuildFailed, EnvironmentFailure) as exc:
         ctx.cache["build"] = exc
         raise
+    except OSError as exc:
+        failure = EnvironmentFailure(f"build workspace unavailable: {exc}")
+        ctx.cache["build"] = failure
+        raise failure from exc
     ctx.cache["build"] = build
     return build
 
 
 def _build(ctx: RunContext, test_id: str | None) -> Build:
     if not C.ZEPHYR_BASE.is_dir() or not C.ARM_GCC.exists():
-        raise EnvironmentFailure("Zephyr workspace or arm-zephyr-eabi toolchain missing in the image")
+        raise EnvironmentFailure(
+            "Zephyr workspace or arm-zephyr-eabi toolchain missing in the image"
+        )
     key = ensure_key(ctx, "deployed", test_id)
     src = ctx.workdir / "src" / C.APP_IMAGE
     shutil.copytree(C.APP_SRC, src)
-    C.KEY_STAGE_DIR.mkdir(parents=True, exist_ok=True)
-    staged = C.KEY_STAGE_DIR / "deployed-ecdsa-p256.pem"
-    shutil.copyfile(key.private_pem, staged)
+    # Keep private keys inside the disposable run workspace, including during image warmup.
+    # A fixed /tmp key path leaked warmup state into the image and broke non-root execution.
+    staged = key.private_pem
     with (src / "sysbuild.conf").open("a", encoding="utf-8") as fh:
         fh.write(f'SB_CONFIG_BOOT_SIGNATURE_KEY_FILE="{staged}"\n')
     bdir = ctx.workdir / "build"
     argv = [
-        "west", "build", "-p", "always", "-b", C.BOARD, "--sysbuild", "-d", str(bdir), str(src), "--",
+        "west",
+        "build",
+        "-p",
+        "always",
+        "-b",
+        C.BOARD,
+        "--sysbuild",
+        "-d",
+        str(bdir),
+        str(src),
+        "--",
         f"-Dmcuboot_EXTRA_CONF_FILE={src / 'mcuboot_extra' / 'mcuboot.conf'}",
         f"-Dmcuboot_EXTRA_DTC_OVERLAY_FILE={src / 'mcuboot_extra' / 'mcuboot.overlay'}",
     ]
     log = ctx.artifact_path("build", "sysbuild.log")
-    ctx.sink.log("build", f"west build --sysbuild {C.BOARD} (MCUboot ECDSA-P256 swap-using-move + demo app)", test_id)
+    ctx.sink.log(
+        "build",
+        f"west build --sysbuild {C.BOARD} (MCUboot ECDSA-P256 swap-using-move + demo app)",
+        test_id,
+    )
     res = run_cmd(
-        argv, cwd=C.ZWS, log_path=log, sink=ctx.sink, stream="build", test_id=test_id,
-        timeout_s=min(900, ctx.remaining()), echo_every=10,
+        argv,
+        cwd=C.ZWS,
+        log_path=log,
+        sink=ctx.sink,
+        stream="build",
+        test_id=test_id,
+        timeout_s=min(900, ctx.remaining()),
+        echo_every=10,
     )
     log_aid = register(ctx, log, "log", test_id)
     if not res.ok:
@@ -227,10 +246,14 @@ def _build(ctx: RunContext, test_id: str | None) -> Build:
     mz = bdir / "mcuboot" / "zephyr"
     az = bdir / C.APP_IMAGE / "zephyr"
     need = {
-        "mcuboot_elf": mz / "zephyr.elf", "mcuboot_bin": mz / "zephyr.bin",
-        "mcuboot_dts": mz / "zephyr.dts", "mcuboot_config": mz / ".config",
-        "app_elf": az / "zephyr.elf", "app_bin": az / "zephyr.bin",
-        "app_dts": az / "zephyr.dts", "app_config": az / ".config",
+        "mcuboot_elf": mz / "zephyr.elf",
+        "mcuboot_bin": mz / "zephyr.bin",
+        "mcuboot_dts": mz / "zephyr.dts",
+        "mcuboot_config": mz / ".config",
+        "app_elf": az / "zephyr.elf",
+        "app_bin": az / "zephyr.bin",
+        "app_dts": az / "zephyr.dts",
+        "app_config": az / ".config",
         "sysbuild_config": bdir / "zephyr" / ".config",
     }
     missing = [str(p) for p in need.values() if not p.exists()]
@@ -240,9 +263,15 @@ def _build(ctx: RunContext, test_id: str | None) -> Build:
     published: dict[str, Path] = {}
     aids: dict[str, str] = {"build_log": log_aid}
     names = {
-        "mcuboot_elf": "mcuboot.elf", "mcuboot_bin": "mcuboot.bin", "mcuboot_dts": "mcuboot.zephyr.dts",
-        "mcuboot_config": "mcuboot.config", "app_elf": "app.elf", "app_bin": "app.unsigned.bin",
-        "app_dts": "app.zephyr.dts", "app_config": "app.config", "sysbuild_config": "sysbuild.config",
+        "mcuboot_elf": "mcuboot.elf",
+        "mcuboot_bin": "mcuboot.bin",
+        "mcuboot_dts": "mcuboot.zephyr.dts",
+        "mcuboot_config": "mcuboot.config",
+        "app_elf": "app.elf",
+        "app_bin": "app.unsigned.bin",
+        "app_dts": "app.zephyr.dts",
+        "app_config": "app.config",
+        "sysbuild_config": "sysbuild.config",
     }
     for logical, path in need.items():
         kind = kinds[logical.rsplit("_", 1)[1]]
@@ -251,13 +280,22 @@ def _build(ctx: RunContext, test_id: str | None) -> Build:
         aids[logical] = aid
     parts = parse_partitions(published["mcuboot_dts"])
     build = Build(
-        build_dir=bdir, log=log, log_artifact=log_aid, key=key,
-        mcuboot_elf=published["mcuboot_elf"], mcuboot_bin=published["mcuboot_bin"],
-        app_bin=published["app_bin"], mcuboot_dts=published["mcuboot_dts"],
-        app_dts=published["app_dts"], mcuboot_config=published["mcuboot_config"],
-        app_config=published["app_config"], sysbuild_config=published["sysbuild_config"],
-        partitions=parts, sector_size=parse_erase_block(published["mcuboot_dts"]),
-        artifacts=aids, duration_ms=res.duration_ms,
+        build_dir=bdir,
+        log=log,
+        log_artifact=log_aid,
+        key=key,
+        mcuboot_elf=published["mcuboot_elf"],
+        mcuboot_bin=published["mcuboot_bin"],
+        app_bin=published["app_bin"],
+        mcuboot_dts=published["mcuboot_dts"],
+        app_dts=published["app_dts"],
+        mcuboot_config=published["mcuboot_config"],
+        app_config=published["app_config"],
+        sysbuild_config=published["sysbuild_config"],
+        partitions=parts,
+        sector_size=parse_erase_block(published["mcuboot_dts"]),
+        artifacts=aids,
+        duration_ms=res.duration_ms,
     )
     for name in ("boot_partition", "slot0_partition", "slot1_partition"):
         build.part(name)
@@ -268,9 +306,6 @@ def _build(ctx: RunContext, test_id: str | None) -> Build:
 def _tail(path: Path, n: int) -> str:
     lines = path.read_text(encoding="utf-8", errors="replace").splitlines()
     return " | ".join(line.strip() for line in lines[-n:] if line.strip())[-1500:]
-
-
-# ------------------------------------------------------------------ signing
 
 
 @dataclass
@@ -299,15 +334,29 @@ def sign(
         return images[name]
     out = ctx.artifact_path("images", f"{name}.signed.bin")
     argv = _imgtool(
-        "sign", "--key", key.private_pem, "--header-size", hex(C.HEADER_SIZE),
-        "--align", C.ALIGN, "--version", version, "--slot-size", hex(build.part(slot).size),
+        "sign",
+        "--key",
+        key.private_pem,
+        "--header-size",
+        hex(C.HEADER_SIZE),
+        "--align",
+        C.ALIGN,
+        "--version",
+        version,
+        "--slot-size",
+        hex(build.part(slot).size),
     )
     if pad:
         argv.append("--pad")
     argv += [build.app_bin, out]
     res = run_cmd(
-        argv, cwd=ctx.workdir, log_path=ctx.artifact_path("images", f"{name}.sign.log"),
-        sink=ctx.sink, stream="sign", test_id=test_id, timeout_s=120,
+        argv,
+        cwd=ctx.workdir,
+        log_path=ctx.artifact_path("images", f"{name}.sign.log"),
+        sink=ctx.sink,
+        stream="sign",
+        test_id=test_id,
+        timeout_s=120,
     )
     register(ctx, res.log_path, "log", test_id)
     if not res.ok or not out.exists():
@@ -317,7 +366,9 @@ def sign(
     return signed
 
 
-def tampered_copy(ctx: RunContext, src: Signed, name: str, test_id: str | None = None) -> tuple[Signed, int]:
+def tampered_copy(
+    ctx: RunContext, src: Signed, name: str, test_id: str | None = None
+) -> tuple[Signed, int]:
     """Flip one byte inside the signed payload (after the 0x200 header)."""
     images: dict[str, Signed] = ctx.cache.setdefault("signed", {})
     offset = C.HEADER_SIZE + 0x100
@@ -327,13 +378,17 @@ def tampered_copy(ctx: RunContext, src: Signed, name: str, test_id: str | None =
     data[offset] ^= 0x01
     out = ctx.artifact_path("images", f"{name}.signed.bin")
     out.write_bytes(bytes(data))
-    signed = Signed(name, out, register(ctx, out, "signed_image", test_id), src.version, src.key, src.padded)
+    signed = Signed(
+        name, out, register(ctx, out, "signed_image", test_id), src.version, src.key, src.padded
+    )
     images[name] = signed
     ctx.sink.log("sign", f"{name}: flipped bit 0 of byte 0x{offset:x} of {src.name}", test_id)
     return signed, offset
 
 
-def compose_flash(ctx: RunContext, build: Build, slot0: Signed, name: str, test_id: str | None = None) -> tuple[Path, str]:
+def compose_flash(
+    ctx: RunContext, build: Build, slot0: Signed, name: str, test_id: str | None = None
+) -> tuple[Path, str]:
     """Power-on flash content: erased (0xFF) 1 MiB, MCUboot at 0x0, the slot-0 image."""
     cache: dict[str, tuple[Path, str]] = ctx.cache.setdefault("flash", {})
     if name in cache:
@@ -354,9 +409,6 @@ def compose_flash(ctx: RunContext, build: Build, slot0: Signed, name: str, test_
     res = (out, register(ctx, out, "bin", test_id))
     cache[name] = res
     return res
-
-
-# ------------------------------------------------------------------ tool facts
 
 
 def imgtool_help(args: list[str]) -> tuple[int, str]:

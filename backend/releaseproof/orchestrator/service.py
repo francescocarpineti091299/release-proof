@@ -74,6 +74,7 @@ from releaseproof.core.planner.service import build_gap_plan
 from releaseproof.orchestrator import evaluation as ev
 from releaseproof.orchestrator.bus import EventBus
 from releaseproof.orchestrator.deps import Deps
+from releaseproof.orchestrator.identity import implementation_identity
 from releaseproof.orchestrator.plan import blocked_templates, merge_plan
 from releaseproof.orchestrator.runner_client import InvalidRunnerEvent, RunnerClient, RunnerFailure
 from releaseproof.orchestrator.settings import Settings
@@ -103,9 +104,6 @@ MANIFEST_ARTIFACT_ID = "MANIFEST"
 AI_UNAVAILABLE = AIStatus.AI_UNAVAILABLE.value
 
 
-# ---------------------------------------------------------------------------- errors
-
-
 class OrchestratorError(Exception):
     status_code = 400
 
@@ -130,7 +128,8 @@ class AIUnavailable(OrchestratorError):
     status_code = 503
 
 
-# ---------------------------------------------------------------------------- helpers
+class CapacityExceeded(OrchestratorError):
+    status_code = 429
 
 
 def utc_now() -> str:
@@ -253,9 +252,6 @@ class _RunCtx:
     result: dict[str, Any] | None = None
 
 
-# ---------------------------------------------------------------------------- orchestrator
-
-
 class Orchestrator:
     def __init__(
         self,
@@ -276,8 +272,6 @@ class Orchestrator:
         self._threads: dict[str, threading.Thread] = {}
         self._submission_lock = threading.Lock()
         self._stop = threading.Event()
-
-    # ------------------------------------------------------------------ lifecycle
 
     def start(self) -> None:
         self.settings.runs_dir.mkdir(parents=True, exist_ok=True)
@@ -343,8 +337,6 @@ class Orchestrator:
             raise TimeoutError(f"run {run_id} did not finish within {timeout}s")
         return self.run_view(run_id)
 
-    # ------------------------------------------------------------------ events
-
     def _emit(self, run_id: str, type_: str, data: dict[str, Any]) -> EventRow:
         return self.store.append_event(
             run_id, type_, data, created_at=utc_now(), on_commit=self.bus.publish
@@ -370,8 +362,6 @@ class Orchestrator:
         except Exception:  # noqa: BLE001
             log.exception("failed to record AI trace")
 
-    # ------------------------------------------------------------------ resolution
-
     def resolve(self, configuration_id: str, change_id: str) -> tuple[Profile, ChangeScenario]:
         try:
             profile = registry.get_profile(configuration_id)
@@ -386,8 +376,6 @@ class Orchestrator:
         if profile.status == ProfileStatus.SUPPORTED:
             return True
         return profile.status == ProfileStatus.EXPERIMENTAL and self.settings.expose_experimental
-
-    # ------------------------------------------------------------------ submission
 
     def create_run(
         self, body: RunCreate, idempotency_key: str | None = None
@@ -506,6 +494,17 @@ class Orchestrator:
         with self._submission_lock:
             if self._stop.is_set():
                 raise Conflict("orchestrator shutting down")
+            if key is not None:
+                replay = self.store.get_idempotency(key)
+                if replay is not None:
+                    existing_id, existing_hash = replay
+                    if existing_hash != request_hash:
+                        raise Conflict("idempotency key reused with a different request")
+                    return self.run_view(existing_id), False
+            if len(self._threads) >= self.settings.max_active_runs:
+                raise CapacityExceeded(
+                    "run capacity reached; retry later with the same idempotency key"
+                )
             try:
                 existing_id, created = self.store.insert_run_with_key(
                     row, key=key, request_hash=request_hash, created_at=now
@@ -524,8 +523,6 @@ class Orchestrator:
             self._threads[run_id] = thread
             thread.start()
         return self.run_view(run_id), True
-
-    # ------------------------------------------------------------------ worker
 
     def _load_ctx(self, run_id: str) -> _RunCtx:
         row = self.store.get_run(run_id)
@@ -622,8 +619,6 @@ class Orchestrator:
             data["runner_seq"] = runner_seq
         self._emit(ctx.run_id, "stage", data)
 
-    # ------------------------------------------------------------------ PREPARING
-
     def _prepare(self, ctx: _RunCtx) -> None:
         self._set_stage(ctx, Stage.PREPARING, StageStatus.RUNNING, "resolving configuration")
         file_name, file_sha = ev.profile_source(ctx.profile.id)
@@ -686,8 +681,6 @@ class Orchestrator:
         self._set_stage(ctx, Stage.AI_PLAN, StageStatus.SKIPPED, f"no new tests: {reused}")
         for stage in RUNNER_STAGES:
             self._set_stage(ctx, stage, StageStatus.SKIPPED, reused)
-
-    # ------------------------------------------------------------------ AI_PLAN
 
     def _ai_plan(self, ctx: _RunCtx) -> None:
         self._set_stage(ctx, Stage.AI_PLAN, StageStatus.RUNNING, "AI test planner")
@@ -758,8 +751,6 @@ class Orchestrator:
             return view_cls.model_validate(payload)
         except Exception as exc:  # noqa: BLE001
             return view_cls(status=AIStatus.SCHEMA_INVALID, message=f"invalid AI view: {exc}"[:500])
-
-    # ------------------------------------------------------------------ runner stages
 
     def _run_runner(self, ctx: _RunCtx) -> None:
         family = ctx.profile.bootloader.family
@@ -897,8 +888,6 @@ class Orchestrator:
             )
             self._emit(run_id, "done", data)
 
-    # ------------------------------------------------------------------ EVALUATION
-
     def _evaluate(self, ctx: _RunCtx) -> None:
         self._set_stage(ctx, Stage.EVALUATION, StageStatus.RUNNING, "projecting evidence into V1.2")
         run_id = ctx.run_id
@@ -1000,7 +989,7 @@ class Orchestrator:
         observation_rows: list[dict[str, Any]],
         artifact_rows: list[dict[str, Any]],
     ) -> list[EvidenceView]:
-        """Adapter-provided evidence index (WS-E) when available, else a generic join.
+        """Adapter-provided evidence index when available, else a generic join.
 
         The index is presentation only: it never feeds evaluate()."""
         index: Any = None
@@ -1038,6 +1027,7 @@ class Orchestrator:
         ai_plan = run_row.get("ai_plan") or {}
         return {
             "manifest_version": "releaseproof.run-manifest/1",
+            "implementation": implementation_identity(),
             "run_id": ctx.run_id,
             "mode": ctx.mode.value,
             "parent_run_id": ctx.parent_run_id,
@@ -1171,8 +1161,6 @@ class Orchestrator:
                 lines.append("- —")
             lines.append("")
         return md + "\n".join(lines)
-
-    # ------------------------------------------------------------------ NEXT_STEPS
 
     def _next_steps(self, ctx: _RunCtx) -> None:
         self._set_stage(
@@ -1311,8 +1299,6 @@ class Orchestrator:
         )
         return view
 
-    # ------------------------------------------------------------------ terminal
-
     def _finish(self, ctx: _RunCtx) -> None:
         self.store.update_run(ctx.run_id, status=RunStatus.SUCCEEDED.value, finished_at=utc_now())
         self._emit_run(ctx.run_id)
@@ -1352,8 +1338,6 @@ class Orchestrator:
             self._emit_run(run_id)
         except Exception:  # noqa: BLE001
             log.exception("could not record failure of %s", run_id)
-
-    # ------------------------------------------------------------------ views
 
     def run_view(self, run_id: str) -> RunView:
         row = self.store.get_run(run_id)
@@ -1418,8 +1402,6 @@ class Orchestrator:
         if row is None:
             raise NotFound(f"unknown run {run_id}")
         return list(row["plan"] or [])
-
-    # ------------------------------------------------------------------ assistant / AMD
 
     def assistant_context(self, run_id: str) -> dict[str, Any]:
         from releaseproof.orchestrator.reference import REFERENCE_RUN_ID, reference_bundle

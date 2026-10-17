@@ -17,11 +17,13 @@ import shutil
 import tempfile
 import time
 import traceback
+from collections.abc import Callable
 from dataclasses import dataclass, field
 from pathlib import Path
-from typing import Any, Callable
+from typing import Any
 
 from rp_runner.events import EventSink
+from rp_runner.identity import code_identity
 
 
 class BuildFailed(Exception):
@@ -117,7 +119,9 @@ def execute(
     sink = EventSink(run_id, artifact_dir, write)
     planned = list(request.get("tests") or [])
     deadline = time.monotonic() + int(request.get("timeout_seconds") or 900)
-    workdir = Path(tempfile.mkdtemp(prefix=f"rp-{run_id}-", dir=str(work_root) if work_root else None))
+    workdir = Path(
+        tempfile.mkdtemp(prefix=f"rp-{run_id}-", dir=str(work_root) if work_root else None)
+    )
     ctx = RunContext(
         run_id=run_id,
         sink=sink,
@@ -140,7 +144,7 @@ def execute(
                 status,
                 summary=f"{family.name} runner finished with {status}",
                 tool_versions=_safe(family.tool_versions),
-                source_pins=_safe(family.source_pins),
+                source_pins={**_safe(family.source_pins), **code_identity(family)},
             )
         finally:
             shutil.rmtree(workdir, ignore_errors=True)

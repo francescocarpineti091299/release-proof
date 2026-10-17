@@ -1,13 +1,13 @@
 """Offline runner regressions: python -m unittest discover -s runners/common/tests."""
 
-import json
 import http.client
+import json
 import os
 import subprocess
 import sys
 import tempfile
-import time
 import threading
+import time
 import unittest
 from pathlib import Path
 from unittest.mock import patch
@@ -44,23 +44,32 @@ class RunnerSafetyTests(unittest.TestCase):
         self.addCleanup(self.temp.cleanup)
         self.root = Path(self.temp.name)
         self.request = {
-            "run_id": "run-1", "profile_id": "profile", "change_id": "change",
+            "run_id": "run-1",
+            "profile_id": "profile",
+            "change_id": "change",
             "tests": [{"template_id": "offline.test"}],
             "artifact_dir": str(self.root / "runs" / "run-1" / "artifacts"),
         }
 
     def test_valid_request(self):
-        self.assertEqual(validate_request(self.request, FakeFamily(), self.root)["timeout_seconds"], 900)
+        self.assertEqual(
+            validate_request(self.request, FakeFamily(), self.root)["timeout_seconds"], 900
+        )
 
     def test_invalid_requests(self):
-        cases = [[], None, {**self.request, "run_id": "../escape"},
-                 {**self.request, "tests": []}, {**self.request, "tests": [None]},
-                 {**self.request, "tests": [{"template_id": "unknown"}]},
-                 {**self.request, "tests": self.request["tests"] * 2},
-                 {**self.request, "tests": [{"template_id": "offline.test", "params": []}]},
-                 {**self.request, "timeout_seconds": True},
-                 {**self.request, "timeout_seconds": -1},
-                 {**self.request, "artifact_dir": str(self.root / "runs" / "other" / "artifacts")}]
+        cases = [
+            [],
+            None,
+            {**self.request, "run_id": "../escape"},
+            {**self.request, "tests": []},
+            {**self.request, "tests": [None]},
+            {**self.request, "tests": [{"template_id": "unknown"}]},
+            {**self.request, "tests": self.request["tests"] * 2},
+            {**self.request, "tests": [{"template_id": "offline.test", "params": []}]},
+            {**self.request, "timeout_seconds": True},
+            {**self.request, "timeout_seconds": -1},
+            {**self.request, "artifact_dir": str(self.root / "runs" / "other" / "artifacts")},
+        ]
         for request in cases:
             with self.subTest(request=request), self.assertRaises(ValueError):
                 validate_request(request, FakeFamily(), self.root)
@@ -75,8 +84,12 @@ class RunnerSafetyTests(unittest.TestCase):
         self.assertEqual(evidence.read_text(), "previous evidence")
 
     def test_run_status_distinguishes_results_from_execution_errors(self):
-        for outcome, expected in [("PASS", "SUCCEEDED"), ("FAIL", "SUCCEEDED"),
-                                  ("INCONCLUSIVE", "SUCCEEDED"), ("ERROR", "FAILED")]:
+        for outcome, expected in [
+            ("PASS", "SUCCEEDED"),
+            ("FAIL", "SUCCEEDED"),
+            ("INCONCLUSIVE", "SUCCEEDED"),
+            ("ERROR", "FAILED"),
+        ]:
             with self.subTest(outcome=outcome):
                 events = []
                 status = execute(FakeFamily(outcome), self.request, events.append)
@@ -85,7 +98,9 @@ class RunnerSafetyTests(unittest.TestCase):
 
     def test_cancelled_execution_is_not_success(self):
         events = []
-        self.assertEqual(execute(FakeFamily(), self.request, events.append, cancelled=lambda: True), "FAILED")
+        self.assertEqual(
+            execute(FakeFamily(), self.request, events.append, cancelled=lambda: True), "FAILED"
+        )
         results = [json.loads(e) for e in events if json.loads(e)["type"] == "test_result"]
         self.assertEqual(results[0]["outcome"], "NOT_EXECUTED")
         work_root = self.root / "workspaces"
@@ -101,24 +116,38 @@ class RunnerSafetyTests(unittest.TestCase):
 
     def test_command_success_and_failure(self):
         for code in (0, 3):
-            result = run_cmd([sys.executable, "-c", f"print('output'); raise SystemExit({code})"],
-                             cwd=self.root, log_path=self.root / "cmd.log", timeout_s=5)
+            result = run_cmd(
+                [sys.executable, "-c", f"print('output'); raise SystemExit({code})"],
+                cwd=self.root,
+                log_path=self.root / "cmd.log",
+                timeout_s=5,
+            )
             self.assertEqual(result.ok, code == 0)
             self.assertIn("output", result.log_path.read_text())
+
         class BrokenSink:
             def log(self, *args, **kwargs):
                 raise RuntimeError("sink failed")
 
         started = time.monotonic()
         with self.assertRaises(RuntimeError):
-            run_cmd([sys.executable, "-c", "import time; print('line', flush=True); time.sleep(30)"],
-                    cwd=self.root, log_path=self.root / "sink-error.log", timeout_s=10, sink=BrokenSink())
+            run_cmd(
+                [sys.executable, "-c", "import time; print('line', flush=True); time.sleep(30)"],
+                cwd=self.root,
+                log_path=self.root / "sink-error.log",
+                timeout_s=10,
+                sink=BrokenSink(),
+            )
         self.assertLess(time.monotonic() - started, 5)
 
     def test_command_timeout(self):
         started = time.monotonic()
-        result = run_cmd([sys.executable, "-c", "import time; print('partial', flush=True); time.sleep(30)"],
-                         cwd=self.root, log_path=self.root / "timeout.log", timeout_s=0.2)
+        result = run_cmd(
+            [sys.executable, "-c", "import time; print('partial', flush=True); time.sleep(30)"],
+            cwd=self.root,
+            log_path=self.root / "timeout.log",
+            timeout_s=0.2,
+        )
         self.assertTrue(result.timed_out)
         self.assertFalse(result.ok)
         self.assertLess(time.monotonic() - started, 10)
@@ -129,15 +158,25 @@ class RunnerSafetyTests(unittest.TestCase):
                 run_cmd([sys.executable], cwd=self.root, log_path=self.root / "bad.log", **kwargs)
 
     def test_failed_version_probe_is_unavailable(self):
-        with patch("rp_runner.proc.subprocess.run", return_value=subprocess.CompletedProcess([], 2, "fake version")):
+        with patch(
+            "rp_runner.proc.subprocess.run",
+            return_value=subprocess.CompletedProcess([], 2, "fake version"),
+        ):
             self.assertEqual(tool_version(["tool"]), "UNAVAILABLE")
 
     @unittest.skipIf(os.name == "nt", "POSIX process-group semantics")
     def test_term_resistant_descendant_is_killed_after_leader_exits(self):
-        code = "import subprocess,sys; subprocess.Popen([sys.executable,'-c','import signal,time; signal.signal(signal.SIGTERM,signal.SIG_IGN); time.sleep(30)'])"
+        code = (
+            "import subprocess,sys; subprocess.Popen([sys.executable,'-c',"
+            "'import signal,time; signal.signal(signal.SIGTERM,signal.SIG_IGN); time.sleep(30)'])"
+        )
         started = time.monotonic()
-        result = run_cmd([sys.executable, "-c", code], cwd=self.root,
-                         log_path=self.root / "descendant.log", timeout_s=0.5)
+        result = run_cmd(
+            [sys.executable, "-c", code],
+            cwd=self.root,
+            log_path=self.root / "descendant.log",
+            timeout_s=0.5,
+        )
         self.assertTrue(result.timed_out)
         self.assertLess(time.monotonic() - started, 5)
 
@@ -184,9 +223,13 @@ class HttpSafetyTests(unittest.TestCase):
         self.assertEqual(status, 400)
 
     def test_valid_request_streams_chunked_events(self):
-        request = {"run_id": "http-run", "profile_id": "profile", "change_id": "change",
-                   "artifact_dir": str(self.root / "runs" / "http-run" / "artifacts"),
-                   "tests": [{"template_id": "offline.test"}]}
+        request = {
+            "run_id": "http-run",
+            "profile_id": "profile",
+            "change_id": "change",
+            "artifact_dir": str(self.root / "runs" / "http-run" / "artifacts"),
+            "tests": [{"template_id": "offline.test"}],
+        }
         status, body = self.post(json.dumps(request).encode())
         self.assertEqual(status, 200)
         events = [json.loads(line) for line in body.splitlines()]

@@ -40,9 +40,7 @@ def test_scenario_indeterminate_firmware_only() -> None:
     assert result.transition_verdict == Verdict.INDETERMINATE
     assert result.candidate_verdict == Verdict.INDETERMINATE
     boot = [
-        r
-        for r in result.requirement_evaluation_results
-        if r["requirement_id"] == "REQ-BOOT-S0S1"
+        r for r in result.requirement_evaluation_results if r["requirement_id"] == "REQ-BOOT-S0S1"
     ]
     assert not boot
 

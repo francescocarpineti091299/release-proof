@@ -1,9 +1,9 @@
-# ReleaseProof runtime topology (see docs/WORKSTREAMS.md "Runtime topology").
+# ReleaseProof runtime topology (see docs/ARCHITECTURE.md).
 #
 #   caddy :80/:443 ─┬─ /api/*  → api:8000   (edge network)
 #                   └─ /*      → web:3000   (edge network)
 #   api → runner-wolfboot:8080, runner-mcuboot:8080   (runners network, internal: no egress)
-#   shared volume rpdata at /data (SQLite + /data/runs/<run_id>/artifacts)
+#   API mounts rpdata; non-root runners mount only its runs/ subpath (no SQLite access).
 #
 # Secrets (AMD_LLM_*) come from .env and are given to the api only, never to the runners.
 #   cp .env.example .env && docker compose up -d --build
@@ -21,6 +21,7 @@ services:
       SITE_ADDRESS: ${SITE_ADDRESS:-:80}
     volumes:
       - ./Caddyfile:/etc/caddy/Caddyfile:ro
+      - ./deploy/access/local.caddy:/etc/caddy/access.caddy:ro
       - caddy_data:/data
       - caddy_config:/config
     depends_on:
@@ -54,6 +55,7 @@ services:
       RELEASEPROOF_RUNNER_DATA_DIR: /data
       RUNNER_URL_WOLFBOOT: http://runner-wolfboot:8080
       RUNNER_URL_MCUBOOT: http://runner-mcuboot:8080
+      AMD_LLM_STRUCTURED_STREAM: ${AMD_LLM_STRUCTURED_STREAM:-1}
     expose:
       - "8000"
     volumes:
@@ -76,11 +78,18 @@ services:
     expose:
       - "8080"
     volumes:
-      - rpdata:/data
+      - type: volume
+        source: rpdata
+        target: /data/runs
+        volume:
+          subpath: runs
     depends_on:
-      - api   # api initialises the volume ownership first
+      api:
+        condition: service_healthy  # creates runs/ before Docker mounts the subpath
     security_opt:
       - no-new-privileges:true
+    cap_drop:
+      - ALL
     pids_limit: 2048
     cpus: 3
     mem_limit: 6g
@@ -99,11 +108,18 @@ services:
     expose:
       - "8080"
     volumes:
-      - rpdata:/data
+      - type: volume
+        source: rpdata
+        target: /data/runs
+        volume:
+          subpath: runs
     depends_on:
-      - api
+      api:
+        condition: service_healthy
     security_opt:
       - no-new-privileges:true
+    cap_drop:
+      - ALL
     pids_limit: 2048
     cpus: 3
     mem_limit: 6g

@@ -1,1 +1,1 @@
-"""Semantic assurance core (ported verbatim from the POC, contract V1.2)."""
+"""Semantic assurance core for contract V1.2, ported from the original POC."""

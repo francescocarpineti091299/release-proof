@@ -5,7 +5,7 @@
 
 POSTs /execute with every mcuboot template, validates every NDJSON event against
 schemas/runner_event.schema.json (jsonschema if installed, else a built-in subset validator),
-checks the fact vocabulary of docs/WORKSTREAMS.md and artifact hashes, and prints a summary.
+checks the runner fact vocabulary and artifact hashes, and prints a summary.
 Exit code 0 only if the run SUCCEEDED and every event is valid.
 """
 
@@ -19,7 +19,8 @@ import secrets
 import sys
 import time
 import urllib.request
-from datetime import datetime, timezone
+from contextlib import ExitStack
+from datetime import UTC, datetime
 from pathlib import Path
 from typing import Any
 
@@ -38,30 +39,45 @@ TEMPLATES = [
 _ENUM = lambda *vals: (lambda v: v in vals)  # noqa: E731
 _INT = lambda v: isinstance(v, int) and not isinstance(v, bool)  # noqa: E731
 FACTS: dict[tuple[str, str], tuple[str, Any]] = {
-    ("D01", "bootloader_commit"): ("toolchain", lambda v: bool(re.fullmatch(r"[0-9a-f]{40}", str(v)))),
+    ("D01", "bootloader_commit"): (
+        "toolchain",
+        lambda v: bool(re.fullmatch(r"[0-9a-f]{40}", str(v))),
+    ),
     ("D01", "zephyr_commit"): ("toolchain", lambda v: bool(re.fullmatch(r"[0-9a-f]{40}", str(v)))),
-    ("D01", "partition_layout"): ("platform", lambda v: isinstance(v, dict) and set(v) == {
-        "boot_partition_size", "slot0_address", "slot0_size", "slot1_address", "slot1_size"}
-        and all(_INT(x) for x in v.values())),
-    ("D01", "imgtool_key_types"): ("toolchain", lambda v: isinstance(v, list) and all(isinstance(x, str) for x in v)),
+    ("D01", "partition_layout"): (
+        "platform",
+        lambda v: isinstance(v, dict)
+        and set(v)
+        == {"boot_partition_size", "slot0_address", "slot0_size", "slot1_address", "slot1_size"}
+        and all(_INT(x) for x in v.values()),
+    ),
+    ("D01", "imgtool_key_types"): (
+        "toolchain",
+        lambda v: isinstance(v, list) and all(isinstance(x, str) for x in v),
+    ),
     ("E11", "bootloader_field_update"): ("platform", _ENUM("SUPPORTED", "UNSUPPORTED", "UNKNOWN")),
     ("E01", "boot_outcome"): ("deployed_state", _ENUM("BOOT_OK", "FAIL", "UNKNOWN")),
     ("E01", "observed_version"): ("deployed_state", lambda v: _INT(v) or v == "UNKNOWN"),
     ("E01", "signed_image_size_bytes"): ("deployed_state", _INT),
     ("E01", "bootloader_size_bytes"): ("deployed_state", _INT),
-    ("E01", "public_key_sha256"): ("deployed_state", lambda v: bool(re.fullmatch(r"[0-9a-f]{64}", str(v)))),
-    ("E05", "layout_fit"): ("deployed_state", lambda v: isinstance(v, dict)
-                            and set(v) == {"signed_artifact_size", "boot_slot_capacity"}),
+    ("E01", "public_key_sha256"): (
+        "deployed_state",
+        lambda v: bool(re.fullmatch(r"[0-9a-f]{64}", str(v))),
+    ),
+    ("E05", "layout_fit"): (
+        "deployed_state",
+        lambda v: isinstance(v, dict) and set(v) == {"signed_artifact_size", "boot_slot_capacity"},
+    ),
     ("E08", "update_outcome"): ("deployed_state", _ENUM("APPLIED", "NOT_APPLIED", "UNKNOWN")),
     ("E03", "auth_negative"): ("deployed_state", _ENUM("REJECT", "ACCEPT", "UNKNOWN")),
-    ("E02", "pqc_signing"): ("candidate_state", lambda v: isinstance(v, dict)
-                             and set(v) == {"signing_result", "algorithm", "tool", "message"}
-                             and v["signing_result"] in ("OK", "REJECTED")),
+    ("E02", "pqc_signing"): (
+        "candidate_state",
+        lambda v: isinstance(v, dict)
+        and set(v) == {"signing_result", "algorithm", "tool", "message"}
+        and v["signing_result"] in ("OK", "REJECTED"),
+    ),
     ("X01", "cross_update_outcome"): ("transition", _ENUM("REJECTED", "APPLIED", "UNKNOWN")),
 }
-
-
-# ------------------------------------------------------------------ minimal JSON-schema subset
 
 
 class MiniValidator:
@@ -79,7 +95,9 @@ class MiniValidator:
             return self.errors(inst, self._resolve(sch["$ref"]), path)
         errs: list[str] = []
         if "discriminator" in sch and isinstance(inst, dict):
-            target = sch["discriminator"]["mapping"].get(inst.get(sch["discriminator"]["propertyName"]))
+            target = sch["discriminator"]["mapping"].get(
+                inst.get(sch["discriminator"]["propertyName"])
+            )
             if not target:
                 return [f"{path}: unknown discriminator {inst.get('type')!r}"]
             return self.errors(inst, self._resolve(target), path)
@@ -90,9 +108,19 @@ class MiniValidator:
         if "anyOf" in sch and not any(not self.errors(inst, s, path) for s in sch["anyOf"]):
             errs.append(f"{path}: matches none of anyOf")
         t = sch.get("type")
-        types = {"string": str, "integer": int, "object": dict, "array": list, "null": type(None),
-                 "boolean": bool, "number": (int, float)}
-        if t and not (isinstance(inst, types[t]) and not (t in ("integer", "number") and isinstance(inst, bool))):
+        types = {
+            "string": str,
+            "integer": int,
+            "object": dict,
+            "array": list,
+            "null": type(None),
+            "boolean": bool,
+            "number": (int, float),
+        }
+        if t and not (
+            isinstance(inst, types[t])
+            and not (t in ("integer", "number") and isinstance(inst, bool))
+        ):
             return errs + [f"{path}: expected {t}, got {type(inst).__name__}"]
         if "const" in sch and inst != sch["const"]:
             errs.append(f"{path}: expected const {sch['const']!r}")
@@ -135,9 +163,6 @@ def make_validator() -> Any:
         return "builtin", lambda ev: mv.errors({"event": ev}, schema)
 
 
-# ------------------------------------------------------------------ main
-
-
 def main() -> int:
     ap = argparse.ArgumentParser()
     ap.add_argument("--url", default="http://localhost:18080")
@@ -147,7 +172,7 @@ def main() -> int:
     ap.add_argument("--save", help="write the raw NDJSON stream to this file")
     args = ap.parse_args()
 
-    run_id = datetime.now(timezone.utc).strftime("RP-%Y%m%dT%H%M%SZ-") + secrets.token_hex(3)
+    run_id = datetime.now(UTC).strftime("RP-%Y%m%dT%H%M%SZ-") + secrets.token_hex(3)
     request = {
         "run_id": run_id,
         "profile_id": "nrf52840-mcuboot-pqc",
@@ -159,16 +184,22 @@ def main() -> int:
     vname, validate = make_validator()
     with urllib.request.urlopen(args.url.rstrip("/") + "/health", timeout=30) as resp:
         health = json.load(resp)
-    print(f"health: {health.get('status')} family={health.get('family')} templates={len(health.get('templates', []))}")
+    print(
+        f"health: {health.get('status')} family={health.get('family')} "
+        f"templates={len(health.get('templates', []))}"
+    )
     req = urllib.request.Request(
-        args.url.rstrip("/") + "/execute", data=json.dumps(request).encode(),
-        headers={"Content-Type": "application/json"}, method="POST",
+        args.url.rstrip("/") + "/execute",
+        data=json.dumps(request).encode(),
+        headers={"Content-Type": "application/json"},
+        method="POST",
     )
     started = time.monotonic()
     events: list[dict[str, Any]] = []
     invalid: list[str] = []
-    raw = open(args.save, "w", encoding="utf-8") if args.save else None
-    with urllib.request.urlopen(req, timeout=args.timeout + 60) as resp:
+    with ExitStack() as stack:
+        raw = stack.enter_context(open(args.save, "w", encoding="utf-8")) if args.save else None
+        resp = stack.enter_context(urllib.request.urlopen(req, timeout=args.timeout + 60))
         for line in resp:
             if not line.strip():
                 continue
@@ -180,14 +211,21 @@ def main() -> int:
                 invalid.append(f"seq={ev.get('seq')} type={ev.get('type')}: {errs[:3]}")
             events.append(ev)
             if ev["type"] == "stage":
-                print(f"[{time.monotonic() - started:6.1f}s] stage {ev['stage']} {ev['status']} {ev.get('message', '')}")
+                print(
+                    f"[{time.monotonic() - started:6.1f}s] stage {ev['stage']} "
+                    f"{ev['status']} {ev.get('message', '')}"
+                )
             elif ev["type"] == "test_result":
-                print(f"[{time.monotonic() - started:6.1f}s] {ev['test_id']} {ev['template_id']}: {ev['outcome']} "
-                      f"({ev['duration_ms']} ms) {ev['observed'][:220]}")
+                print(
+                    f"[{time.monotonic() - started:6.1f}s] {ev['test_id']} "
+                    f"{ev['template_id']}: {ev['outcome']} "
+                    f"({ev['duration_ms']} ms) {ev['observed'][:220]}"
+                )
             elif ev["type"] == "error":
-                print(f"[{time.monotonic() - started:6.1f}s] ERROR {ev['failure_class']}: {ev['message'][:300]}")
-    if raw:
-        raw.close()
+                print(
+                    f"[{time.monotonic() - started:6.1f}s] ERROR {ev['failure_class']}: "
+                    f"{ev['message'][:300]}"
+                )
     elapsed = time.monotonic() - started
 
     problems: list[str] = list(invalid)
@@ -204,7 +242,7 @@ def main() -> int:
         if o["observation_id"] != f"OBS-{o['test_id']}-{o['fact']}":
             problems.append(f"bad observation id {o['observation_id']}")
         if key not in FACTS:
-            problems.append(f"fact not in WORKSTREAMS vocabulary: {key}")
+            problems.append(f"fact not in runner vocabulary: {key}")
             continue
         subject, check = FACTS[key]
         if o["subject"] != subject:
@@ -230,8 +268,10 @@ def main() -> int:
     status = done[-1]["status"] if done else "NO_DONE_EVENT"
 
     print("\n=== summary ===")
-    print(f"run_id={run_id} status={status} elapsed={elapsed:.1f}s events={len(events)} "
-          f"observations={len(obs)} artifacts={len(artifacts)} validator={vname}")
+    print(
+        f"run_id={run_id} status={status} elapsed={elapsed:.1f}s events={len(events)} "
+        f"observations={len(obs)} artifacts={len(artifacts)} validator={vname}"
+    )
     for tr in (e for e in events if e["type"] == "test_result"):
         print(f"  {tr['test_id']:4} {tr['outcome']:13} {tr['template_id']}")
     for o in obs:

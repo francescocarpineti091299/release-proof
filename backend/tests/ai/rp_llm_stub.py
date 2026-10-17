@@ -88,8 +88,6 @@ class StubLLM:
         values.update(overrides)
         return AISettings(**values)
 
-    # ------------------------------------------------------------------ dispatch
-
     def _mode(self) -> StubMode:
         index = min(len(self.requests) - 1, len(self.modes) - 1)
         return self.modes[max(index, 0)]
@@ -106,7 +104,7 @@ class StubLLM:
                 500,
                 json={
                     "error": {
-                        "message": 'Error from provider: 504 Gateway Timeout '
+                        "message": "Error from provider: 504 Gateway Timeout "
                         '{"error":{"code":"call_upstream_timeout"}}'
                     }
                 },
@@ -175,6 +173,7 @@ class StubLLM:
                 "Based on this run, the engine migration verdict is ",
                 f"{verdict or 'UNKNOWN'}",
                 ".",
+                " [" + (context.get("evidence_ids") or ["EV-E11-SELF-UPDATE"])[0] + "]",
             ]
         lines = []
         for piece in [p for p in pieces if p]:
@@ -196,8 +195,6 @@ class StubLLM:
             headers={**headers, "content-type": "text/event-stream"},
             content="".join(lines).encode(),
         )
-
-    # ------------------------------------------------------------------ answers
 
     def _content(self, module: str, user: str, mode: StubMode) -> str:
         if mode == StubMode.INVALID_JSON:

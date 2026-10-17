@@ -70,8 +70,9 @@ def test_happy_path_live_run_stores_verdict_manifest_and_events(harness):
 
     # plan: all required + the optional the AI selected; unregistered proposal blocked
     planned = {p["template_id"]: p["planned_by"] for p in orch.planned_tests(view.run_id)}
-    assert planned["wolfboot.candidate_rejects_classical"] == "AI_PLANNER"
-    assert "wolfboot.dual_signature_build" not in planned
+    # P01 is now required by policy to close candidate invariant I3, even if AI skips it.
+    assert planned["wolfboot.candidate_rejects_classical"] == "POLICY_REQUIRED"
+    assert planned["wolfboot.dual_signature_build"] == "AI_PLANNER"
     assert "wolfboot.flash_everything" not in planned
     assert done.ai_plan.blocked_templates == ["wolfboot.flash_everything"]
     assert {t.template_id for t in done.tests} == set(planned)

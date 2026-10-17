@@ -17,7 +17,11 @@ DEPOT = "depot_reflash_mcuboot"
 SIGN_OK = {"signing_result": "OK", "algorithm": "ML-DSA-65", "tool": "imgtool", "message": ""}
 CANDIDATE_BOOT = {
     ("E02", "boot_outcome"): (
-        "candidate_state", "BOOT_OK", "OBSERVED_EMULATION", "EMULATED", "e02-uart.log",
+        "candidate_state",
+        "BOOT_OK",
+        "OBSERVED_EMULATION",
+        "EMULATED",
+        "e02-uart.log",
     ),
 }
 

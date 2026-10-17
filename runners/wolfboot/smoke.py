@@ -1,6 +1,7 @@
 """Smoke test for the running wolfBoot runner container.
 
-    docker run --rm -d --name rp-wolfboot -v <hostdir>:/data -p 18081:8080 releaseproof/runner-wolfboot:0.1.0
+    docker run --rm -d --name rp-wolfboot -v <hostdir>:/data -p 18081:8080 \\
+        releaseproof/runner-wolfboot:0.1.0
     backend\\.venv\\Scripts\\python.exe runners\\wolfboot\\smoke.py --data-dir <hostdir>
 
 POSTs /execute with every wolfBoot template, validates each NDJSON event against
@@ -18,7 +19,7 @@ import secrets
 import sys
 import time
 import urllib.request
-from datetime import datetime, timezone
+from datetime import UTC, datetime
 from pathlib import Path
 
 import jsonschema
@@ -35,15 +36,25 @@ TEMPLATES = [
     "wolfboot.candidate_rejects_classical",
     "wolfboot.dual_signature_build",
 ]
-# Facts each template must emit (WORKSTREAMS.md, wolfBoot table).
+# Required facts for each wolfBoot test template.
 EXPECTED_FACTS = {
     "D01": {"bootloader_commit", "crypto_commit", "partition_layout"},
     "E11": {"bootloader_field_update"},
-    "E01": {"boot_outcome", "observed_version", "signed_image_size_bytes", "bootloader_size_bytes",
-            "public_key_sha256"},
+    "E01": {
+        "boot_outcome",
+        "observed_version",
+        "signed_image_size_bytes",
+        "bootloader_size_bytes",
+        "public_key_sha256",
+    },
     "E08": {"update_outcome"},
-    "E02": {"boot_outcome", "observed_version", "signed_image_size_bytes", "bootloader_size_bytes",
-            "public_key_sha256"},
+    "E02": {
+        "boot_outcome",
+        "observed_version",
+        "signed_image_size_bytes",
+        "bootloader_size_bytes",
+        "public_key_sha256",
+    },
     "E04": {"image_header"},
     "E05": {"layout_fit"},
     "E03": {"auth_negative"},
@@ -56,14 +67,16 @@ EXPECTED_FACTS = {
 def main() -> int:
     ap = argparse.ArgumentParser()
     ap.add_argument("--url", default="http://localhost:18081")
-    ap.add_argument("--data-dir", help="host directory mounted at /data (enables artifact hash checks)")
+    ap.add_argument(
+        "--data-dir", help="host directory mounted at /data (enables artifact hash checks)"
+    )
     ap.add_argument("--templates", nargs="*", default=TEMPLATES)
     ap.add_argument("--timeout", type=int, default=900)
     ap.add_argument("--save", help="write the raw NDJSON stream to this file")
     args = ap.parse_args()
 
     validator = jsonschema.Draft202012Validator(json.loads(SCHEMA.read_text(encoding="utf-8")))
-    run_id = "RP-" + datetime.now(timezone.utc).strftime("%Y%m%dT%H%M%SZ") + "-" + secrets.token_hex(3)
+    run_id = "RP-" + datetime.now(UTC).strftime("%Y%m%dT%H%M%SZ") + "-" + secrets.token_hex(3)
     request = {
         "run_id": run_id,
         "profile_id": "nrf52840-wolfboot-pqc",
@@ -77,7 +90,9 @@ def main() -> int:
     print(f"health: {health.get('status')} templates={len(health.get('templates', []))}")
 
     req = urllib.request.Request(
-        args.url + "/execute", data=json.dumps(request).encode(), method="POST",
+        args.url + "/execute",
+        data=json.dumps(request).encode(),
+        method="POST",
         headers={"Content-Type": "application/json"},
     )
     errors: list[str] = []
@@ -93,18 +108,28 @@ def main() -> int:
             ev = json.loads(line)
             events.append(ev)
             for err in validator.iter_errors({"event": ev}):
-                errors.append(f"seq {ev.get('seq')} ({ev.get('type')}): schema: {err.message[:200]}")
+                errors.append(
+                    f"seq {ev.get('seq')} ({ev.get('type')}): schema: {err.message[:200]}"
+                )
             if ev["type"] == "stage":
-                print(f"[{time.monotonic() - started:6.1f}s] stage {ev['stage']} {ev['status']} {ev.get('message', '')}")
+                print(
+                    f"[{time.monotonic() - started:6.1f}s] stage {ev['stage']} "
+                    f"{ev['status']} {ev.get('message', '')}"
+                )
             elif ev["type"] == "test_result":
-                print(f"[{time.monotonic() - started:6.1f}s] {ev['test_id']} {ev['outcome']} ({ev['duration_ms']} ms)")
+                print(
+                    f"[{time.monotonic() - started:6.1f}s] {ev['test_id']} {ev['outcome']} "
+                    f"({ev['duration_ms']} ms)"
+                )
             elif ev["type"] == "error":
-                print(f"[{time.monotonic() - started:6.1f}s] ERROR {ev['failure_class']}: {ev['message'][:300]}")
+                print(
+                    f"[{time.monotonic() - started:6.1f}s] ERROR {ev['failure_class']}: "
+                    f"{ev['message'][:300]}"
+                )
     total_s = time.monotonic() - started
     if args.save:
         Path(args.save).write_text("\n".join(raw_lines) + "\n", encoding="utf-8")
 
-    # ---- invariants
     seqs = [e["seq"] for e in events]
     if seqs != list(range(len(events))):
         errors.append("seq is not contiguous from 0")
@@ -119,7 +144,11 @@ def main() -> int:
     for t in args.templates:
         if t not in results:
             errors.append(f"no test_result for {t}")
-    observations = {e["observation"]["observation_id"]: e["observation"] for e in events if e["type"] == "observation"}
+    observations = {
+        e["observation"]["observation_id"]: e["observation"]
+        for e in events
+        if e["type"] == "observation"
+    }
     artifacts = {e["artifact_id"]: e for e in events if e["type"] == "artifact"}
     for r in results.values():
         for oid in r.get("observation_ids", []):
@@ -135,7 +164,10 @@ def main() -> int:
     requested_tests = {results[t]["test_id"] for t in args.templates if t in results}
     for test_id, facts in EXPECTED_FACTS.items():
         owner = {"E08": "E01", "E04": "E02", "E05": "E02"}.get(test_id, test_id)
-        if owner in requested_tests and results.get(_tid(owner), {}).get("outcome") not in (None, "ERROR"):
+        if owner in requested_tests and results.get(_tid(owner), {}).get("outcome") not in (
+            None,
+            "ERROR",
+        ):
             missing = facts - facts_by_test.get(test_id, set())
             if missing:
                 errors.append(f"{test_id}: missing facts {sorted(missing)}")
@@ -149,20 +181,27 @@ def main() -> int:
             if hashlib.sha256(p.read_bytes()).hexdigest() != a["sha256"]:
                 errors.append(f"artifact hash mismatch: {p}")
 
-    # ---- report
-    print(f"\nrun {run_id}: {len(events)} events, {len(observations)} observations, "
-          f"{len(artifacts)} artifacts, {total_s:.1f}s wall")
+    print(
+        f"\nrun {run_id}: {len(events)} events, {len(observations)} observations, "
+        f"{len(artifacts)} artifacts, {total_s:.1f}s wall"
+    )
     for t in args.templates:
         r = results.get(t)
         if not r:
             continue
-        print(f"\n== {r['test_id']} {t}: {r['outcome']}"
-              f"{' [' + r['failure_class'] + ']' if r.get('failure_class') else ''} ({r['duration_ms']} ms)")
+        print(
+            f"\n== {r['test_id']} {t}: {r['outcome']}"
+            f"{' [' + r['failure_class'] + ']' if r.get('failure_class') else ''} "
+            f"({r['duration_ms']} ms)"
+        )
         print(f"   observed: {r['observed']}")
         for oid in r.get("observation_ids", []):
             o = observations.get(oid)
             if o:
-                print(f"   - {oid} [{o['subject']}/{o['acquisition_mode']}] = {json.dumps(o['value'])}")
+                print(
+                    f"   - {oid} [{o['subject']}/{o['acquisition_mode']}] = "
+                    f"{json.dumps(o['value'])}"
+                )
                 if o.get("locator"):
                     print(f"       @ {o['locator'][:400]}")
     if done:
@@ -179,9 +218,13 @@ def main() -> int:
 
 def _tid(test_id: str) -> str:
     return {
-        "D01": "wolfboot.discover", "E11": "wolfboot.self_update_capability", "E01": "wolfboot.boot_current",
-        "E02": "wolfboot.boot_candidate", "E03": "wolfboot.tampered_image_rejected",
-        "X01": "wolfboot.cross_generation_update", "P01": "wolfboot.candidate_rejects_classical",
+        "D01": "wolfboot.discover",
+        "E11": "wolfboot.self_update_capability",
+        "E01": "wolfboot.boot_current",
+        "E02": "wolfboot.boot_candidate",
+        "E03": "wolfboot.tampered_image_rejected",
+        "X01": "wolfboot.cross_generation_update",
+        "P01": "wolfboot.candidate_rejects_classical",
         "O05": "wolfboot.dual_signature_build",
     }[test_id]
 

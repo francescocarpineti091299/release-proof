@@ -1,31 +1,12 @@
-"""Shared machinery for projecting live runner facts into V1.2 assessments.
+"""Project live runner facts into V1.2 evidence, requirements and plans.
 
-Engine behaviour that shapes every adapter (see ``core/assurance/service.py``):
+Coverage assertions require decisive observations; absent facts become UNOBSERVED
+rows and explicit gaps. Evidence groups use narrow acquisition modes, and failure
+tokens belong only to the requirement's primary measurement.
 
-1. A requirement's evidence group matches *any* evidence row through five attributes
-   (kind, source role, authority context, acquisition mode, review status). Without a
-   specialised evaluator, a match is SATISFIED unless some matched row carries
-   ``FAIL``/``UNSUPPORTED``/``OVERFLOW``. A decisive fact that is missing would
-   therefore be "satisfied" by unrelated rows that happen to share an acquisition mode
-   (e.g. bootloader sizes satisfying REQ-LAYOUT, D01 partition rows satisfying a
-   STATIC_CONFIG field-update requirement).
-2. **Coverage gating.** Each requirement that rests on one test declares
-   ``required_surface_ids``; the adapter emits a ``CoverageAssertion`` for that surface
-   only when the decisive fact was observed. When it was not, the engine returns
-   UNKNOWN and links the explicit evidence gap (contract §9/V12-06), so a missing fact
-   can never become SATISFIED.
-3. **Narrow groups.** Acquisition modes in requirement groups are as narrow as the
-   fact vocabulary allows, and failure tokens are only emitted on the primary
-   measurement of a requirement, so one failing fact cannot violate an unrelated
-   requirement.
-4. **UNKNOWN is not an observation.** A fact reported as ``UNKNOWN`` becomes a row with
-   ``authority_context=NOT_OBSERVED`` / ``acquisition_mode=UNOBSERVED`` (the convention
-   of the freeze row ``EV-E12-WINDOW``), which no requirement group accepts.
-5. Invariants I1 and I4 read evidence by ``test_id`` (first decisive E01/E02 row, any E12
-   row). Their input rows are always emitted, as placeholders when not observed;
-   otherwise the evaluator would not run and the result would be INCOMPLETE.
-6. EMULATED rows carry hashable values only (strings/ints): the engine's hazard check
-   evaluates ``value in {...}`` on them and would raise on a dict.
+I1 and I4 inputs are emitted even when missing, so the engine can evaluate them as
+UNKNOWN rather than omit them. EMULATED verdict rows use scalar values; structured
+measurements remain informational.
 """
 
 from __future__ import annotations
@@ -70,9 +51,6 @@ COND_MAINTENANCE = "COND-MAINTENANCE-WINDOW"
 REQ_MAINTENANCE = "REQ-MAINTENANCE-WINDOW"
 
 _HEX40 = re.compile(r"^[0-9a-f]{7,40}$")
-
-
-# --------------------------------------------------------------------------- facts
 
 
 class Facts:
@@ -164,9 +142,6 @@ def is_int(value: Any) -> bool:
     return isinstance(value, int) and not isinstance(value, bool)
 
 
-# --------------------------------------------------------------------------- evidence
-
-
 class EvidenceSet:
     """Collects evidence rows, coverage assertions and evidence gaps for one assessment."""
 
@@ -177,8 +152,6 @@ class EvidenceSet:
         self.rows: list[dict[str, Any]] = []
         self.coverage: list[dict[str, Any]] = []
         self.gaps: list[dict[str, Any]] = []
-
-    # rows ------------------------------------------------------------------
 
     def observed(
         self,
@@ -256,8 +229,7 @@ class EvidenceSet:
         return obs.value
 
     def add_scalar_fact(self, evidence_id: str, test_id: str, fact: str) -> int | None:
-        """Integer fact kept raw. EMULATED rows must stay hashable: the engine's hazard check
-        (``_failing_hazard_ids``) does ``value in {...}`` and raises on dict values."""
+        """Keep an integer measurement as a scalar; omit absent or non-integer values."""
         obs = self.facts.get(test_id, fact)
         if obs is None or not is_int(obs.value):
             return None
@@ -295,8 +267,6 @@ class EvidenceSet:
         if obs is not None or emit_missing:
             self.add(self.not_observed(evidence_id, test_id, obs))
         return None
-
-    # coverage / gaps ---------------------------------------------------------
 
     def cover(self, surface: str, obs: Observation, *, subject: str, scope: str) -> None:
         assertion: dict[str, Any] = {
@@ -359,8 +329,6 @@ class EvidenceSet:
         return [*self.leading, *self.rows]
 
 
-# --------------------------------------------------------------------------- boot rows (I1)
-
 _BOOT_RANK = {"FAIL": 0, "NOT_BOOTABLE": 0, UNKNOWN: 1, "BOOT_OK": 2}
 
 
@@ -400,9 +368,6 @@ def boot_rows(
 def e12_placeholder(ev: EvidenceSet) -> None:
     """INV-I4 input: no catalog test interrupts an update, so the window is never observed."""
     ev.add(ev.not_observed("EV-E12-WINDOW", "E12"))
-
-
-# --------------------------------------------------------------------------- requirements
 
 
 def combo(
@@ -614,9 +579,6 @@ def standard_gaps(ev: EvidenceSet, *, include_e10: bool) -> None:
     )
 
 
-# --------------------------------------------------------------------------- states / plans
-
-
 def sealed(state: dict[str, Any]) -> dict[str, Any]:
     """Attach a content-derived snapshot hash (components carry live artifact digests)."""
     body = {
@@ -720,9 +682,6 @@ def mutability_from_field_update(value: str | None) -> str:
     if value == "UNSUPPORTED":
         return "NOT_FIELD_UPDATABLE"
     return "UNKNOWN"
-
-
-# --------------------------------------------------------------------------- inputs
 
 
 def check_inputs(

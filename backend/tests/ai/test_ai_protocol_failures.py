@@ -80,8 +80,8 @@ def test_truncated_or_malformed_stream_is_not_reported_as_ok(tail, traces):
         )
     finally:
         service.close()
-    assert text.startswith("Partial answer")
-    assert "stream was interrupted" in text
+    assert "Partial answer" not in text
+    assert text.startswith("AI unavailable")
     assert traces.statuses == ["AI_UNAVAILABLE"]
 
 

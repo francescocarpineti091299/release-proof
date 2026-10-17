@@ -12,7 +12,9 @@ from releaseproof.core.projection.wp0 import (
 
 
 def _state(result, requirement_id):
-    rows = [r for r in result.requirement_evaluation_results if r["requirement_id"] == requirement_id]
+    rows = [
+        r for r in result.requirement_evaluation_results if r["requirement_id"] == requirement_id
+    ]
     assert rows, requirement_id
     return rows[0]["state"], rows[0]["evidence_refs"]
 

@@ -41,7 +41,11 @@ def test_runtime_does_not_import_test_fixtures():
                 modules = [node.module or ""]
             for module in modules:
                 assert module.split(".")[0] not in {
-                    "tests", "rp_llm_stub", "rp_scenarios", "rp_fakes", "adapter_facts"
+                    "tests",
+                    "rp_llm_stub",
+                    "rp_scenarios",
+                    "rp_fakes",
+                    "adapter_facts",
                 }, f"{path} imports test fixture {module}"
 
 

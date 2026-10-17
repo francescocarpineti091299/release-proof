@@ -1,4 +1,4 @@
-"""Assessment adapters: live runner facts → V1.2 assessment documents (WS-E).
+"""Assessment adapters: live runner facts → V1.2 assessment documents.
 
 ``get_adapter(profile.assessment_adapter)`` returns a pure, deterministic
 :class:`~releaseproof.contracts.services.AssessmentAdapter`. ``evidence_index`` turns the

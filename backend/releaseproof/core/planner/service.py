@@ -8,11 +8,7 @@ from typing import Any
 
 from releaseproof.core.paths import CONTRACT_PACK
 
-_MAPPING_PATH = (
-    CONTRACT_PACK
-    / "examples"
-    / "gap_planner_mapping_v1.json"
-)
+_MAPPING_PATH = CONTRACT_PACK / "examples" / "gap_planner_mapping_v1.json"
 
 
 def load_planner_mapping(path: Path | None = None) -> dict[str, Any]:
@@ -81,7 +77,8 @@ def _gap_still_drives_result(result: dict[str, Any], requirement_id: str | None)
     if not rows:
         return True
     return any(
-        row.get("state") in {"UNKNOWN", "OPEN_CONDITION", "VIOLATED", "NOT_EXECUTED"} for row in rows
+        row.get("state") in {"UNKNOWN", "OPEN_CONDITION", "VIOLATED", "NOT_EXECUTED"}
+        for row in rows
     )
 
 

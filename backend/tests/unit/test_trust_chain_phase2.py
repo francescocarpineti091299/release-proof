@@ -26,10 +26,7 @@ def test_trust_chain_explanation_fragment_links_evidence() -> None:
     snap = load_freeze_snapshot()
     nodes, edges = trust_chain_explanation_fragment(evidence_from_wp0_runs(snap))
     assert any(n["id"] == "TC-bootloader" for n in nodes)
-    assert any(
-        e["from"] == "TC-signature_verifier" and e["to"] == "EV-E03-PANIC"
-        for e in edges
-    )
+    assert any(e["from"] == "TC-signature_verifier" and e["to"] == "EV-E03-PANIC" for e in edges)
 
 
 def test_merge_trust_chain_appends_to_graph() -> None:

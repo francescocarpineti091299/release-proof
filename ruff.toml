@@ -1,0 +1,7 @@
+extend = "backend/pyproject.toml"
+extend-exclude = ["contract", "reference"]
+src = ["backend"]
+
+[lint.per-file-ignores]
+"backend/releaseproof/core/**" = ["E501"]
+"backend/tests/unit/**" = ["E501"]

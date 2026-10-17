@@ -2,15 +2,16 @@
 
 from __future__ import annotations
 
-import os
 import math
+import os
 import signal
 import subprocess
 import threading
 import time
+from collections.abc import Sequence
+from contextlib import suppress
 from dataclasses import dataclass
 from pathlib import Path
-from typing import Sequence
 
 from rp_runner.events import EventSink
 
@@ -106,7 +107,9 @@ def kill_group(proc: subprocess.Popen) -> None:
         # taskkill /T addresses descendants as well as the immediate child.
         subprocess.run(
             ["taskkill", "/PID", str(proc.pid), "/T", "/F"],
-            stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL, check=False,
+            stdout=subprocess.DEVNULL,
+            stderr=subprocess.DEVNULL,
+            check=False,
         )
         if proc.poll() is None:
             proc.kill()
@@ -124,10 +127,8 @@ def kill_group(proc: subprocess.Popen) -> None:
         except ProcessLookupError:
             return
         time.sleep(0.02)
-    try:
+    with suppress(ProcessLookupError):
         os.killpg(proc.pid, signal.SIGKILL)
-    except ProcessLookupError:
-        pass
 
 
 def tool_version(argv: Sequence[str], *, first_line_only: bool = True) -> str:

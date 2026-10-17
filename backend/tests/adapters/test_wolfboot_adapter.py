@@ -70,8 +70,6 @@ def _policy(assessment):
     return assessment["candidate_state"]["authorization_path_states"]["fw-boot"]["policy"]
 
 
-# ------------------------------------------------------------------ fixtures matrix
-
 FIXTURES = {
     "default": ({}, {}, DEFAULT),
     "default+p01": ({}, {"p01": "REJECT"}, DEFAULT),
@@ -96,9 +94,6 @@ def test_every_fixture_is_ready_and_completed(name, wolfboot_profile, wolfboot_r
     assert assessment["assessment_id"] == f"RP-ASSESS-{RUN_ID}"
     assert result.migration_verdict is not None
     assert result.migration_verdict != "COMPATIBLE"  # I4 is never observed by this runner
-
-
-# ------------------------------------------------------------------ default plan
 
 
 def test_default_plan_e11_unsupported_blocks_transition(wolfboot_profile, wolfboot_run):
@@ -313,9 +308,6 @@ def test_empty_run_has_no_boot_ok(wolfboot_profile, wolfboot_run):
     assert satisfied == []
 
 
-# ------------------------------------------------------------------ alternative plans
-
-
 def test_field_service_removes_self_update_blocker(wolfboot_profile, wolfboot_run):
     assessment, result = _evaluate(wolfboot_profile, wolfboot_run(p01="REJECT"), FIELD)
     assert not [
@@ -442,9 +434,6 @@ def test_ai_proposal_observations_are_not_facts(wolfboot_profile, wolfboot_run):
     assert _states(_req(result, "REQ-BOOT-S0S1")) == {"UNKNOWN"}
 
 
-# ------------------------------------------------------------------ determinism / hashes
-
-
 def test_same_inputs_same_canonical_hash(wolfboot_profile, wolfboot_run):
     run = wolfboot_run(p01="REJECT")
     first = evaluate(_assess(wolfboot_profile, run))
@@ -482,9 +471,6 @@ def test_reevaluation_uses_parent_evidence_run(wolfboot_profile, wolfboot_run):
     assert assessment["assessment_id"] == f"RP-ASSESS-{child}"
     observed = [e for e in assessment["evidence"] if e["authority_context"] == "OBSERVED"]
     assert observed and {e["run_id"] for e in observed} == {parent}
-
-
-# ------------------------------------------------------------------ provenance
 
 
 def test_measurement_without_run_linkage_is_incomplete(wolfboot_profile, wolfboot_run):

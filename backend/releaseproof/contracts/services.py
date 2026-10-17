@@ -1,8 +1,4 @@
-"""Interfaces between backend modules (implemented by adapters/ and ai/, used by orchestrator/).
-
-These are the seams that let the workstreams be built in parallel. Do not change signatures
-without updating all implementers.
-"""
+"""Adapter and AI service interfaces consumed by the orchestrator."""
 
 from __future__ import annotations
 

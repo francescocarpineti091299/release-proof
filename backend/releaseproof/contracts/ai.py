@@ -11,9 +11,6 @@ class _Strict(BaseModel):
     model_config = ConfigDict(extra="forbid")
 
 
-# ------------------------------------------------------------ test planner
-
-
 class PlannedTemplate(_Strict):
     template_id: str = Field(description="Must be a template_id from the provided catalog")
     priority: int = Field(ge=1, le=10, description="1 = run first")
@@ -39,9 +36,6 @@ class TestPlanProposal(_Strict):
     summary: str = Field(max_length=600)
 
 
-# ------------------------------------------------------------ explainer / reporter
-
-
 class CitedStatement(_Strict):
     text: str = Field(max_length=500)
     citations: list[str] = Field(
@@ -57,9 +51,6 @@ class NarrativeReport(_Strict):
     verified: list[CitedStatement] = Field(default_factory=list, max_length=8)
     unknowns: list[CitedStatement] = Field(default_factory=list, max_length=6)
     executive_summary: str = Field(max_length=1500)
-
-
-# ------------------------------------------------------------ alternatives
 
 
 class ChangeProposal(_Strict):

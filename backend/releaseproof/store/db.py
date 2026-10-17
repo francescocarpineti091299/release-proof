@@ -191,8 +191,6 @@ class Store:
             self._conn.execute("PRAGMA foreign_keys=ON")
             self._migrate()
 
-    # ------------------------------------------------------------------ plumbing
-
     def _migrate(self) -> None:
         version = int(self._conn.execute("PRAGMA user_version").fetchone()[0])
         for index, script in enumerate(_MIGRATIONS[version:], start=version + 1):
@@ -229,8 +227,6 @@ class Store:
     def close(self) -> None:
         with self._lock:
             self._conn.close()
-
-    # ------------------------------------------------------------------ runs
 
     @staticmethod
     def _encode_run(fields: dict[str, Any]) -> dict[str, Any]:
@@ -291,8 +287,6 @@ class Store:
         )
         return [self._decode_run(r) for r in rows]
 
-    # ------------------------------------------------------------------ idempotency
-
     def get_idempotency(self, key: str) -> tuple[str, str] | None:
         rows = self._query(
             "SELECT run_id, request_hash FROM idempotency_keys WHERE key = ?", (key,)
@@ -320,8 +314,6 @@ class Store:
                     (key, run["run_id"], request_hash, created_at),
                 )
         return str(run["run_id"]), True
-
-    # ------------------------------------------------------------------ events
 
     def append_event(
         self,
@@ -352,8 +344,6 @@ class Store:
             EventRow(r["id"], r["run_id"], r["type"], json.loads(r["data"]), r["created_at"])
             for r in rows
         ]
-
-    # ------------------------------------------------------------------ evidence
 
     def add_observation(
         self, run_id: str, observation: dict[str, Any], *, source_run_id: str
@@ -445,8 +435,6 @@ class Store:
         )
         return [json.loads(r["data"]) for r in rows]
 
-    # ------------------------------------------------------------------ results
-
     def save_result(
         self,
         run_id: str,
@@ -493,8 +481,6 @@ class Store:
             "canonical_hash": r["canonical_hash"],
             "created_at": r["created_at"],
         }
-
-    # ------------------------------------------------------------------ AI traces
 
     def add_ai_trace(self, trace: dict[str, Any]) -> None:
         with self._lock:

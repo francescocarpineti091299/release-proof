@@ -14,7 +14,11 @@ from releaseproof.contracts.ai import AlternativesProposal, NarrativeReport, Tes
 
 _THINK_RE = re.compile(r"<think>.*?</think>", re.DOTALL | re.IGNORECASE)
 _FENCE_RE = re.compile(r"^```(?:json)?\s*(.*?)\s*```$", re.DOTALL | re.IGNORECASE)
-_VERDICT_RE = re.compile(r"\b(" + "|".join(VERDICT_WORDS) + r")\b")
+_VERDICT_RE = re.compile(r"\b(" + "|".join(VERDICT_WORDS) + r")\b", re.I)
+_DEPLOYMENT_CLAIM_RE = re.compile(
+    r"\b(?:safe to deploy|guaranteed safe|certified safe|fully secure)\b",
+    re.I,
+)
 
 
 def parse_json_object(text: str) -> dict[str, Any]:
@@ -53,11 +57,72 @@ def format_validation_error(exc: ValidationError | ValueError) -> str:
 def _verdict_words(texts: Iterable[str]) -> set[str]:
     found: set[str] = set()
     for text in texts:
-        found.update(_VERDICT_RE.findall(text or ""))
+        found.update(word.upper() for word in _VERDICT_RE.findall(text or ""))
     return found
 
 
-# ------------------------------------------------------------------ planner
+def _check_verdict_phases(text: str, verdicts: dict[str, Any]) -> list[str]:
+    """Check explicit labels against their phase, not against any verdict in the run.
+
+    This is a conservative lexical check, not proof that free-form prose is entailed.
+    Markdown formatting must not hide or separate a phase/verdict assertion.
+    """
+    token = re.compile(
+        r"\b(migration|candidate|transition|COMPATIBLE|CONDITIONAL|INDETERMINATE|INCOMPATIBLE)\b",
+        re.I,
+    )
+    for clause in re.split(r"[.;\n]", text):
+        phase = None
+        for match in token.finditer(clause):
+            word = match.group().lower()
+            if word in VERDICT_KEYS:
+                phase = word
+            elif phase is None or word.upper() != verdicts.get(phase):
+                return ["verdict claim does not match its engine phase"]
+    return []
+
+
+def check_assistant(text: str, context: dict[str, Any]) -> list[str]:
+    """Validate buffered chat before *any* generated text reaches the browser.
+
+    This enforces ID existence and phase-specific verdicts, not semantic entailment of prose.
+    The model has no authority to certify a deployment.
+    """
+    verdicts = context.get("verdicts") or context.get("engine_verdicts") or {}
+    result = context.get("result") or {}
+    if result:
+        verdicts = {key: result.get(f"{key}_verdict") for key in VERDICT_KEYS}
+    elif not verdicts:
+        verdicts = (context.get("run") or {}).get("verdict") or {}
+    allowed = set(context.get("evidence_ids") or [])
+
+    def collect(value: Any) -> None:
+        if isinstance(value, dict):
+            for key, child in value.items():
+                if key in {"id", "gap_id", "requirement_id", "invariant_id"} and isinstance(
+                    child, str
+                ):
+                    allowed.add(child)
+                elif isinstance(child, dict | list):
+                    collect(child)
+        elif isinstance(value, list):
+            for child in value:
+                collect(child)
+
+    for key in ("assessment", "result", "evidence", "requirements", "invariants", "gaps"):
+        collect(context.get(key))
+    # Validate every ID-shaped citation, not only known prefixes: an invented
+    # [FAKE-PROOF] must not evade checks by using a different namespace.
+    cited = set(re.findall(r"\[([A-Z][A-Za-z0-9_.-]*)\]", text))
+    problems = []
+    if cited - allowed:
+        problems.append("unknown citations: " + ", ".join(sorted(cited - allowed)))
+    if allowed and not cited:
+        problems.append("answer has no verifiable citation")
+    if _DEPLOYMENT_CLAIM_RE.search(text):
+        problems.append("unsupported deployment certification")
+    problems.extend(_check_verdict_phases(text, verdicts))
+    return problems
 
 
 def sanitize_plan(
@@ -103,9 +168,6 @@ def sanitize_plan(
     return clean, blocked, notes
 
 
-# ------------------------------------------------------------------ explainer
-
-
 def check_report(
     report: NarrativeReport, *, verdicts: dict[str, str | None], citable: Iterable[str]
 ) -> list[str]:
@@ -126,10 +188,11 @@ def check_report(
     stray = sorted(_verdict_words(texts) - actual)
     if stray:
         problems.append(f"text states verdict(s) the engine did not produce: {', '.join(stray)}")
+    for text in texts:
+        problems.extend(_check_verdict_phases(text, verdicts))
+        if _DEPLOYMENT_CLAIM_RE.search(text):
+            problems.append("unsupported deployment certification")
     return problems
-
-
-# ------------------------------------------------------------------ alternatives
 
 
 def check_alternatives(
@@ -155,7 +218,21 @@ def check_alternatives(
         if extra:
             problems.append(f"{p.plan_id}: addresses non-blocking IDs {', '.join(extra)}")
         texts = [p.title, p.rationale, *p.preconditions, *p.tradeoffs, *p.evidence_still_needed]
-        words = _verdict_words(texts)
+        # A capability description such as "PQC-compatible bootloader" is not an
+        # assessment verdict. Reject enum labels and explicit verdict assertions,
+        # without rejecting ordinary lower-case technical adjectives.
+        words = set()
+        for text in texts:
+            words.update(re.findall(r"\b(" + "|".join(VERDICT_WORDS) + r")\b", text))
+            claims = re.findall(
+                r"\b(?:migration|candidate|transition|plan|assessment|verdict)\b\s*"
+                r"(?:(?:verdict|result)\s*)?"
+                r"(?:is|will be|would be|should be|becomes|must be|[:=\-])\s*"
+                r"(compatible|conditional|indeterminate|incompatible)\b",
+                text,
+                re.I,
+            )
+            words.update(word.upper() for word in claims)
         if words:
             problems.append(f"{p.plan_id}: claims a verdict ({', '.join(sorted(words))})")
         if p.plan_id in external_validation and not p.evidence_still_needed:

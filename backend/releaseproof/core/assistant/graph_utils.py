@@ -53,10 +53,7 @@ def trace_requirement(
         if n.get("type") in ("REQUIREMENT", "INVARIANT")
         and parse_subject_node(n["id"])["label"] == requirement_id
         and (phase is None or parse_subject_node(n["id"])["phase"] == phase)
-        and (
-            subject_ref is None
-            or parse_subject_node(n["id"])["subject_ref"] == subject_ref
-        )
+        and (subject_ref is None or parse_subject_node(n["id"])["subject_ref"] == subject_ref)
     ]
     if not subject_nodes:
         return None

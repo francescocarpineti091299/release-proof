@@ -50,9 +50,7 @@ def _firmware_only_transition(assessment: dict[str, Any], snap: dict[str, Any]) 
     """Single firmware step; bootloader stays on deployed ECDSA configuration."""
     boot_cfg = _ecdsa_bootloader_config(snap)
     assessment["profile"]["requirements"] = [
-        req
-        for req in assessment["profile"]["requirements"]
-        if req["id"] != "REQ-BOOT-S0S1"
+        req for req in assessment["profile"]["requirements"] if req["id"] != "REQ-BOOT-S0S1"
     ]
     assessment["allowed_change_set"] = {
         "modifiable_components": ["firmware"],
@@ -203,9 +201,7 @@ def build_scenario_conditional() -> dict[str, Any]:
 def _strip_i4_unknown_evidence(assessment: dict[str, Any]) -> None:
     """Remove freeze placeholders that block scenario E12 PASS for INV-I4."""
     assessment["evidence"] = [
-        item
-        for item in assessment.get("evidence") or []
-        if item.get("id") not in {"EV-E12-WINDOW"}
+        item for item in assessment.get("evidence") or [] if item.get("id") not in {"EV-E12-WINDOW"}
     ]
     assessment["evidence_gaps"] = [
         gap
@@ -218,9 +214,7 @@ def _apply_scenario_policy_recovery_perimeter(assessment: dict[str, Any]) -> Non
     """Scenario-only declarations: close I2/I3 on transition and target (not freeze facts)."""
     assessment["observed_recovery_mode"] = "FIELD_SERVICE"
     policy = {"policy": "PQC_ONLY", "accepted_schemes": ["ML_DSA_87"]}
-    assessment["candidate_state"]["authorization_path_states"]["fw-boot"] = copy.deepcopy(
-        policy
-    )
+    assessment["candidate_state"]["authorization_path_states"]["fw-boot"] = copy.deepcopy(policy)
     final = assessment["transition_plan"]["states"][-1]
     final["authorization_path_states"]["fw-boot"] = copy.deepcopy(policy)
 

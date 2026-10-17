@@ -18,8 +18,7 @@ def test_wp0_evidence_typed_acquisition_modes() -> None:
     assert rows["EV-E12-WINDOW"]["value"] == "UNKNOWN"
     assert rows["EV-T3-DUAL-BUILD"]["value"] == "BUILD_FAILED"
     assert (
-        rows["EV-T3-DUAL-BUILD"]["source_identity"]
-        == "UNSUPPORTED_CONFIGURATION_ON_FROZEN_COMMIT"
+        rows["EV-T3-DUAL-BUILD"]["source_identity"] == "UNSUPPORTED_CONFIGURATION_ON_FROZEN_COMMIT"
     )
     assert rows["EV-E12-WINDOW"]["acquisition_mode"] != "EMULATED"
 

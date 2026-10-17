@@ -12,6 +12,8 @@ from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import FileResponse, JSONResponse, StreamingResponse
 from starlette.concurrency import run_in_threadpool
 
+from releaseproof.api.budget import MutationBudget, mutation_budget
+from releaseproof.api.evidence_pack import build_evidence_pack
 from releaseproof.api.models import (
     AmdView,
     ConfigurationView,
@@ -87,6 +89,7 @@ def create_app(settings: Settings | None = None, deps: Deps | None = None) -> Fa
             app.state.settings = settings
             app.state.store = store
             app.state.orchestrator = orchestrator
+            app.state.mutation_budget = MutationBudget(settings.mutation_requests_per_minute)
             yield
         finally:
             if orchestrator is not None:
@@ -101,6 +104,7 @@ def create_app(settings: Settings | None = None, deps: Deps | None = None) -> Fa
         version="0.1.0",
         description="Evidence-backed firmware migration assessments (official=false).",
         lifespan=lifespan,
+        dependencies=[Depends(mutation_budget)],
     )
     if settings.cors_origins:
         app.add_middleware(
@@ -114,8 +118,6 @@ def create_app(settings: Settings | None = None, deps: Deps | None = None) -> Fa
     @app.exception_handler(OrchestratorError)
     async def _orchestrator_error(_: Request, exc: OrchestratorError) -> JSONResponse:
         return JSONResponse(status_code=exc.status_code, content={"detail": exc.detail})
-
-    # -------------------------------------------------------------- registry
 
     @app.get("/api/health", response_model=HealthView)
     def health(o: Orch) -> HealthView:
@@ -143,8 +145,6 @@ def create_app(settings: Settings | None = None, deps: Deps | None = None) -> Fa
     @app.get("/api/catalog/tests", response_model=TestCatalog)
     def catalog() -> TestCatalog:
         return registry.load_catalog()
-
-    # -------------------------------------------------------------- runs
 
     @app.post("/api/assessments", response_model=RunView, status_code=201)
     def create_assessment(
@@ -224,6 +224,40 @@ def create_app(settings: Settings | None = None, deps: Deps | None = None) -> Fa
         o.run_view(_check_id(run_id, "run"))
         return [artifact_view(run_id, a) for a in o.store.list_artifacts(run_id)]
 
+    @app.get("/api/assessments/{run_id}/evidence-pack")
+    def evidence_pack(run_id: str, o: Orch) -> StreamingResponse:
+        run = o.run_view(_check_id(run_id, "run"))
+        result = get_result(run_id, o)
+        try:
+            spool = build_evidence_pack(
+                runs_dir=o.settings.runs_dir,
+                run=run.model_dump(mode="json"),
+                result=result.model_dump(mode="json"),
+                artifacts=o.store.list_artifacts(run_id),
+                traces=o.store.list_ai_traces(run_id),
+            )
+        except (EvaluationFailure, OSError) as exc:
+            raise HTTPException(409, "evidence pack unavailable or integrity check failed") from exc
+
+        def content():
+            try:
+                yield from iter(lambda: spool.read(65536), b"")
+            finally:
+                spool.close()
+
+        from starlette.background import BackgroundTask
+
+        return StreamingResponse(
+            content(),
+            media_type="application/zip",
+            headers={
+                "Content-Disposition": f'attachment; filename="{run_id}-evidence.zip"',
+                "Cache-Control": "no-store",
+                "X-Content-Type-Options": "nosniff",
+            },
+            background=BackgroundTask(spool.close),
+        )
+
     @app.get("/api/assessments/{run_id}/artifacts/{artifact_id}")
     def download_artifact(run_id: str, artifact_id: str, o: Orch) -> FileResponse:
         _check_id(run_id, "run")
@@ -287,8 +321,6 @@ def create_app(settings: Settings | None = None, deps: Deps | None = None) -> Fa
             response.status_code = 200
             response.headers["Idempotent-Replayed"] = "true"
         return view
-
-    # -------------------------------------------------------------- AI
 
     @app.post("/api/assistant")
     def assistant(body: AssistantRequest, o: Orch) -> StreamingResponse:

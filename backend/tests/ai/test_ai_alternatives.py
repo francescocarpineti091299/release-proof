@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import copy
 
+import pytest
 from rp_llm_stub import StubLLM, StubMode
 
 from releaseproof.ai import AIService
@@ -91,3 +92,30 @@ def test_current_plan_excluded_and_external_validation_rule(mcuboot) -> None:
         external_validation=ext,
     )
     assert any("external validation" in p for p in problems)
+
+
+@pytest.mark.parametrize(
+    ("rationale", "rejected"),
+    [
+        ("Use a PQC-compatible bootloader; external validation is still required.", False),
+        ("The migration will be compatible.", True),
+        ("Candidate: compatible.", True),
+        ("This gives a COMPATIBLE result.", True),
+    ],
+)
+def test_capability_adjective_is_not_a_verdict_claim(rationale, rejected):
+    proposal = AlternativesProposal(
+        proposals=[
+            {
+                "plan_id": "external",
+                "title": "PQC-compatible bootloader",
+                "rationale": rationale,
+                "addresses": ["REQ-PQC"],
+                "evidence_still_needed": ["Verify the new bootloader on the target."],
+            }
+        ]
+    )
+    problems = check_alternatives(
+        proposal, plan_ids=["external"], blocking=["REQ-PQC"], external_validation={"external"}
+    )
+    assert bool(problems) == rejected

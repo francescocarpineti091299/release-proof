@@ -92,8 +92,6 @@ class AMDChatClient:
         self._lock = threading.Lock()
         self._rf_mode: dict[str, str] = {}
 
-    # ------------------------------------------------------------------ plumbing
-
     def _client(self) -> httpx.Client:
         with self._lock:
             if self._http is None:
@@ -281,8 +279,6 @@ class AMDChatClient:
             with self._lock:
                 self._rf_mode[model] = mode
 
-    # ------------------------------------------------------------------ public calls
-
     def complete(
         self,
         *,
@@ -372,6 +368,7 @@ class AMDChatClient:
         messages: list[dict[str, str]],
         stats: CallStats,
         max_tokens: int | None = None,
+        json_output: bool = False,
     ) -> Iterator[str]:
         """Stream content deltas (SSE ``data:`` lines). Raises :class:`AIUnavailableError`."""
         reason = self.settings.unavailable_reason(module)
@@ -388,6 +385,11 @@ class AMDChatClient:
             "stream": True,
             "stream_options": {"include_usage": True},
         }
+        if json_output and self.settings.response_format != "none":
+            # Streaming JSON mode + local schema validation. Do not expose fragments
+            # or relax semantic/citation guardrails while keeping the connection active.
+            body["response_format"] = {"type": "json_object"}
+            stats.response_format = "json_object"
         client = self._client()
         timeout = httpx.Timeout(
             self.settings.stream_timeout_s, connect=self.settings.connect_timeout_s
@@ -403,6 +405,9 @@ class AMDChatClient:
                         continue
                     if response.status_code != 200:
                         response.read()
+                        if self._retryable(response) and attempt == 0:
+                            time.sleep(0.5)
+                            continue
                         stats.request_id = self._request_id(response, None)
                         raise self._http_error(response)
                     stats.request_id = self._request_id(response, None)

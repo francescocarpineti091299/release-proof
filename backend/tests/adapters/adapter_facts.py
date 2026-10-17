@@ -1,8 +1,4 @@
-﻿"""Synthetic runner facts for adapter tests (shapes follow docs/WORKSTREAMS.md vocabulary).
-
-Named uniquely (not ``conftest``) so test modules can import it without colliding with other
-test packages' conftest modules.
-"""
+"""Synthetic runner facts for adapter tests, matching the registered fact vocabulary."""
 
 from __future__ import annotations
 
@@ -40,30 +36,58 @@ WOLFBOOT_FACTS: dict[tuple[str, str], tuple[str, Any, str, str, str]] = {
         "nrf52840.config",
     ),
     ("E11", "bootloader_field_update"): (
-        "platform", "UNSUPPORTED", _TOOL, "SOURCE_INSPECTION", "hal_nrf52.c",
+        "platform",
+        "UNSUPPORTED",
+        _TOOL,
+        "SOURCE_INSPECTION",
+        "hal_nrf52.c",
     ),
     ("E01", "boot_outcome"): ("deployed_state", "BOOT_OK", _EMU, "EMULATED", "e01-uart.log"),
     ("E01", "observed_version"): ("deployed_state", 1, _EMU, "EMULATED", "e01-uart.log"),
     ("E01", "signed_image_size_bytes"): (
-        "deployed_state", 840, _TOOL, "STATIC_ARTIFACT", "e01-image_v1_signed.bin",
+        "deployed_state",
+        840,
+        _TOOL,
+        "STATIC_ARTIFACT",
+        "e01-image_v1_signed.bin",
     ),
     ("E01", "bootloader_size_bytes"): (
-        "deployed_state", 23652, _TOOL, "STATIC_ARTIFACT", "e01-wolfboot.bin",
+        "deployed_state",
+        23652,
+        _TOOL,
+        "STATIC_ARTIFACT",
+        "e01-wolfboot.bin",
     ),
     ("E01", "public_key_sha256"): (
-        "deployed_state", "ab" * 32, _TOOL, "STATIC_ARTIFACT", "e01-wolfboot.bin",
+        "deployed_state",
+        "ab" * 32,
+        _TOOL,
+        "STATIC_ARTIFACT",
+        "e01-wolfboot.bin",
     ),
     ("E08", "update_outcome"): ("deployed_state", "APPLIED", _EMU, "EMULATED", "e01-uart.log"),
     ("E02", "boot_outcome"): ("candidate_state", "BOOT_OK", _EMU, "EMULATED", "e02-uart.log"),
     ("E02", "observed_version"): ("candidate_state", 1, _EMU, "EMULATED", "e02-uart.log"),
     ("E02", "signed_image_size_bytes"): (
-        "candidate_state", 12876, _TOOL, "STATIC_ARTIFACT", "e02-image_v1_signed.bin",
+        "candidate_state",
+        12876,
+        _TOOL,
+        "STATIC_ARTIFACT",
+        "e02-image_v1_signed.bin",
     ),
     ("E02", "bootloader_size_bytes"): (
-        "candidate_state", 22840, _TOOL, "STATIC_ARTIFACT", "e02-wolfboot.bin",
+        "candidate_state",
+        22840,
+        _TOOL,
+        "STATIC_ARTIFACT",
+        "e02-wolfboot.bin",
     ),
     ("E02", "public_key_sha256"): (
-        "candidate_state", "cd" * 32, _TOOL, "STATIC_ARTIFACT", "e02-wolfboot.bin",
+        "candidate_state",
+        "cd" * 32,
+        _TOOL,
+        "STATIC_ARTIFACT",
+        "e02-wolfboot.bin",
     ),
     ("E04", "image_header"): (
         "candidate_state",
@@ -81,22 +105,38 @@ WOLFBOOT_FACTS: dict[tuple[str, str], tuple[str, Any, str, str, str]] = {
     ),
     ("E03", "auth_negative"): ("deployed_state", "REJECT", _EMU, "EMULATED", "e03-uart.log"),
     ("X01", "cross_update_outcome"): (
-        "transition", "REJECTED", _EMU, "EMULATED", "x01-uart.log",
+        "transition",
+        "REJECTED",
+        _EMU,
+        "EMULATED",
+        "x01-uart.log",
     ),
 }
 
 WOLFBOOT_OPTIONAL: dict[tuple[str, str], tuple[str, Any, str, str, str]] = {
     ("P01", "classical_image_on_candidate"): (
-        "candidate_state", "REJECT", _EMU, "EMULATED", "p01-uart.log",
+        "candidate_state",
+        "REJECT",
+        _EMU,
+        "EMULATED",
+        "p01-uart.log",
     ),
     ("O05", "dual_signature_build"): (
-        "candidate_state", "BUILD_FAILED", _TOOL, "BUILD", "o05-build.log",
+        "candidate_state",
+        "BUILD_FAILED",
+        _TOOL,
+        "BUILD",
+        "o05-build.log",
     ),
 }
 
 MCUBOOT_FACTS: dict[tuple[str, str], tuple[str, Any, str, str, str]] = {
     ("D01", "bootloader_commit"): (
-        "toolchain", "4eba8087fa606db801455f14d185255bc8c49467", _TOOL, "REPOSITORY", "west.lock"
+        "toolchain",
+        "4eba8087fa606db801455f14d185255bc8c49467",
+        _TOOL,
+        "REPOSITORY",
+        "west.lock",
     ),
     ("D01", "zephyr_commit"): ("toolchain", "2" * 40, _TOOL, "REPOSITORY", "west.lock"),
     ("D01", "partition_layout"): (
@@ -120,18 +160,34 @@ MCUBOOT_FACTS: dict[tuple[str, str], tuple[str, Any, str, str, str]] = {
         "imgtool-help.txt",
     ),
     ("E11", "bootloader_field_update"): (
-        "platform", "UNSUPPORTED", _TOOL, "STATIC_CONFIG", "zephyr.dts",
+        "platform",
+        "UNSUPPORTED",
+        _TOOL,
+        "STATIC_CONFIG",
+        "zephyr.dts",
     ),
     ("E01", "boot_outcome"): ("deployed_state", "BOOT_OK", _EMU, "EMULATED", "e01-uart.log"),
     ("E01", "observed_version"): ("deployed_state", 1, _EMU, "EMULATED", "e01-uart.log"),
     ("E01", "signed_image_size_bytes"): (
-        "deployed_state", 41234, _TOOL, "STATIC_ARTIFACT", "app_v1.signed.bin",
+        "deployed_state",
+        41234,
+        _TOOL,
+        "STATIC_ARTIFACT",
+        "app_v1.signed.bin",
     ),
     ("E01", "bootloader_size_bytes"): (
-        "deployed_state", 38000, _TOOL, "STATIC_ARTIFACT", "mcuboot.bin",
+        "deployed_state",
+        38000,
+        _TOOL,
+        "STATIC_ARTIFACT",
+        "mcuboot.bin",
     ),
     ("E01", "public_key_sha256"): (
-        "deployed_state", "ef" * 32, _TOOL, "STATIC_ARTIFACT", "mcuboot.bin",
+        "deployed_state",
+        "ef" * 32,
+        _TOOL,
+        "STATIC_ARTIFACT",
+        "mcuboot.bin",
     ),
     ("E05", "layout_fit"): (
         "deployed_state",
@@ -155,7 +211,11 @@ MCUBOOT_FACTS: dict[tuple[str, str], tuple[str, Any, str, str, str]] = {
         "e02-sign.log",
     ),
     ("X01", "cross_update_outcome"): (
-        "transition", "REJECTED", _EMU, "EMULATED", "x01-uart.log",
+        "transition",
+        "REJECTED",
+        _EMU,
+        "EMULATED",
+        "x01-uart.log",
     ),
 }
 
@@ -282,4 +342,3 @@ def mcuboot_run(
 ) -> RunFacts:
     """Typical MCUboot live run (PQC signing refused, E11 unsupported)."""
     return build_run(MCUBOOT_FACTS, overrides, extra=extra, **kw)
-

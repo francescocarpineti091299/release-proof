@@ -52,9 +52,6 @@ MCUBOOT_CHANGE = "ecdsa_p256_to_mldsa"
 _DISCOVERY_TESTS = {"D01", "E11"}
 
 
-# --------------------------------------------------------------------------- runner
-
-
 class _GenericTemplate(Template):
     def __init__(self, template_id: str, test_id: str, expected: str) -> None:
         self.template_id = template_id
@@ -220,9 +217,6 @@ def _renumber(lines: list[str]) -> list[str]:
     return out
 
 
-# --------------------------------------------------------------------------- adapter
-
-
 class FakeAdapter:
     """Projects nothing live: returns the WP0 baseline document under a constant id, so the
     verdict/canonical hash of every fake run is identical (lets tests prove AI cannot move it)."""
@@ -235,9 +229,6 @@ class FakeAdapter:
         assessment = copy.deepcopy(build_wp0_baseline_assessment())
         assessment["assessment_id"] = "FAKE-LIVE-ASSESSMENT"
         return assessment
-
-
-# --------------------------------------------------------------------------- AI
 
 
 def _trace(
@@ -355,9 +346,6 @@ class BrokenAI(FakeAI):
 
 def unavailable_ai_factory(_sink: Any) -> Any:
     raise RuntimeError("AMD_LLM_BASE_URL not configured")
-
-
-# --------------------------------------------------------------------------- wiring
 
 
 class Harness:

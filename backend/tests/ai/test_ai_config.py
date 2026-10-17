@@ -123,7 +123,7 @@ def test_provider_info(traces) -> None:
     assert info["configured"] is True
     assert info["models"]["assistant"] == "small-model"
     assert info["models"]["planner"] == "stub-amd-model"
-    assert info["prompt_templates"]["explainer"] == "explainer@1"
+    assert info["prompt_templates"]["explainer"] == "explainer@2"
     assert "api_key" not in info and "stub-secret" not in str(info)
 
 

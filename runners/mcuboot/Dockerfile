@@ -1,5 +1,5 @@
 # syntax=docker/dockerfile:1.6
-# ReleaseProof MCUboot runner (WS-B).
+# ReleaseProof MCUboot runner.
 # Build context = repository root:
 #   docker build -f runners/mcuboot/Dockerfile -t releaseproof/runner-mcuboot:0.1.0 .
 # Every source is fetched here at a pinned version; a job needs no network.
@@ -11,7 +11,7 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
         python3 python3-venv python3-pip xz-utils wget file make libicu74 \
     && rm -rf /var/lib/apt/lists/*
 
-# ---------------------------------------------------------------- Renode 1.16.1
+# Renode 1.16.1
 ARG RENODE_VERSION=1.16.1
 ARG RENODE_SHA256=00e113cdbd0f5354cf2f64bbe3f5a070d8958409542fca66e45ac97d982938c0
 RUN wget -q -O /tmp/renode.tgz \
@@ -23,7 +23,7 @@ RUN wget -q -O /tmp/renode.tgz \
     && wget -q -O /opt/rp/renode-assets/NRF52840.svd.gz https://dl.antmicro.com/projects/renode/svd/NRF52840.svd.gz \
     && sha256sum /opt/rp/renode-assets/NRF52840.svd.gz > /opt/rp/renode-assets/NRF52840.svd.gz.sha256
 
-# ---------------------------------------------------------------- Zephyr SDK 0.17.4 (arm only)
+# Zephyr SDK 0.17.4 (Arm only)
 ARG SDK_VERSION=0.17.4
 ARG SDK_MIN_SHA256=a7258bf50c892c4669712b2aacdfcd5e303245bcf36cb458a296039a664594f5
 ARG SDK_ARM_SHA256=1b61084fe12076a3639aa2d028b5258f41eb3d0f7d46a16264949e1d213f1915
@@ -38,7 +38,7 @@ RUN cd /tmp \
     && rm -rf /opt/zephyr-sdk-${SDK_VERSION}/hosttools* \
     && /opt/zephyr-sdk-${SDK_VERSION}/arm-zephyr-eabi/bin/arm-zephyr-eabi-gcc --version | head -1
 
-# ---------------------------------------------------------------- Python venv + west workspace
+# Python environment and west workspace
 ENV VIRTUAL_ENV=/opt/venv PATH=/opt/venv/bin:$PATH
 RUN python3 -m venv /opt/venv && pip install --no-cache-dir west==1.4.0
 
@@ -65,7 +65,7 @@ ENV ZEPHYR_BASE=/opt/zws/zephyr \
     PYTHONUNBUFFERED=1 \
     PYTHONDONTWRITEBYTECODE=1
 
-# ---------------------------------------------------------------- ReleaseProof runner
+# ReleaseProof runner
 FROM base AS runner
 COPY runners/common /opt/rp/common
 COPY runners/mcuboot /opt/rp/mcuboot
@@ -74,7 +74,17 @@ ENV PYTHONPATH=/opt/rp/common:/opt/rp/mcuboot \
     RELEASEPROOF_DATA_DIR=/data \
     RUNNER_PORT=8080 \
     CCACHE_BASEDIR=/tmp
-# Warm ccache with one full build so per-run builds (new key every run) mostly hit the cache.
+RUN useradd --uid 10001 --user-group --create-home --shell /usr/sbin/nologin rp \
+ && mkdir -p /data/runs /opt/ccache /home/rp/.cache \
+ && chown -R rp:rp /opt/ccache \
+ && chown rp:rp /data/runs /home/rp/.cache \
+ && git config --system --add safe.directory /opt/zws/zephyr \
+ && git config --system --add safe.directory /opt/zws/bootloader/mcuboot \
+ && cd /opt/zws && west config --local zephyr.base zephyr
+ENV HOME=/home/rp XDG_CACHE_HOME=/home/rp/.cache
+USER rp
+# Warm and self-test the complete pipeline as the actual non-root runtime user.
+# Zephyr must use this user's cache, not a root-owned cache under the source checkout.
 RUN python -m rp_mcuboot.warm
 EXPOSE 8080
 WORKDIR /opt/rp

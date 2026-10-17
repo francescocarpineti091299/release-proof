@@ -33,7 +33,7 @@ def test_valid_report(wolfboot, freeze, traces) -> None:
     assert view.status == AIStatus.OK, view.message
     assert view.report.verdict_echo == ENGINE
     assert traces.statuses == ["OK"]
-    assert traces[0].module == "explainer" and traces[0].prompt_template == "explainer@1"
+    assert traces[0].module == "explainer" and traces[0].prompt_template == "explainer@2"
     user = stub.requests[0]["messages"][1]["content"]
     assert "REQ-BOOT-S0S1" in user and "GAP-O05-DUAL-POLICY" in user
 
@@ -126,3 +126,27 @@ def test_check_report_rejects_stray_verdict_words() -> None:
     assert check_report(report2, verdicts=ENGINE, citable=["REQ-BOOT-S0S1"]) == []
     missing = report2.model_copy(update={"verdict_echo": {"migration": "INCOMPATIBLE"}})
     assert check_report(missing, verdicts=ENGINE, citable=["REQ-BOOT-S0S1"])
+
+
+def test_report_cannot_swap_candidate_success_into_migration_even_with_correct_echo():
+    verdicts = {
+        "migration": "INCOMPATIBLE",
+        "candidate": "COMPATIBLE",
+        "transition": "INCOMPATIBLE",
+    }
+    report = NarrativeReport(
+        headline="Candidate is COMPATIBLE; migration is INCOMPATIBLE",
+        verdict_echo=verdicts,
+        main_causes=[{"text": "No self-update path", "citations": ["REQ-BOOT-S0S1"]}],
+        executive_summary="Review the evidence before rollout.",
+    )
+    assert check_report(report, verdicts=verdicts, citable=["REQ-BOOT-S0S1"]) == []
+    for text in (
+        "Migration is COMPATIBLE",
+        "Migration is compatible",
+        "**Transition**: **COMPATIBLE**",
+        "Safe to deploy",
+        "Fully secure",
+    ):
+        bad = report.model_copy(update={"executive_summary": text})
+        assert check_report(bad, verdicts=verdicts, citable=["REQ-BOOT-S0S1"])

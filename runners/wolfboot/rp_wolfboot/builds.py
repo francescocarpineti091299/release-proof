@@ -91,7 +91,9 @@ def make_env(tree: Path) -> dict[str, str]:
     return {"WOLFBOOT_ROOT": str(tree), "PWD": str(tree), "LC_ALL": "C"}
 
 
-def make_steps(tree: Path, out_dir: Path, args: list[str], *, update_image: bool) -> list[tuple[str, list[str]]]:
+def make_steps(
+    tree: Path, out_dir: Path, args: list[str], *, update_image: bool
+) -> list[tuple[str, list[str]]]:
     """Steps of tools/scripts/renode-test-update.sh, with per-run paths instead of /tmp.
 
     Serial make, as in the reference script: ``-j`` races on key generation for the hybrid build.
@@ -158,9 +160,12 @@ def run_steps(
     return results, None
 
 
-def register_logs(ctx: RunContext, results: list[tuple[str, CmdResult]], test_id: str) -> dict[str, str]:
+def register_logs(
+    ctx: RunContext, results: list[tuple[str, CmdResult]], test_id: str
+) -> dict[str, str]:
     return {
-        label: ctx.sink.artifact(res.log_path, kind="log", test_id=test_id) for label, res in results
+        label: ctx.sink.artifact(res.log_path, kind="log", test_id=test_id)
+        for label, res in results
     }
 
 
@@ -187,7 +192,9 @@ _VARIANTS = {"ecc": settings.ECC_MAKE_ARGS, "mldsa": settings.MLDSA_MAKE_ARGS}
 def _do_build(ctx: RunContext, name: str, test_id: str) -> Build:
     args = list(_VARIANTS[name])
     sink = ctx.sink
-    sink.log("runner", f"[{name}] preparing isolated tree; make args: {' '.join(args)}", test_id=test_id)
+    sink.log(
+        "runner", f"[{name}] preparing isolated tree; make args: {' '.join(args)}", test_id=test_id
+    )
     tree = prepare_tree(ctx, name)
     out_dir = ctx.workdir / name / "out"
     out_dir.mkdir(parents=True, exist_ok=True)
@@ -205,7 +212,9 @@ def _do_build(ctx: RunContext, name: str, test_id: str) -> Build:
         label, res = failed
         detail = "; ".join(f"L{n}: {line}" for n, line in error_lines(res.log_path)[:3])
         reason = "timeout" if res.timed_out else f"exit {res.returncode}"
-        raise BuildFailed(f"[{name}] step '{label}' failed ({reason}) {detail}".strip(), res.log_path)
+        raise BuildFailed(
+            f"[{name}] step '{label}' failed ({reason}) {detail}".strip(), res.log_path
+        )
 
     for key, (rel, kind) in _OUTPUTS.items():
         src = tree / rel
@@ -223,7 +232,9 @@ def _do_build(ctx: RunContext, name: str, test_id: str) -> Build:
     build.files["update_image"] = dst
     build.artifact_ids["update_image"] = sink.artifact(dst, kind="signed_image", test_id=test_id)
 
-    build.target = parse_target_h(build.files["target_h"].read_text(encoding="utf-8", errors="replace"))
+    build.target = parse_target_h(
+        build.files["target_h"].read_text(encoding="utf-8", errors="replace")
+    )
     cfg = parse_config(build.files["config"].read_text(encoding="utf-8", errors="replace"))
     build.effective = apply_make_args(cfg, args)
     sink.log(
@@ -247,7 +258,9 @@ def build_update_image(signed: bytes, partition_size: int) -> bytes:
     """
     poff = partition_size - 5
     if len(signed) > poff:
-        raise ValueError(f"signed image ({len(signed)} B) larger than the update partition payload ({poff} B)")
+        raise ValueError(
+            f"signed image ({len(signed)} B) larger than the update partition payload ({poff} B)"
+        )
     buf = bytearray(b"\xff" * poff)
     buf[: len(signed)] = signed
     return bytes(buf) + b"pBOOT"

@@ -501,13 +501,13 @@ def _invariant_context(assessment: dict[str, Any], evaluator_id: str) -> dict[st
         ) or {}
         declared_paths = (assessment.get("platform_model") or {}).get("authorization_paths") or []
         policies = [state.get("policy", "UNKNOWN") for state in path_states.values()]
-        policies.extend(
-            "UNKNOWN" for path in declared_paths if path["path_id"] not in path_states
-        )
+        policies.extend("UNKNOWN" for path in declared_paths if path["path_id"] not in path_states)
         if policies:
             context["policy"] = (
-                "CLASSICAL_ONLY" if "CLASSICAL_ONLY" in policies
-                else "UNKNOWN" if any(policy in (None, "UNKNOWN") for policy in policies)
+                "CLASSICAL_ONLY"
+                if "CLASSICAL_ONLY" in policies
+                else "UNKNOWN"
+                if any(policy in (None, "UNKNOWN") for policy in policies)
                 else policies[0]
             )
     if evaluator_id == "BOOTABLE_IMAGE_EXISTS":
@@ -632,11 +632,7 @@ def _layout_requirement_state(
         return RequirementResultState.UNKNOWN, [item["id"] for item in legacy]
     outcome = run_evaluator("LEQ", context=sizes)
     status = outcome.get("status")
-    refs = [
-        item["id"]
-        for item in evidence
-        if item.get("id") and item.get("test_id") == "E05"
-    ]
+    refs = [item["id"] for item in evidence if item.get("id") and item.get("test_id") == "E05"]
     if status == "VIOLATED":
         return RequirementResultState.VIOLATED, refs or ["EV-LAYOUT"]
     if status == "UNKNOWN":
@@ -654,7 +650,7 @@ def _auth_negative_requirement_state(
         return None
     found = next((item for item in evidence if item.get("id") == "EV-E03-PANIC"), None)
     if found is None:
-        # D05 (additive): live runners emit E03 evidence under run-scoped IDs.
+        # Live runners emit E03 evidence under run-scoped IDs.
         found = next((item for item in evidence if item.get("test_id") == "E03"), None)
     if found is None:
         return RequirementResultState.UNKNOWN, []
@@ -682,7 +678,7 @@ def _signer_bound_requirement_state(
         None,
     )
     if found is None:
-        # D05 (additive): live runners emit signer-bound evidence under run-scoped IDs.
+        # Live runners emit signer-bound evidence under run-scoped IDs.
         found = next((item for item in evidence if item.get("test_id") == "A4"), None)
     if found is None:
         return None
@@ -727,22 +723,26 @@ def _emit(
     result: SemanticAssessmentResult,
 ) -> SemanticAssessmentResult:
     conditions = (
-        [] if result.lifecycle == AssessmentLifecycle.BLOCKED else _condition_evaluations(assessment)
+        []
+        if result.lifecycle == AssessmentLifecycle.BLOCKED
+        else _condition_evaluations(assessment)
     )
     graph = result.explanation_graph
     if "nodes" not in graph or "edges" not in graph:
         graph = {"nodes": [], "edges": []}
     graph = sanitize_explanation_graph(graph)
-    result = result.model_copy(update={
-        "conditions": conditions,
-        "explanation_graph": graph,
-        "candidate_state_assurance": (
-            {"verdict": result.candidate_verdict} if result.candidate_verdict else None
-        ),
-        "transition_plan_assurance": (
-            {"verdict": result.transition_verdict} if result.transition_verdict else None
-        ),
-    })
+    result = result.model_copy(
+        update={
+            "conditions": conditions,
+            "explanation_graph": graph,
+            "candidate_state_assurance": (
+                {"verdict": result.candidate_verdict} if result.candidate_verdict else None
+            ),
+            "transition_plan_assurance": (
+                {"verdict": result.transition_verdict} if result.transition_verdict else None
+            ),
+        }
+    )
     document = result.model_dump(mode="json")
     document.pop("canonical_hash", None)
     digest = compute_canonical_hash(document)

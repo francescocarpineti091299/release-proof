@@ -4,10 +4,10 @@
 services:
   caddy:
     ports: !override
-      - "8080:80"
+      - "127.0.0.1:8080:80"
   api:
     ports:
-      - "8000:8000"
+      - "127.0.0.1:8000:8000"
     environment:
       RELEASEPROOF_ENV: dev
       RELEASEPROOF_EXPOSE_EXPERIMENTAL: "1"

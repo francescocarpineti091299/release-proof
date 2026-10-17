@@ -81,7 +81,13 @@ ENV PYTHONPATH=/opt/releaseproof \
     WOLFBOOT_BAKED_TREE=/opt/wolfboot \
     ARM_TOOLCHAIN_RELEASE=14.2.rel1
 
-# Root keeps the shared /data volume writable regardless of the volume owner.
+# Match the API artifact UID; the runner never mounts the database directory.
+RUN useradd --uid 10001 --user-group --create-home --shell /usr/sbin/nologin rp \
+ && mkdir -p /data/runs \
+ && chown rp:rp /data/runs
+ENV HOME=/home/rp
+USER rp
+RUN python3 -c "from rp_runner.server import serve; from rp_wolfboot.family import WolfbootFamily"
 WORKDIR /opt/releaseproof
 EXPOSE 8080
 ENTRYPOINT ["python3", "-m", "rp_wolfboot"]

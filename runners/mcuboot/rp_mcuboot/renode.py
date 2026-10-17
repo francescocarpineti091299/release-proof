@@ -65,7 +65,9 @@ class Phase:
             m = MARKER_RE.search(line)
             if m:
                 out.append(
-                    Marker(int(m["major"]), int(m["minor"]), int(m["rev"]), m["key"], n, line.strip())
+                    Marker(
+                        int(m["major"]), int(m["minor"]), int(m["rev"]), m["key"], n, line.strip()
+                    )
                 )
         return out
 
@@ -151,7 +153,11 @@ def run_scenario(
     resc = sdir / f"{name}.resc"
     resc.write_text(resc_text, encoding="utf-8")
     resc_aid = register(ctx, resc, "script", test_id)
-    ctx.sink.log("renode", f"renode {name}: phase1={phase1}" + (f" reset phase2={phase2}" if staged_slot1 else ""), test_id)
+    ctx.sink.log(
+        "renode",
+        f"renode {name}: phase1={phase1}" + (f" reset phase2={phase2}" if staged_slot1 else ""),
+        test_id,
+    )
     res = run_cmd(
         [C.RENODE, "--disable-xwt", "--console", "--plain", "--hide-log", str(resc)],
         cwd=sdir,
@@ -177,7 +183,12 @@ def run_scenario(
         for line in lines:
             ctx.sink.log("uart", f"[{name}/{path.stem}] {line}", test_id)
     return ScenarioResult(
-        name=name, phases=phases, resc_artifact=resc_aid, renode_log_artifact=rlog_aid,
-        returncode=res.returncode, timed_out=res.timed_out, duration_ms=res.duration_ms,
+        name=name,
+        phases=phases,
+        resc_artifact=resc_aid,
+        renode_log_artifact=rlog_aid,
+        returncode=res.returncode,
+        timed_out=res.timed_out,
+        duration_ms=res.duration_ms,
         artifact_ids=aids,
     )

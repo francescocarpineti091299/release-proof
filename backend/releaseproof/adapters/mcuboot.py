@@ -1,27 +1,11 @@
-"""MCUboot (Zephyr, nRF52840) live facts → V1.2 assessment (adapter ``mcuboot_v1_2``).
+"""Project live nRF52840/Zephyr/MCUboot facts into a V1.2 assessment.
 
-The change is a post-quantum migration (D06): whether the pinned MCUboot/imgtool can produce
-and verify an ML-DSA image is *measured* by E02 (sign attempt), never assumed. See
-``_common`` for the gating rules.
+E02 signing refusal proves UNSUPPORTED; successful signing alone does not prove
+verification, which requires an observed candidate boot. E05 measurements on the
+deployed image are informational and cannot establish candidate layout coverage.
 
-Requirement map (requirement ← decisive fact, coverage surface, group acquisition):
-
-* REQ-PQC-VERIFIER (TARGET, critical) ← E02 ``pqc_signing`` (+ candidate ``boot_outcome``
-  when a runner reports one). ``REJECTED`` → evidence ``UNSUPPORTED`` → VIOLATED. ``OK``
-  only proves the tool signs; verification needs an observed candidate boot, otherwise the
-  requirement is UNKNOWN. Group: SIGN_TOOL + EMULATED (the only generic failure tokens on
-  those modes are the pqc row and a failed candidate boot).
-* REQ-LAYOUT (TARGET+TRANSITION, critical) ← E05 ``layout_fit`` **on the candidate**. The
-  catalog measures E05 on the deployed image; that row is informational
-  (EV-E05-LAYOUT-DEPLOYED) and does not cover the candidate slot.
-* REQ-BL-FIELD-UPDATE (TRANSITION/steps, critical; default plan) ← E11
-  ``bootloader_field_update`` (STATIC_CONFIG, also the mode of D01 partition rows, hence
-  coverage gating).
-* REQ-AUTH-NEGATIVE (TRANSITION/plan, critical) ← E03 via RULE-AUTH-NEGATIVE (D05).
-* REQ-RAM (TARGET, non-critical) ← never measured.
-* REQ-MAINTENANCE-WINDOW (depot plan only) ← admitted precondition, OPEN_CONDITION.
-
-No catalog test observes the candidate authorization policy, so it stays ``UNKNOWN``.
+Candidate authorization policy, RAM and interrupted-update recovery remain
+UNKNOWN when unmeasured. Physical reflash plans retain a maintenance precondition.
 """
 
 from __future__ import annotations
@@ -70,7 +54,6 @@ def build_mcuboot_v1_2_assessment(
     facts = c.Facts(observations, artifacts, test_results)
     ev = c.EvidenceSet(facts, evidence_run_id)
 
-    # ---------------------------------------------------------------- I1 inputs
     boots = c.boot_rows(
         ev,
         [("EV-E01-BOOT", "E01", "NOT_BOOTABLE"), ("EV-E02-BOOT", "E02", "FAIL")],
@@ -86,7 +69,6 @@ def build_mcuboot_v1_2_assessment(
                 requested=f"{test_id} {label} image boot observed in emulation",
             )
 
-    # ---------------------------------------------------------------- D01
     bl_commit = ev.add_identity_fact("EV-PIN-MCUBOOT", "D01", "bootloader_commit")
     c.check_pin(bl_commit, profile.bootloader.commit, "MCUboot")
     ev.add_identity_fact("EV-PIN-ZEPHYR", "D01", "zephyr_commit")
@@ -105,7 +87,6 @@ def build_mcuboot_v1_2_assessment(
             )
         )
 
-    # ---------------------------------------------------------------- E11
     field_update = ev.add_enum_fact(
         "EV-E11-BL-FIELD-UPDATE", "E11", "bootloader_field_update", _FIELD_UPDATE
     )
@@ -113,17 +94,14 @@ def build_mcuboot_v1_2_assessment(
     if field_update is not None and e11 is not None:
         ev.cover(c.SURFACE_BL_UPDATE, e11, subject="STEP-S0-S1", scope="E11 partition map")
 
-    # ---------------------------------------------------------------- E01 statics, E08
     bl_size = ev.add_dict_fact("EV-BOOTLOADER-SIZE-G1", "E01", "bootloader_size_bytes")
     fw_size = ev.add_dict_fact("EV-E01-SIGNED-SIZE", "E01", "signed_image_size_bytes")
     key = ev.add_dict_fact("EV-E01-PUBKEY", "E01", "public_key_sha256")
     ev.add_scalar_fact("EV-E01-VERSION", "E01", "observed_version")
     ev.add_enum_fact("EV-E08-UPDATE", "E08", "update_outcome", _UPDATE)
 
-    # ---------------------------------------------------------------- E05
     _layout(ev, facts, slot0)
 
-    # ---------------------------------------------------------------- E03 / X01
     auth = ev.add_enum_fact("EV-E03-PANIC", "E03", "auth_negative", _AUTH_NEGATIVE)
     e03 = facts.get("E03", "auth_negative")
     if auth is not None and e03 is not None:
@@ -139,11 +117,9 @@ def build_mcuboot_v1_2_assessment(
         )
     ev.add_enum_fact("EV-X01-CROSS-UPDATE", "X01", "cross_update_outcome", _CROSS_UPDATE)
 
-    # ---------------------------------------------------------------- E02 PQC signing
     signing = _pqc_signing(ev, facts, boots["E02"])
     c.e12_placeholder(ev)
 
-    # ---------------------------------------------------------------- states
     classical = {"policy": "CLASSICAL_ONLY", "accepted_schemes": [change.from_scheme]}
     candidate_policy = {"policy": "UNKNOWN", "accepted_schemes": [change.to_scheme]}
     ev.gap(
@@ -187,8 +163,11 @@ def build_mcuboot_v1_2_assessment(
             "to": "S1",
             "actions": [
                 c.action(
-                    "ACT-BOOTLOADER-S0S1", "UPDATE_BOOTLOADER", "bootloader",
-                    effects=["DE-AUTH-S1"], mechanism=bl_mechanism,
+                    "ACT-BOOTLOADER-S0S1",
+                    "UPDATE_BOOTLOADER",
+                    "bootloader",
+                    effects=["DE-AUTH-S1"],
+                    mechanism=bl_mechanism,
                 )
             ],
             "preconditions": [],
@@ -198,9 +177,7 @@ def build_mcuboot_v1_2_assessment(
             "from": "S1",
             "to": "S2",
             "actions": [
-                c.action(
-                    "ACT-FIRMWARE-S1S2", "UPDATE_FIRMWARE", "firmware", effects=["DE-AUTH-S2"]
-                )
+                c.action("ACT-FIRMWARE-S1S2", "UPDATE_FIRMWARE", "firmware", effects=["DE-AUTH-S2"])
             ],
             "preconditions": [],
         },
@@ -284,9 +261,6 @@ def build_mcuboot_v1_2_assessment(
         "coverage_assertions": ev.coverage,
         "ruleset_ref": dict(c.RULESET_REF),
     }
-
-
-# --------------------------------------------------------------------------- helpers
 
 
 def _layout(ev: c.EvidenceSet, facts: c.Facts, slot0: Any) -> None:
