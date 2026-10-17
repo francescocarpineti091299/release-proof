@@ -1,0 +1,31 @@
+# Public viewers do not log in. This guard restricts only the VM's origin traffic
+# to this Azure Front Door profile, in addition to the NSG backend service tag.
+{$SITE_ADDRESS} {
+    tls {
+        issuer acme {
+            disable_tlsalpn_challenge
+        }
+    }
+    header {
+        -Server
+        X-Content-Type-Options nosniff
+        Referrer-Policy strict-origin-when-cross-origin
+    }
+    route {
+        @wrong_origin not header X-Azure-FDID {$AZURE_FRONT_DOOR_ID}
+        respond @wrong_origin "Use the public demo URL" 403
+        handle /api/* {
+            reverse_proxy api:8000 {
+                flush_interval -1
+            }
+        }
+        handle {
+            encode zstd gzip
+            reverse_proxy web:3000
+        }
+    }
+    log {
+        output stdout
+        format console
+    }
+}

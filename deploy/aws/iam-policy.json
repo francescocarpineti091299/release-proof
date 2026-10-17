@@ -13,6 +13,7 @@
         "ec2:DescribeVpcs",
         "ec2:DescribeSubnets",
         "ec2:DescribeSecurityGroups",
+        "ec2:DescribeManagedPrefixLists",
         "ec2:DescribeKeyPairs",
         "ec2:DescribeAddresses",
         "ec2:CreateKeyPair",

@@ -14,6 +14,24 @@ class RecordedApi:
         self.missing_required = missing_required
         self.empty_result = empty_result
         self.keys = []
+        self.assessment = {"assessment_id": "unit-test"}
+        self.result = {
+            "official": False,
+            "lifecycle": "COMPLETED",
+            "migration_verdict": "INCOMPATIBLE",
+            "candidate_verdict": "COMPATIBLE",
+            "transition_verdict": "INCOMPATIBLE",
+        }
+        self.result["canonical_hash"] = acceptance.compute_canonical_hash(self.result)
+        self.manifest = {
+            "run_id": "run",
+            "assessment": {"canonical_hash": acceptance.compute_canonical_hash(self.assessment)},
+            "implementation": acceptance.implementation_identity(),
+            "source_pins": {
+                "releaseproof_runner_code_sha256": acceptance.runner_source_digest("wolfboot")
+            },
+        }
+        self.manifest_bytes = json.dumps(self.manifest).encode()
 
     def post(self, path, body):
         self.keys.append(body["idempotency_key"])
@@ -23,38 +41,73 @@ class RecordedApi:
             {"test_id": "E08", "template_id": "update", "negative": False, "outcome": "PASS"},
         ]
         if not self.missing_required:
-            tests.append({"test_id": "D01", "template_id": "discover",
-                          "negative": False, "outcome": "PASS"})
+            tests.append(
+                {"test_id": "D01", "template_id": "discover", "negative": False, "outcome": "PASS"}
+            )
         return {
-            "run_id": "run", "mode": "LIVE", "status": "SUCCEEDED",
-            "created_at": datetime.now(UTC).isoformat(), "tests": tests,
+            "run_id": "run",
+            "mode": "LIVE",
+            "status": "SUCCEEDED",
+            "created_at": datetime.now(UTC).isoformat(),
+            "tests": tests,
             "stages": [{"stage": "BUILD_SIGN", "status": "SUCCEEDED"}],
-            "verdict": {"canonical_hash": "sha256:" + "a" * 64, "official": False},
+            "verdict": {
+                "canonical_hash": self.result["canonical_hash"],
+                "official": False,
+                "lifecycle": self.result["lifecycle"],
+                "migration": self.result["migration_verdict"],
+                "candidate": self.result["candidate_verdict"],
+                "transition": self.result["transition_verdict"],
+            },
         }
 
     def get(self, path):
         if path.endswith("/result"):
-            return {} if self.empty_result else {
-                "result": {"canonical_hash": "sha256:" + "a" * 64},
-                "manifest_sha256": hashlib.sha256(b"blob").hexdigest(),
-                "evidence": [{"run_id": "run"}] * 3,
-            }
+            return (
+                {}
+                if self.empty_result
+                else {
+                    "assessment": self.assessment,
+                    "result": self.result,
+                    "manifest_sha256": hashlib.sha256(self.manifest_bytes).hexdigest(),
+                    "evidence": [{"run_id": "run"}] * 3,
+                }
+            )
         if path.endswith("/artifacts"):
-            return [{"artifact_id": str(i) if i < 3 else "MANIFEST", "url": "/blob",
-                     "sha256": hashlib.sha256(b"blob").hexdigest()} for i in range(4)]
+            return [
+                {
+                    "artifact_id": str(i),
+                    "url": "/blob",
+                    "sha256": hashlib.sha256(b"blob").hexdigest(),
+                }
+                for i in range(3)
+            ] + [
+                {
+                    "artifact_id": "MANIFEST",
+                    "url": "/manifest",
+                    "sha256": hashlib.sha256(self.manifest_bytes).hexdigest(),
+                }
+            ]
         if path.endswith("/ai-traces"):
             return []
         raise AssertionError(path)
 
     def raw(self, path):
-        return b"blob"
+        return self.manifest_bytes if path == "/manifest" else b"blob"
 
 
 CONFIG = {
-    "id": "profile", "changes": [{"change_id": "change", "templates": [
-        {"template_id": "boot", "required": True},
-        {"template_id": "discover", "required": True},
-    ]}],
+    "id": "profile",
+    "bootloader": {"family": "wolfboot"},
+    "changes": [
+        {
+            "change_id": "change",
+            "templates": [
+                {"template_id": "boot", "required": True},
+                {"template_id": "discover", "required": True},
+            ],
+        }
+    ],
 }
 
 
@@ -92,7 +145,98 @@ def test_manifest_digest_is_checked_even_outside_the_artifact_sample():
             return data
 
         def raw(self, path):
-            return b"tampered" if path == "/changed-manifest" else b"blob"
+            return b"{}" if path == "/changed-manifest" else super().raw(path)
+
+    assert not acceptance.run_profile(Api(), CONFIG, require_ai=False, timeout=1)["passed"]
+
+
+def test_explainer_only_cannot_pass_the_required_ai_gate():
+    class Api(RecordedApi):
+        def get(self, path):
+            if path == "/api/amd":
+                return {
+                    "provider": {"endpoint_host": "developer.amd.com.cn", "fallback_provider": None}
+                }
+            if path.endswith("/ai-traces"):
+                return [
+                    {
+                        "status": "OK",
+                        "module": "alternatives",
+                        "run_id": "run",
+                        "trace_id": "T",
+                        "model": "model",
+                        "endpoint_host": "developer.amd.com.cn",
+                        "request_id": "request",
+                    }
+                ]
+            return super().get(path)
+
+    result = acceptance.run_profile(Api(), CONFIG, require_ai=True, timeout=1)
+    assert not result["passed"]
+    assert not next(g for g in result["gates"] if g["gate"] == "AMD LLM called for this run")["ok"]
+
+
+def test_tampering_with_serialized_result_cannot_pass():
+    api = RecordedApi()
+    api.result["official"] = True
+    assert not acceptance.run_profile(api, CONFIG, require_ai=False, timeout=1)["passed"]
+
+
+@pytest.mark.parametrize("empty_plan", [False, True])
+def test_required_ai_needs_an_executed_selection(empty_plan):
+    templates = [
+        {"template_id": name, "required": True}
+        for name in ("boot", "negative", "update", "discover")
+    ]
+    config = {**CONFIG, "changes": [{"change_id": "change", "templates": templates}]}
+
+    class Api(RecordedApi):
+        def post(self, path, body):
+            run = super().post(path, body)
+            run["ai_plan"] = {
+                "status": "OK",
+                "trace_ids": ["planner"],
+                "proposal": {"selected": [] if empty_plan else templates},
+            }
+            run["ai_report"] = {"status": "OK", "trace_ids": ["explainer"]}
+            run["ai_alternatives"] = {"status": "OK", "trace_ids": ["alternatives"]}
+            return run
+
+        def get(self, path):
+            if path == "/api/amd":
+                return {
+                    "provider": {"endpoint_host": "developer.amd.com.cn", "fallback_provider": None}
+                }
+            if path.endswith("/ai-traces"):
+                return [
+                    {
+                        "module": module,
+                        "trace_id": module,
+                        "status": "OK",
+                        "run_id": "run",
+                        "model": "unit-model",
+                        "request_id": "unit-request",
+                        "endpoint_host": "developer.amd.com.cn",
+                    }
+                    for module in ("planner", "explainer", "alternatives")
+                ]
+            return super().get(path)
+
+    result = acceptance.run_profile(Api(), config, require_ai=True, timeout=1)
+    assert result["passed"] is not empty_plan
+
+
+def test_artifact_outside_previous_sample_is_verified():
+    class Api(RecordedApi):
+        def get(self, path):
+            data = super().get(path)
+            if path.endswith("/artifacts"):
+                data.extend([{**data[0], "artifact_id": f"extra-{i}"} for i in range(5)])
+                data[-1]["url"] = "/changed"
+            return data
+
+        def raw(self, path):
+            return b"tampered" if path == "/changed" else super().raw(path)
 
     assert not acceptance.run_profile(Api(), CONFIG, require_ai=False, timeout=1)["passed"]
 

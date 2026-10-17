@@ -9,6 +9,7 @@
 #   deploy/aws/provision.sh [--region eu-west-1] [--name releaseproof] [--profile default]
 #                           [--instance-type c7a.2xlarge] [--volume-gb 60]
 #                           [--ssh-cidr 203.0.113.7/32] [--key-name releaseproof]
+#                           [--cloudfront-origin]
 set -euo pipefail
 # Git Bash on Windows rewrites POSIX-looking arguments (e.g. /dev/sda1); disable that.
 export MSYS_NO_PATHCONV=1 MSYS2_ARG_CONV_EXCL='*'
@@ -19,6 +20,7 @@ INSTANCE_TYPE="c7a.2xlarge"
 VOLUME_GB=60
 SSH_CIDR=""
 KEY_NAME=""
+CLOUDFRONT_ORIGIN=0
 PROFILE_ARGS=()
 
 while [[ $# -gt 0 ]]; do
@@ -29,6 +31,7 @@ while [[ $# -gt 0 ]]; do
     --volume-gb) VOLUME_GB="$2"; shift 2 ;;
     --ssh-cidr) SSH_CIDR="$2"; shift 2 ;;
     --key-name) KEY_NAME="$2"; shift 2 ;;
+    --cloudfront-origin) CLOUDFRONT_ORIGIN=1; shift ;;
     --profile) PROFILE_ARGS=(--profile "$2"); shift 2 ;;
     -h|--help) sed -n '2,14p' "$0"; exit 0 ;;
     *) echo "unknown argument: $1" >&2; exit 2 ;;
@@ -63,7 +66,7 @@ if [[ -z "$SSH_CIDR" ]]; then
 fi
 log "SSH allowed from ${SSH_CIDR}"
 
-# ------------------------------------------------------------------ AMI (Ubuntu 24.04, amd64, gp3)
+# Ubuntu 24.04 AMI (amd64, gp3).
 AMI_ID="$(MSYS_NO_PATHCONV=1 aws_ ssm get-parameter \
   --name /aws/service/canonical/ubuntu/server/24.04/stable/current/amd64/hvm/ebs-gp3/ami-id \
   --query Parameter.Value --output text 2>/dev/null || true)"
@@ -83,7 +86,6 @@ OFFERED_AZ="$(aws_ ec2 describe-instance-type-offerings --location-type availabi
   --query 'InstanceTypeOfferings[0].Location' --output text)"
 none "$OFFERED_AZ" && { echo "${INSTANCE_TYPE} is not offered in ${REGION}" >&2; exit 1; }
 
-# ------------------------------------------------------------------ key pair
 if aws_ ec2 describe-key-pairs --key-names "$KEY_NAME" >/dev/null 2>&1; then
   log "key pair ${KEY_NAME} exists"
   [[ -f "$KEY_FILE" ]] || log "WARNING: ${KEY_FILE} not found locally; pass --key to deploy.sh"
@@ -96,7 +98,7 @@ else
   chmod 600 "$KEY_FILE"
 fi
 
-# ------------------------------------------------------------------ network (default VPC)
+# Network in the default VPC.
 VPC_ID="$(aws_ ec2 describe-vpcs --filters Name=is-default,Values=true --query 'Vpcs[0].VpcId' --output text)"
 none "$VPC_ID" && { echo "no default VPC in ${REGION}; create one (aws ec2 create-default-vpc)" >&2; exit 1; }
 SUBNET_ID="$(aws_ ec2 describe-subnets \
@@ -118,10 +120,26 @@ else
   log "security group ${SG_ID} exists"
 fi
 
+# Preserve an existing CloudFront-only HTTPS rule instead of silently reopening
+# the origin when provisioning is re-run. New CloudFront origins opt in explicitly.
+EXISTING_HTTPS_PREFIXES="$(aws_ ec2 describe-security-groups --group-ids "$SG_ID" \
+  --query 'SecurityGroups[0].IpPermissions[?IpProtocol==`tcp` && FromPort==`443` && ToPort==`443`].PrefixListIds[].PrefixListId' \
+  --output text | tr '\t\n' '  ')"
+CF_PREFIX=""
+if [[ "$CLOUDFRONT_ORIGIN" == 1 || "$EXISTING_HTTPS_PREFIXES" == *pl-* ]]; then
+  CF_PREFIX="$(aws_ ec2 describe-managed-prefix-lists \
+    --filters Name=prefix-list-name,Values=com.amazonaws.global.cloudfront.origin-facing \
+    --query 'PrefixLists[0].PrefixListId' --output text)"
+  none "$CF_PREFIX" && { echo "CloudFront origin-facing prefix list unavailable" >&2; exit 1; }
+  [[ "$CF_PREFIX" =~ ^pl-[[:alnum:]]+$ ]] || { echo "invalid CloudFront prefix list id" >&2; exit 1; }
+  [[ " $EXISTING_HTTPS_PREFIXES " != *" $CF_PREFIX "* ]] || CLOUDFRONT_ORIGIN=1
+fi
+
 authorize() {  # proto port cidr-json-key cidr
   local proto="$1" port="$2" key="$3" cidr="$4" out
   local range="IpRanges=[{CidrIp=${cidr}}]"
   [[ "$key" == "v6" ]] && range="Ipv6Ranges=[{CidrIpv6=${cidr}}]"
+  [[ "$key" == "prefix" ]] && range="PrefixListIds=[{PrefixListId=${cidr}}]"
   if out="$(aws_ ec2 authorize-security-group-ingress --group-id "$SG_ID" \
       --ip-permissions "IpProtocol=${proto},FromPort=${port},ToPort=${port},${range}" 2>&1)"; then
     log "ingress ${proto}/${port} from ${cidr}"
@@ -132,13 +150,18 @@ authorize() {  # proto port cidr-json-key cidr
   fi
 }
 authorize tcp 22 v4 "$SSH_CIDR"
-for port in 80 443; do
-  authorize tcp "$port" v4 0.0.0.0/0
-  authorize tcp "$port" v6 ::/0
-done
-authorize udp 443 v4 0.0.0.0/0   # HTTP/3
+if [[ "$CLOUDFRONT_ORIGIN" == 1 ]]; then
+  authorize tcp 80 v4 0.0.0.0/0  # Caddy ACME HTTP-01; keep certificate renewal reachable.
+  authorize tcp 443 prefix "$CF_PREFIX"
+  log "HTTPS origin restricted to CloudFront; no public origin QUIC/IPv6 rules added"
+else
+  for port in 80 443; do
+    authorize tcp "$port" v4 0.0.0.0/0
+    authorize tcp "$port" v6 ::/0
+  done
+  authorize udp 443 v4 0.0.0.0/0   # HTTP/3 for a directly exposed origin only.
+fi
 
-# ------------------------------------------------------------------ instance
 INSTANCE_ID="$(aws_ ec2 describe-instances \
   --filters "Name=tag:Name,Values=${NAME}" "Name=tag:app,Values=releaseproof" \
             "Name=instance-state-name,Values=pending,running,stopping,stopped" \
@@ -173,7 +196,6 @@ fi
 aws_ ec2 wait instance-running --instance-ids "$INSTANCE_ID"
 log "instance running"
 
-# ------------------------------------------------------------------ Elastic IP
 ALLOC_ID="$(aws_ ec2 describe-addresses --filters "Name=tag:Name,Values=${NAME}" \
   --query 'Addresses[0].AllocationId' --output text)"
 if none "$ALLOC_ID"; then

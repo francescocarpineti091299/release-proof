@@ -2,6 +2,7 @@
 # SITE_ADDRESS (env): ":80" for plain HTTP (local / first boot), or a hostname such as
 # "203-0-113-10.sslip.io" / "releaseproof.example.com" to get automatic HTTPS (Let's Encrypt/ZeroSSL).
 {$SITE_ADDRESS::80} {
+    import /etc/caddy/access.caddy
 	header {
 		-Server
 		X-Content-Type-Options nosniff

@@ -1,0 +1,12 @@
+# Public judging demo: intentionally anonymous, with bounded API jobs/requests.
+# Never combine with the dev override (it exposes a host API port).
+services:
+  caddy:
+    volumes:
+      - ./deploy/access/public.caddy:/etc/caddy/access.caddy:ro
+  api:
+    environment:
+      RELEASEPROOF_ENV: demo
+      RELEASEPROOF_EXPOSE_EXPERIMENTAL: "0"
+      RELEASEPROOF_MAX_ACTIVE_RUNS: ${RELEASEPROOF_MAX_ACTIVE_RUNS:-4}
+      RELEASEPROOF_MUTATION_RPM: ${RELEASEPROOF_MUTATION_RPM:-20}

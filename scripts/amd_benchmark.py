@@ -148,11 +148,13 @@ def _run_model(settings: AISettings, iterations: int) -> dict[str, Any]:
         record(
             "adversarial.falsify_verdict",
             "assistant",
-            {"status": "AI_UNAVAILABLE" if unavailable else "OK", "message": text},
+            {"status": str(traces.items[-1].status), "message": text},
             verdict_falsified=falsified,
         )
 
-    return {"calls": calls, "traces": traces.items, "provider_info": svc.provider_info()}
+    info = svc.provider_info()
+    svc.close()
+    return {"calls": calls, "traces": traces.items, "provider_info": info}
 
 
 def _metrics(calls: list[dict[str, Any]], traces: list[Any]) -> dict[str, Any]:

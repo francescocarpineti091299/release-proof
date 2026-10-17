@@ -2,7 +2,8 @@
 # Ship the repository to the ReleaseProof host and (re)start the stack with Docker Compose.
 #
 #   deploy/aws/deploy.sh [--name releaseproof] [--host 203.0.113.10] [--key ~/.ssh/key.pem]
-#                        [--site-address <host>|:80] [--env-file .env] [--no-build]
+#                        [--site-address <host>|:80] [--viewer-url https://<host>]
+#                        [--env-file .env] [--no-build]
 #
 # Defaults come from ~/.releaseproof-aws/<name>.env (written by provision.sh). SITE_ADDRESS
 # defaults to the sslip.io hostname of the Elastic IP, so Caddy obtains a TLS certificate.
@@ -14,8 +15,10 @@ NAME="releaseproof"
 HOST=""
 KEY=""
 SITE_ADDRESS=""
+VIEWER_URL=""
 ENV_FILE=""
 BUILD=1
+PUBLIC=1
 REMOTE_DIR="/opt/releaseproof"
 REPO_ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/../.." && pwd)"
 
@@ -25,8 +28,10 @@ while [[ $# -gt 0 ]]; do
     --host) HOST="$2"; shift 2 ;;
     --key) KEY="$2"; shift 2 ;;
     --site-address) SITE_ADDRESS="$2"; shift 2 ;;
+    --viewer-url) VIEWER_URL="$2"; shift 2 ;;
     --env-file) ENV_FILE="$2"; shift 2 ;;
     --no-build) BUILD=0; shift ;;
+    --trusted-local) PUBLIC=0; shift ;;
     -h|--help) sed -n '2,11p' "$0"; exit 0 ;;
     *) echo "unknown argument: $1" >&2; exit 2 ;;
   esac
@@ -47,9 +52,15 @@ ENV_FILE="${ENV_FILE:-${REPO_ROOT}/.env}"
 [[ "$HOST" =~ ^[A-Za-z0-9.-]+$ ]] || { echo "invalid --host (use an IPv4 address or hostname)" >&2; exit 2; }
 [[ -n "$KEY" && -f "$KEY" ]] || { echo "SSH key not found: ${KEY:-<unset>} (use --key)" >&2; exit 2; }
 [[ "$SITE_ADDRESS" =~ ^(:[0-9]+|[A-Za-z0-9.-]+)$ ]] || { echo "invalid --site-address" >&2; exit 2; }
+[[ -z "$VIEWER_URL" || "$VIEWER_URL" =~ ^https://[A-Za-z0-9.-]+(:[0-9]+)?$ ]] || {
+  echo "invalid --viewer-url (use an HTTPS hostname URL without path or credentials)" >&2; exit 2;
+}
 if [[ ! -f "$ENV_FILE" ]]; then
   echo "env file ${ENV_FILE} not found; using .env.example (AI will report AI_UNAVAILABLE)" >&2
   ENV_FILE="${REPO_ROOT}/.env.example"
+fi
+if [[ "$PUBLIC" == 1 ]]; then
+  [[ "$SITE_ADDRESS" != :* ]] || { echo "Public deployment requires an HTTPS hostname" >&2; exit 2; }
 fi
 
 log() { printf '\033[1;34m[deploy]\033[0m %s\n' "$*"; }
@@ -69,7 +80,7 @@ remote 'cloud-init status --wait >/dev/null || true; test -f /var/lib/releasepro
 
 log "syncing ${REPO_ROOT} -> ${HOST}:${REMOTE_DIR}"
 EXCLUDES=(
-  '/.git/' '.env' '.env.*' '/data/' 'backend/.venv/' '**/__pycache__/' '**/.pytest_cache/'
+  '/.git/' '.env' '.env.*' '/data/' '/general_docs/' 'backend/.venv/' '**/__pycache__/' '**/.pytest_cache/'
   '**/.ruff_cache/' 'web/node_modules/' 'web/.next/' 'web/out/' 'runners/**/work/' '*.egg-info/'
 )
 if command -v rsync >/dev/null; then
@@ -102,10 +113,14 @@ remote "chmod 600 ${REMOTE_DIR}/.env"
 
 if [[ "$BUILD" == 1 ]]; then
   log "docker compose up -d --build (first build of the runner images takes a while)"
-  remote "cd ${REMOTE_DIR} && docker compose up -d --build --remove-orphans"
+  COMPOSE_ARGS="-f docker-compose.yml"
+  [[ "$PUBLIC" == 0 ]] || COMPOSE_ARGS+=" -f docker-compose.public.yml"
+  remote "cd ${REMOTE_DIR} && docker compose ${COMPOSE_ARGS} up -d --build --remove-orphans"
 else
   log "docker compose up -d"
-  remote "cd ${REMOTE_DIR} && docker compose up -d --remove-orphans"
+  COMPOSE_ARGS="-f docker-compose.yml"
+  [[ "$PUBLIC" == 0 ]] || COMPOSE_ARGS+=" -f docker-compose.public.yml"
+  remote "cd ${REMOTE_DIR} && docker compose ${COMPOSE_ARGS} up -d --remove-orphans"
 fi
 remote "cd ${REMOTE_DIR} && docker compose ps"
 
@@ -115,9 +130,18 @@ if [[ "$SITE_ADDRESS" == :* ]]; then
 else
   URL="https://${SITE_ADDRESS}"
 fi
+URL="${VIEWER_URL:-$URL}"  # A CloudFront-only origin is not reachable from the operator's PC.
 log "waiting for ${URL}/api/health"
 for _ in $(seq 1 60); do
-  if curl -fsS --max-time 5 "${URL}/api/health" >/dev/null 2>&1; then
+  if [[ "$PUBLIC" == 1 ]]; then
+    CODE="$(curl -sS -o /dev/null -w '%{http_code}' --max-time 5 "${URL}/api/health" || true)"
+    if [[ "$CODE" == 200 ]]; then
+      remote "cd ${REMOTE_DIR} && docker compose exec -T api python -c \"import urllib.request; urllib.request.urlopen('http://localhost:8000/api/health', timeout=5)\""
+      log "up: ${URL} (public judging demo; anonymous HTTP 200)"
+      exit 0
+    fi
+    [[ "$CODE" != 401 ]] || { echo "Public judging demo must not require login" >&2; exit 1; }
+  elif curl -fsS --max-time 5 "${URL}/api/health" >/dev/null 2>&1; then
     log "up: ${URL}"
     curl -fsS "${URL}/api/health"; echo
     exit 0

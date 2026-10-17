@@ -1,4 +1,4 @@
-"""End-to-end acceptance gate for ReleaseProof profiles (brief §3.3 / §10.1).
+"""End-to-end acceptance gate for ReleaseProof profiles.
 
 Starts one fresh LIVE run per profile through the public API, waits for completion and checks
 the objective gates. A profile may be promoted to SUPPORTED only if every gate passes.
@@ -24,6 +24,12 @@ from typing import Any
 from uuid import uuid4
 
 ROOT = Path(__file__).resolve().parents[1]
+sys.path.insert(0, str(ROOT / "backend"))
+
+from releaseproof.ai.config import AISettings  # noqa: E402
+from releaseproof.core.canonical.service import compute_canonical_hash  # noqa: E402
+from releaseproof.orchestrator.identity import implementation_identity  # noqa: E402
+
 TERMINAL = {"SUCCEEDED", "FAILED", "CANCELLED"}
 
 
@@ -59,6 +65,28 @@ def gate(report: list[dict[str, Any]], name: str, ok: bool, detail: str = "") ->
     report.append({"gate": name, "ok": bool(ok), "detail": detail})
     print(f"  [{'PASS' if ok else 'FAIL'}] {name}{' — ' + detail if detail else ''}")
     return bool(ok)
+
+
+def runner_source_digest(family: str) -> str:
+    """Same sorted content identity emitted by the baked rp_runner executor."""
+    if family not in {"wolfboot", "mcuboot"}:
+        raise ValueError("unsupported runner family")
+    roots = {
+        "common": ROOT / "runners/common/rp_runner",
+        "family": ROOT / f"runners/{family}/rp_{family}",
+    }
+    for name in ("app", "renode"):
+        path = ROOT / f"runners/{family}/{name}"
+        if path.is_dir():
+            roots[name] = path
+    digest = hashlib.sha256()
+    for label, root in sorted(roots.items()):
+        for path in sorted(root.rglob("*"), key=lambda p: p.relative_to(root).as_posix()):
+            if not path.is_file() or "__pycache__" in path.parts:
+                continue
+            digest.update(f"{label}/{path.relative_to(root).as_posix()}".encode() + b"\0")
+            digest.update(path.read_bytes().replace(b"\r\n", b"\n") + b"\0")
+    return digest.hexdigest()
 
 
 def run_profile(api: Api, config: dict[str, Any], *, require_ai: bool, timeout: int) -> dict:
@@ -114,7 +142,12 @@ def run_profile(api: Api, config: dict[str, Any], *, require_ai: bool, timeout: 
     gate(
         gates,
         "deterministic verdict issued",
-        bool(re.fullmatch(r"sha256:[0-9a-f]{64}", verdict.get("canonical_hash") or "")),
+        bool(re.fullmatch(r"sha256:[0-9a-f]{64}", verdict.get("canonical_hash") or ""))
+        and verdict.get("lifecycle") == "COMPLETED"
+        and all(
+            verdict.get(phase) in {"COMPATIBLE", "INCOMPATIBLE", "INDETERMINATE", "CONDITIONAL"}
+            for phase in ("migration", "candidate", "transition")
+        ),
         f"{verdict.get('migration')} "
         f"(cand {verdict.get('candidate')}, trans {verdict.get('transition')})",
     )
@@ -130,6 +163,11 @@ def run_profile(api: Api, config: dict[str, Any], *, require_ai: bool, timeout: 
     if result:
         gate(
             gates,
+            "canonical result hash recomputed",
+            compute_canonical_hash(result["result"]) == verdict.get("canonical_hash"),
+        )
+        gate(
+            gates,
             "result hash matches run verdict",
             result["result"].get("canonical_hash") == verdict.get("canonical_hash"),
         )
@@ -137,7 +175,8 @@ def run_profile(api: Api, config: dict[str, Any], *, require_ai: bool, timeout: 
         live = [e for e in ev if e.get("run_id") == run_id]
         gate(gates, "evidence belongs to this run", len(live) >= 3, f"{len(live)}/{len(ev)}")
         gate(
-            gates, "manifest hash recorded",
+            gates,
+            "manifest hash recorded",
             bool(re.fullmatch(r"[0-9a-f]{64}", result.get("manifest_sha256") or "")),
         )
 
@@ -145,29 +184,102 @@ def run_profile(api: Api, config: dict[str, Any], *, require_ai: bool, timeout: 
     gate(gates, "artifacts recorded", len(artifacts) >= 3, str(len(artifacts)))
     manifests = [a for a in artifacts if a["artifact_id"] == "MANIFEST"]
     gate(
-        gates, "manifest artifact matches result digest",
+        gates,
+        "manifest artifact matches result digest",
         len(manifests) == 1 and manifests[0]["sha256"] == result.get("manifest_sha256"),
     )
     mismatches = []
-    sample = artifacts[:5]
-    if manifests and manifests[0] not in sample:
-        sample = [*sample, manifests[0]]
-    for art in sample:
+    manifest = {}
+    for art in artifacts:
         blob = api.raw(art["url"])
         if hashlib.sha256(blob).hexdigest() != art["sha256"]:
             mismatches.append(art["artifact_id"])
-    gate(gates, "artifact sha256 verified (sample)", not mismatches, ",".join(mismatches))
+        if art["artifact_id"] == "MANIFEST":
+            manifest = json.loads(blob)
+    gate(gates, "artifact sha256 verified (all)", not mismatches, ",".join(mismatches))
+    gate(
+        gates,
+        "manifest identifies this run and assessment",
+        manifest.get("run_id") == run_id
+        and (manifest.get("assessment") or {}).get("canonical_hash")
+        == (compute_canonical_hash(result["assessment"]) if result.get("assessment") else None),
+    )
+    local_identity = implementation_identity()
+    gate(
+        gates,
+        "deployed backend matches current source",
+        (manifest.get("implementation") or {}).get("backend_sha256")
+        == local_identity["backend_sha256"],
+    )
+    gate(
+        gates,
+        "runner code identity recorded",
+        bool(
+            re.fullmatch(
+                r"[0-9a-f]{64}",
+                (manifest.get("source_pins") or {}).get("releaseproof_runner_code_sha256", ""),
+            )
+        ),
+    )
+    gate(
+        gates,
+        "deployed runner matches current source",
+        (manifest.get("source_pins") or {}).get("releaseproof_runner_code_sha256")
+        == runner_source_digest(config["bootloader"]["family"]),
+    )
 
     traces = api.get(f"/api/assessments/{run_id}/ai-traces")
     ok_traces = [t for t in traces if t["status"] == "OK"]
     ai_ok = bool(ok_traces)
     if require_ai:
+        provider = api.get("/api/amd")["provider"]
+        host = provider.get("endpoint_host")
+        valid_traces = [
+            t
+            for t in ok_traces
+            if t.get("run_id") == run_id
+            and t.get("endpoint_host") == host
+            and host in AISettings.from_env().allowed_hosts
+            and t.get("request_id")
+            and t.get("model")
+        ]
+        plan = run.get("ai_plan") or {}
+        planner_traces = {t["trace_id"] for t in valid_traces if t["module"] == "planner"}
+        ai_ok = (
+            plan.get("status") == "OK"
+            and bool(planner_traces & set(plan.get("trace_ids") or []))
+            and provider.get("fallback_provider") is None
+        )
         gate(
             gates,
             "AMD LLM called for this run",
             ai_ok,
             ", ".join(f"{t['module']}:{t['model']}@{t['endpoint_host']}" for t in ok_traces),
         )
+        selected = {t["template_id"] for t in (plan.get("proposal") or {}).get("selected", [])}
+        allowed = {t["template_id"] for t in change["templates"]}
+        expected = required | (selected & (allowed - required))
+        gate(
+            gates,
+            "accepted AMD plan was executed",
+            ai_ok
+            and bool(selected & observed_templates)
+            and selected <= allowed
+            and expected == observed_templates
+            and not any(t.get("planned_by") == "PROFILE_OPTIONAL" for t in tests),
+        )
+        for module, field in (("explainer", "ai_report"), ("alternatives", "ai_alternatives")):
+            view = run.get(field) or {}
+            ids = {t["trace_id"] for t in valid_traces if t["module"] == module}
+            gate(
+                gates,
+                f"AMD {module} validated for this run",
+                view.get("status") == "OK"
+                and bool(ids & set(view.get("trace_ids") or []))
+                or module == "alternatives"
+                and verdict.get("migration") == "COMPATIBLE"
+                and view.get("status") == "NOT_REQUESTED",
+            )
     else:
         gates.append(
             {"gate": "AMD LLM called for this run", "ok": ai_ok, "detail": "informational"}
@@ -187,10 +299,15 @@ def main(argv: list[str] | None = None) -> int:
     parser.add_argument("--base", default="http://localhost:8080")
     parser.add_argument("--profile", action="append")
     parser.add_argument("--require-ai", action="store_true")
+    parser.add_argument("--env-file", help="explicit dotenv file (never loaded implicitly)")
     parser.add_argument("--timeout", type=int, default=1800)
     args = parser.parse_args(argv)
     if args.timeout <= 0:
         parser.error("--timeout must be positive")
+    if args.env_file:
+        from amd_common import load_env_file
+
+        load_env_file(args.env_file)
     api = Api(args.base)
     configs = api.get("/api/configurations")
     if args.profile:
@@ -206,14 +323,22 @@ def main(argv: list[str] | None = None) -> int:
     for config in configs:
         try:
             result = run_profile(api, config, require_ai=args.require_ai, timeout=args.timeout)
-        except (urllib.error.URLError, TimeoutError, OSError, ValueError, KeyError, TypeError) as exc:
+        except (
+            urllib.error.URLError,
+            TimeoutError,
+            OSError,
+            ValueError,
+            KeyError,
+            TypeError,
+        ) as exc:
             # Preserve a failed report and continue checking the other profiles, even when
             # a failed/timed-out pipeline has no result or artifact endpoint yet.
             result = {
                 "profile": config["id"],
                 "passed": False,
-                "gates": [{"gate": "API response available and valid", "ok": False,
-                           "detail": str(exc)}],
+                "gates": [
+                    {"gate": "API response available and valid", "ok": False, "detail": str(exc)}
+                ],
             }
             print(f"  [FAIL] {config['id']}: {exc}")
         results.append(result)

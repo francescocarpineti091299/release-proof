@@ -1,0 +1,2 @@
+# Public judging demo: UI and API are intentionally accessible without login.
+# HTTPS, API request/job budgets and isolated pinned-fixture runners remain required.
