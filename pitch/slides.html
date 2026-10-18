@@ -2,42 +2,29 @@
 <html lang="en">
 <head>
 <meta charset="utf-8">
-<title>ReleaseProof — AMD Developer Hackathon ACT III · Intelligent Industry</title>
+<title>ReleaseProof · Firmware Migration Assurance for Industrial IoT · AMD Developer Hackathon ACT III</title>
+<meta name="description" content="ReleaseProof helps industrial IoT manufacturers find firmware migration blockers before deployment, reducing exposure to costly field interventions, engineering rework and release delays. AMD-hosted AI plans and explains; real builds, Renode emulation and a deterministic engine decide.">
 <meta name="viewport" content="width=1920">
 <style>
   @page { size: 1920px 1080px; margin: 0; }
   :root {
-    --navy: #020617;
-    --navy-2: #0b1220;
-    --navy-3: #111a2e;
-    --line-dark: #1e293b;
-    --bg: #f4f6f9;
-    --card: #ffffff;
-    --ink: #0b1220;
-    --muted: #4a5568;
-    --border: #d5dbe3;
-    --green: #34d399;
-    --green-2: #10b981;
-    --green-ink: #047857;
-    --red: #dc2626;
-    --red-bg: #fef2f2;
-    --amber: #f59e0b;
-    --amber-bg: #fffbeb;
-    --violet: #7c3aed;
-    --slate: #475569;
+    --navy: #020617; --navy-2: #0b1220; --navy-3: #111a2e; --line-dark: #1e293b;
+    --bg: #f4f6f9; --card: #ffffff; --ink: #0b1220; --muted: #4a5568; --border: #d5dbe3;
+    --green: #34d399; --green-2: #10b981; --green-ink: #047857; --green-bg: #ecfdf5;
+    --red: #dc2626; --red-2: #f87171; --red-bg: #fef2f2;
+    --amber: #f59e0b; --amber-ink: #b45309; --amber-bg: #fffbeb;
+    --violet: #7c3aed; --violet-bg: #f5f3ff; --slate: #475569;
     --mono: ui-monospace, "Cascadia Code", "SFMono-Regular", Menlo, Consolas, monospace;
   }
   * { box-sizing: border-box; }
   html, body { margin: 0; padding: 0; background: #0f172a; }
   body {
     font-family: "Segoe UI", "Inter", ui-sans-serif, system-ui, -apple-system, sans-serif;
-    -webkit-print-color-adjust: exact; print-color-adjust: exact;
-    -webkit-font-smoothing: antialiased;
+    -webkit-print-color-adjust: exact; print-color-adjust: exact; -webkit-font-smoothing: antialiased;
   }
   .slide {
     width: 1920px; height: 1080px; position: relative; overflow: hidden;
-    page-break-after: always; break-after: page;
-    display: flex; flex-direction: column;
+    page-break-after: always; break-after: page; display: flex; flex-direction: column;
   }
   .slide:last-child { page-break-after: auto; break-after: auto; }
   @media screen {
@@ -48,513 +35,644 @@
   .dark { background: var(--navy); color: #fff; }
   .light { background: var(--bg); color: var(--ink); }
 
-  /* ---------- header / footer ---------- */
-  .head { padding: 56px 96px 0; }
-  .eyebrow { font-size: 21px; font-weight: 700; letter-spacing: .14em; text-transform: uppercase; color: var(--green-ink); }
+  .head { padding: 56px 110px 0; }
+  .eyebrow { display: flex; align-items: center; gap: 16px; font-size: 21px; font-weight: 800; letter-spacing: .16em; text-transform: uppercase; color: var(--green-ink); }
+  .eyebrow .crit { color: #64748b; font-weight: 700; }
   .dark .eyebrow { color: var(--green); }
+  .backup .eyebrow { color: var(--amber-ink); }
   h1, h2, h3 { margin: 0; letter-spacing: -.02em; }
-  h2 { font-size: 54px; line-height: 1.08; font-weight: 800; margin-top: 10px; max-width: 1650px; }
-  .body { flex: 1; padding: 30px 96px 0; min-height: 0; }
+  h2 { font-size: 64px; line-height: 1.05; font-weight: 900; margin-top: 12px; letter-spacing: -.03em; }
+  .backup h2 { font-size: 48px; }
+  .body { flex: 1; padding: 36px 110px 0; min-height: 0; }
   .foot {
-    height: 64px; padding: 0 96px; display: flex; align-items: center; justify-content: space-between;
-    font-size: 15px; color: #64748b; border-top: 1px solid var(--border);
+    height: 66px; flex: none; padding: 0 110px; display: flex; align-items: center; justify-content: space-between;
+    font-size: 16px; color: #64748b; border-top: 1px solid var(--border);
   }
-  .dark .foot { border-top-color: var(--line-dark); color: #64748b; }
-  .foot .brand { display: flex; align-items: center; gap: 10px; font-weight: 700; color: var(--ink); }
+  .dark .foot { border-top-color: var(--line-dark); }
+  .foot .brand { font-weight: 800; color: var(--ink); white-space: nowrap; }
   .dark .foot .brand { color: #e2e8f0; }
   .foot .src { flex: 1; margin: 0 40px; line-height: 1.3; }
   .foot .num { font-family: var(--mono); font-weight: 700; color: #94a3b8; }
-  .logo { width: 26px; height: 26px; }
-
-  /* ---------- atoms ---------- */
-  .card { background: var(--card); border: 1px solid var(--border); border-radius: 14px; padding: 26px 28px; }
-  .dark .card { background: var(--navy-3); border-color: var(--line-dark); }
-  .muted { color: var(--muted); }
-  .dark .muted { color: #94a3b8; }
   .mono { font-family: var(--mono); }
+
+  /* evidence-type tags, used consistently across the deck */
+  .tag { display: inline-flex; align-items: center; gap: 8px; border-radius: 6px; padding: 5px 12px; font-size: 16px; font-weight: 800; letter-spacing: .12em; text-transform: uppercase; white-space: nowrap; }
+  .tag::before { content: ""; width: 9px; height: 9px; border-radius: 50%; background: currentColor; }
+  .tag.dem { color: var(--green-ink); background: var(--green-bg); }
+  .tag.ill { color: var(--amber-ink); background: var(--amber-bg); }
+  .tag.hyp { color: var(--violet); background: var(--violet-bg); }
+  .dark .tag.dem { color: var(--green); background: rgba(52,211,153,.12); }
+  .dark .tag.hyp { color: #c4b5fd; background: rgba(124,58,237,.18); }
+
   .chip {
-    display: inline-flex; align-items: center; gap: 8px; border-radius: 999px; padding: 6px 14px;
-    font-size: 17px; font-weight: 700; border: 1.5px solid currentColor; white-space: nowrap;
+    display: inline-flex; align-items: center; gap: 8px; border-radius: 999px; padding: 6px 16px;
+    font-size: 19px; font-weight: 800; border: 2px solid currentColor; white-space: nowrap; letter-spacing: .02em;
   }
-  .chip.ok { color: var(--green-ink); background: #ecfdf5; }
+  .chip.ok { color: var(--green-ink); background: var(--green-bg); }
   .chip.bad { color: var(--red); background: var(--red-bg); }
   .chip.unk { color: var(--slate); background: #f1f5f9; }
-  .chip.warn { color: #b45309; background: var(--amber-bg); }
-  .chip.ai { color: var(--violet); background: #f5f3ff; }
-  .dark .chip.ok { color: var(--green); background: rgba(52,211,153,.08); }
-  .dark .chip.bad { color: #f87171; background: rgba(248,113,113,.08); }
-  .dark .chip.unk { color: #cbd5e1; background: rgba(148,163,184,.08); }
-  .ph {
-    font-family: var(--mono); font-weight: 700; color: #92400e; background: #fde68a;
-    border: 1.5px dashed #b45309; border-radius: 6px; padding: 1px 8px; white-space: nowrap;
-  }
-  .shot { border-radius: 12px; border: 1px solid var(--border); box-shadow: 0 8px 28px rgba(15,23,42,.14); display: block; background: #fff; }
-  .cap { font-size: 16px; color: var(--muted); margin-top: 10px; line-height: 1.35; }
-  .cap b { color: var(--ink); }
-  .grid { display: grid; gap: 28px; }
-  ul.clean { list-style: none; margin: 0; padding: 0; }
-  ul.clean li { position: relative; padding-left: 30px; margin: 0 0 12px; }
-  ul.clean li::before { content: ""; position: absolute; left: 4px; top: .55em; width: 11px; height: 11px; border-radius: 3px; background: var(--green-2); }
-  .k { font-size: 17px; font-weight: 700; letter-spacing: .1em; text-transform: uppercase; color: #64748b; }
-  .big { font-size: 64px; font-weight: 800; letter-spacing: -.03em; line-height: 1; }
-  .tag { font-family: var(--mono); font-size: 16px; font-weight: 700; padding: 3px 9px; border-radius: 6px; background: #e2e8f0; color: #0f172a; }
-  .dark .tag { background: #1e293b; color: #e2e8f0; }
+  .dark .chip.ok { color: var(--green); background: rgba(52,211,153,.10); }
+  .dark .chip.bad { color: var(--red-2); background: rgba(248,113,113,.10); }
+  .card { background: var(--card); border: 1px solid var(--border); border-radius: 16px; padding: 26px 30px; }
+  .k { font-size: 18px; font-weight: 800; letter-spacing: .14em; text-transform: uppercase; color: #64748b; }
 
-  /* ---------- slide 1 ---------- */
-  .s1 .wrap { flex: 1; display: grid; grid-template-columns: 1.08fr .92fr; gap: 64px; padding: 70px 96px 0; align-items: center; }
-  .s1 .brandline { display: flex; align-items: center; gap: 18px; font-size: 34px; font-weight: 800; letter-spacing: -.01em; margin-bottom: 44px; }
-  .s1 .brandline svg { width: 58px; height: 58px; }
-  .s1 h1 { font-size: 86px; line-height: 1.02; font-weight: 900; letter-spacing: -.035em; }
-  .s1 .sub { font-size: 31px; line-height: 1.38; color: #cbd5e1; margin-top: 34px; max-width: 980px; }
-  .s1 .sub b { color: #fff; }
-  .s1 .chips { display: flex; flex-wrap: wrap; gap: 12px; margin-top: 40px; }
-  .s1 .chips span { font-size: 19px; font-weight: 600; color: #e2e8f0; border: 1px solid #334155; background: #0b1220; padding: 9px 16px; border-radius: 10px; }
-  .verdict-mock { background: #fff; color: var(--ink); border-radius: 18px; padding: 30px 32px; box-shadow: 0 30px 80px rgba(0,0,0,.55); border: 3px solid var(--red); }
-  .verdict-mock .k { font-size: 16px; }
-  .verdict-mock .vt { display: flex; align-items: center; gap: 16px; margin-top: 8px; }
-  .verdict-mock .vt .x { width: 56px; height: 56px; border: 5px solid var(--red); border-radius: 50%; color: var(--red); display: grid; place-items: center; font-weight: 900; font-size: 34px; line-height: 1; }
-  .verdict-mock .vt .w { font-size: 54px; font-weight: 900; color: var(--red); letter-spacing: -.02em; }
-  .verdict-mock .row { display: flex; justify-content: space-between; align-items: center; border: 2px solid; border-radius: 12px; padding: 14px 18px; margin-top: 14px; font-size: 21px; font-weight: 700; }
-  .verdict-mock .row.ok { border-color: var(--green-2); }
-  .verdict-mock .row.bad { border-color: var(--red); }
-  .verdict-mock .meta { margin-top: 18px; font-family: var(--mono); font-size: 15px; color: var(--muted); line-height: 1.5; }
+  /* ---------- 1 · hook ---------- */
+  .s1 .wrap { flex: 1; padding: 56px 110px 0; display: flex; flex-direction: column; }
+  .brandline { display: flex; align-items: center; gap: 18px; font-size: 32px; font-weight: 800; }
+  .brandline svg { width: 54px; height: 54px; }
+  .brandline .cat { font-weight: 600; color: #94a3b8; font-size: 28px; }
+  .s1 h1 { font-size: 124px; line-height: 1.0; font-weight: 900; letter-spacing: -.045em; margin-top: 44px; }
+  .s1 h1 .r { color: var(--red-2); }
+  .split { display: grid; grid-template-columns: 1fr 1fr; gap: 40px; margin-top: 50px; }
+  .lane { border-radius: 22px; padding: 32px 40px; border: 3px solid; display: grid; grid-template-columns: 1fr auto; align-items: center; row-gap: 12px; }
+  .lane.ok { border-color: var(--green-2); background: rgba(16,185,129,.07); }
+  .lane.bad { border-color: var(--red); background: rgba(220,38,38,.09); }
+  .lane .lbl { grid-column: 1 / -1; font-size: 20px; font-weight: 800; letter-spacing: .16em; text-transform: uppercase; color: #94a3b8; }
+  .lane .big { display: flex; align-items: center; gap: 20px; font-size: 48px; font-weight: 900; letter-spacing: -.02em; }
+  .lane .ic { width: 62px; height: 62px; border-radius: 50%; display: grid; place-items: center; font-size: 38px; font-weight: 900; flex: none; }
+  .lane.ok .ic { background: var(--green-2); color: var(--navy); }
+  .lane.bad .ic { background: var(--red); color: #fff; }
+  .lane .uart { grid-column: 1 / -1; font-family: var(--mono); font-size: 23px; color: #cbd5e1; }
+  .lane.bad .uart { color: #fecaca; }
+  .lane .chip { font-size: 21px; padding: 7px 18px; }
+  .money { margin-top: auto; margin-bottom: 54px; display: grid; grid-template-columns: 10px 1fr; gap: 34px; align-items: stretch; }
+  .money .bar { background: var(--amber); border-radius: 6px; }
+  .money p { margin: 0; font-size: 47px; line-height: 1.22; font-weight: 800; color: #e2e8f0; letter-spacing: -.01em; }
+  .money p b { color: #fcd34d; }
+  .money .sub { margin-top: 14px; font-size: 27px; font-weight: 600; color: #94a3b8; letter-spacing: 0; }
+  .money .sub b { color: #fff; }
 
-  /* ---------- slide 2 ---------- */
-  .s2 .cols { display: grid; grid-template-columns: 1fr 1.02fr; gap: 44px; height: 100%; }
-  .deadline { display: grid; grid-template-columns: 150px 1fr; gap: 22px; align-items: start; padding: 22px 26px; margin-bottom: 18px; }
-  .deadline .yr { font-size: 52px; font-weight: 900; letter-spacing: -.03em; color: var(--ink); line-height: 1; }
-  .deadline .yr small { display: block; font-size: 15px; font-weight: 700; letter-spacing: .08em; color: #64748b; margin-top: 8px; text-transform: uppercase; }
-  .deadline h3 { font-size: 25px; font-weight: 800; }
-  .deadline p { font-size: 20px; line-height: 1.4; margin: 6px 0 0; color: var(--muted); }
-  .trap { background: var(--navy); color: #fff; border-radius: 18px; padding: 32px 36px; height: 100%; display: flex; flex-direction: column; }
-  .trap h3 { font-size: 30px; font-weight: 800; }
-  .trap .lane { margin-top: 24px; border: 1px solid #334155; border-radius: 14px; padding: 20px 22px; background: #0b1220; }
-  .trap .lane .lbl { font-size: 15px; font-weight: 700; letter-spacing: .12em; text-transform: uppercase; color: #94a3b8; }
-  .trap .flow { display: flex; align-items: center; gap: 14px; margin-top: 12px; }
-  .trap .box { border: 1.5px solid #475569; border-radius: 10px; padding: 12px 14px; font-size: 19px; font-weight: 600; line-height: 1.3; background: #111a2e; }
-  .trap .arrow { font-size: 30px; color: #94a3b8; }
-  .trap .res { margin-left: auto; }
-  .trap .uart { font-family: var(--mono); font-size: 16px; color: #fca5a5; margin-top: 12px; }
-  .trap .uart.ok { color: #6ee7b7; }
-  .trap .punch { margin-top: auto; font-size: 30px; line-height: 1.3; font-weight: 800; }
-  .trap .punch em { font-style: normal; color: var(--green); }
+  /* ---------- 2 · cost ---------- */
+  .cost { display: grid; grid-template-columns: 1.12fr 1fr; gap: 40px; }
+  .scen { background: var(--navy); color: #fff; border-radius: 22px; padding: 36px 44px; display: flex; flex-direction: column; }
+  .scen .top { display: flex; justify-content: space-between; align-items: center; }
+  .scen .top .k { color: #94a3b8; }
+  .eq { display: grid; grid-template-columns: 1fr auto 1fr auto 1fr; align-items: end; gap: 14px; margin-top: 30px; }
+  .eq .n { font-size: 74px; font-weight: 900; letter-spacing: -.03em; line-height: 1; }
+  .eq .l { font-size: 21px; color: #cbd5e1; margin-top: 10px; line-height: 1.3; }
+  .eq .x { font-size: 46px; color: #64748b; font-weight: 900; padding-bottom: 46px; }
+  .res { margin-top: 34px; border-top: 1px solid #334155; padding-top: 26px; display: flex; align-items: baseline; gap: 26px; }
+  .res .eqs { font-size: 60px; color: #64748b; font-weight: 900; }
+  .res .v { font-size: 120px; font-weight: 900; letter-spacing: -.04em; color: #fcd34d; line-height: .95; }
+  .res .d { font-size: 25px; color: #e2e8f0; line-height: 1.35; font-weight: 600; }
+  .scen .note { margin-top: auto; font-size: 20px; color: #94a3b8; line-height: 1.4; padding-top: 18px; }
+  .pains { display: grid; grid-template-rows: auto repeat(4, 1fr); gap: 14px; }
+  .pains .k { color: var(--ink); font-size: 20px; }
+  .pain { background: #fff; border: 1px solid var(--border); border-left: 8px solid var(--red); border-radius: 14px; padding: 18px 26px; display: flex; flex-direction: column; justify-content: center; }
+  .pain h3 { font-size: 30px; font-weight: 900; }
+  .pain p { margin: 4px 0 0; font-size: 22px; line-height: 1.38; color: #334155; }
+  .why { margin-top: 26px; display: grid; grid-template-columns: 210px repeat(3, 1fr); gap: 16px; align-items: stretch; }
+  .why .lbl { background: var(--navy); color: #fff; border-radius: 14px; display: grid; place-items: center; text-align: center; font-size: 22px; font-weight: 900; letter-spacing: .1em; text-transform: uppercase; line-height: 1.25; }
+  .why .lbl span { display: block; color: var(--green); font-size: 16px; letter-spacing: .1em; margin-top: 4px; }
+  .why .it { background: #fff; border: 1px solid var(--border); border-radius: 14px; padding: 16px 22px; font-size: 21px; line-height: 1.35; color: #334155; }
+  .why .it b { display: block; font-size: 30px; color: var(--ink); font-weight: 900; }
 
-  /* ---------- slide 3 ---------- */
-  .steps { display: grid; grid-template-columns: repeat(3, 1fr); gap: 22px; margin-bottom: 26px; }
-  .step { display: flex; gap: 18px; align-items: flex-start; padding: 18px 22px; }
-  .step .n { flex: none; width: 46px; height: 46px; border-radius: 50%; background: var(--navy); color: #fff; display: grid; place-items: center; font-size: 22px; font-weight: 800; }
-  .step h3 { font-size: 23px; font-weight: 800; }
-  .step p { margin: 4px 0 0; font-size: 18px; line-height: 1.35; color: var(--muted); }
-  .shots3 { display: grid; grid-template-columns: 800px 1fr; gap: 32px; }
-  .shots3 img { width: 100%; height: auto; }
-  .step { padding: 16px 22px; }
+  /* ---------- 3 · solution ---------- */
+  .flow3 { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 54px; }
+  .stp { position: relative; background: #fff; border: 1px solid var(--border); border-radius: 20px; padding: 30px 34px; border-top: 8px solid var(--navy); }
+  .stp:not(:last-child)::after { content: "→"; position: absolute; right: -46px; top: 50%; transform: translateY(-50%); font-size: 40px; font-weight: 900; color: #94a3b8; }
+  .stp .nn { font-size: 18px; font-weight: 800; letter-spacing: .14em; color: #64748b; text-transform: uppercase; }
+  .stp h3 { font-size: 46px; font-weight: 900; margin-top: 4px; }
+  .stp .what { font-size: 23px; line-height: 1.4; color: var(--muted); margin: 10px 0 0; min-height: 96px; }
+  .stp .get { margin-top: 18px; background: var(--green-bg); border-radius: 12px; padding: 16px 20px; font-size: 23px; line-height: 1.38; color: #064e3b; font-weight: 600; }
+  .stp .get b { display: block; font-size: 15px; letter-spacing: .14em; text-transform: uppercase; color: var(--green-ink); margin-bottom: 4px; }
+  .diff { margin-top: 34px; display: grid; grid-template-columns: 1fr 1fr; gap: 0; border-radius: 20px; overflow: hidden; border: 1px solid var(--border); }
+  .diff > div { padding: 26px 36px; display: grid; grid-template-columns: 1fr auto; align-items: center; gap: 8px 20px; }
+  .diff .a { background: #fff; }
+  .diff .b { background: var(--navy); color: #fff; }
+  .diff .who { grid-column: 1 / -1; font-size: 18px; font-weight: 800; letter-spacing: .14em; text-transform: uppercase; color: #64748b; }
+  .diff .b .who { color: var(--green); }
+  .diff .q { font-size: 34px; font-weight: 800; letter-spacing: -.01em; }
+  .diff .chip { font-size: 21px; padding: 8px 18px; }
+  .punch { margin-top: 40px; font-size: 50px; font-weight: 900; letter-spacing: -.02em; }
+  .punch em { font-style: normal; color: var(--green-ink); }
 
-  /* ---------- slide 4 ---------- */
-  table.cmp { width: 100%; border-collapse: separate; border-spacing: 0; font-size: 19px; background: #fff; border: 1px solid var(--border); border-radius: 14px; overflow: hidden; }
-  table.cmp th, table.cmp td { text-align: left; vertical-align: top; padding: 12px 18px; border-bottom: 1px solid #e5e9ef; line-height: 1.32; }
-  table.cmp tr:last-child td { border-bottom: 0; }
-  table.cmp thead th { background: var(--navy); color: #fff; font-size: 23px; font-weight: 800; padding: 16px 18px; }
-  table.cmp thead th small { display: block; font-size: 15px; font-weight: 600; color: #94a3b8; margin-top: 2px; }
-  table.cmp td.rk { width: 230px; font-weight: 800; color: var(--ink); background: #f8fafc; font-size: 17px; letter-spacing: .02em; }
-  table.cmp .mono { font-size: 16px; }
-
-  /* ---------- slide 5 ---------- */
-  .loop { display: grid; grid-template-columns: repeat(5, 1fr); gap: 0; align-items: stretch; position: relative; }
-  .node { position: relative; margin-right: 34px; padding: 22px 22px; border-radius: 14px; border: 2px solid var(--border); background: #fff; }
+  /* ---------- 4 · AI ---------- */
+  .loop { display: grid; grid-template-columns: repeat(5, 1fr); }
+  .node { position: relative; margin-right: 36px; padding: 22px 22px; border-radius: 14px; border: 2px solid var(--border); background: #fff; }
   .node:last-child { margin-right: 0; }
-  .node::after { content: "→"; position: absolute; right: -32px; top: 50%; transform: translateY(-50%); font-size: 30px; color: #94a3b8; font-weight: 800; }
+  .node::after { content: "→"; position: absolute; right: -31px; top: 50%; transform: translateY(-50%); font-size: 28px; color: #94a3b8; font-weight: 900; }
   .node:last-child::after { content: ""; }
   .node .who { font-size: 15px; font-weight: 800; letter-spacing: .12em; text-transform: uppercase; }
-  .node.ai { border-color: #c4b5fd; background: #faf5ff; }
-  .node.ai .who { color: var(--violet); }
-  .node.det { border-color: #6ee7b7; background: #f0fdf9; }
-  .node.det .who { color: var(--green-ink); }
-  .node h3 { font-size: 24px; font-weight: 800; margin-top: 6px; }
-  .node p { font-size: 17px; line-height: 1.38; margin: 8px 0 0; color: var(--muted); }
-  .return { margin: 10px 0 0; font-size: 17px; font-weight: 700; color: #64748b; text-align: center; letter-spacing: .02em; }
-  .example { display: grid; grid-template-columns: 1fr 120px 1fr; align-items: center; gap: 0; margin-top: 22px; }
-  .ex { border-radius: 14px; padding: 18px 22px; border: 2px solid; background: #fff; }
-  .ex.bad { border-color: var(--red); }
-  .ex.unk { border-color: var(--slate); }
-  .ex .id { font-family: var(--mono); font-size: 16px; color: var(--muted); }
-  .ex .v { font-size: 34px; font-weight: 900; letter-spacing: -.02em; margin-top: 2px; }
-  .ex.bad .v { color: var(--red); }
-  .ex.unk .v { color: #334155; }
-  .ex p { font-size: 17px; line-height: 1.38; margin: 6px 0 0; color: var(--muted); }
-  .hand { text-align: center; font-size: 15px; font-weight: 700; color: #64748b; line-height: 1.25; }
-  .hand b { display: block; font-size: 34px; color: var(--ink); }
-  .guard { margin-top: 22px; display: grid; grid-template-columns: repeat(3, 1fr); gap: 14px; }
-  .guard div { background: var(--navy); color: #e2e8f0; border-radius: 12px; padding: 14px 18px; font-size: 17px; line-height: 1.35; }
-  .guard div b { color: var(--green); }
+  .node h3 { font-size: 32px; font-weight: 900; margin-top: 2px; }
+  .node p { font-size: 20px; line-height: 1.32; margin: 4px 0 0; color: var(--muted); }
+  .node.ai { border-color: #c4b5fd; background: #faf5ff; } .node.ai .who { color: var(--violet); }
+  .node.det { border-color: #6ee7b7; background: #f0fdf9; } .node.det .who { color: var(--green-ink); }
+  .node.hum { border-color: #93c5fd; background: #eff6ff; } .node.hum .who { color: #1d4ed8; }
+  .ai4 { display: grid; grid-template-columns: 1.5fr .62fr; gap: 30px; margin-top: 36px; }
+  table.val { width: 100%; border-collapse: separate; border-spacing: 0; background: #fff; border: 1px solid var(--border); border-radius: 16px; overflow: hidden; }
+  table.val th { background: var(--navy); color: #fff; text-align: left; font-size: 16px; letter-spacing: .12em; text-transform: uppercase; padding: 16px 22px; }
+  table.val th.bv { color: #fcd34d; }
+  table.val td { padding: 24px 22px; font-size: 23px; line-height: 1.32; border-bottom: 1px solid #e5e9ef; color: #334155; vertical-align: middle; }
+  table.val tr:last-child td { border-bottom: 0; }
+  table.val td:first-child { font-weight: 800; color: var(--ink); width: 30%; }
+  table.val td:last-child { font-weight: 800; color: #92400e; background: #fffbeb; width: 31%; }
+  .amd { background: var(--navy); color: #fff; border-radius: 16px; padding: 26px 30px; display: flex; flex-direction: column; }
+  .amd .k { color: var(--green); }
+  .amd h3 { font-size: 36px; font-weight: 900; margin-top: 6px; }
+  .amd ul { list-style: none; padding: 0; margin: 14px 0 0; }
+  .amd li { font-size: 22px; line-height: 1.38; color: #cbd5e1; padding: 12px 0; border-bottom: 1px solid #1e293b; }
+  .amd li b { color: #fff; }
+  .amd .trust { margin-top: auto; padding-top: 16px; font-size: 21px; line-height: 1.38; color: #e2e8f0; }
+  .amd .trust b { color: #cbd5e1; font-family: var(--mono); background: #1e293b; border-radius: 6px; padding: 1px 8px; }
+  .tabcap { display: flex; justify-content: space-between; align-items: center; margin-top: 12px; font-size: 19px; color: #64748b; }
 
-  /* ---------- slide 6 ---------- */
-  .arch { display: grid; grid-template-columns: 1.32fr .68fr; gap: 30px; height: 100%; }
-  .zone { border: 2px dashed #94a3b8; border-radius: 16px; padding: 18px 24px; position: relative; background: #fff; }
-  .zone .zt { font-size: 16px; font-weight: 800; letter-spacing: .12em; text-transform: uppercase; color: #475569; margin-bottom: 14px; display: flex; justify-content: space-between; align-items: center; }
-  .zone.amd { border-color: #ef4444; background: #fff; }
-  .zone.amd .zt { color: #b91c1c; }
-  .bx { border: 1.5px solid var(--border); border-radius: 10px; padding: 12px 18px; background: #f8fafc; font-size: 17px; line-height: 1.32; }
-  .bx b { display: block; font-size: 20px; color: var(--ink); margin-bottom: 2px; }
-  .bx span { color: var(--muted); font-size: 16px; }
+  /* ---------- 5 · proof ---------- */
+  .two { display: grid; grid-template-columns: 1fr 1fr; gap: 40px; }
+  .bl { background: #fff; border: 1px solid var(--border); border-radius: 20px; padding: 36px 42px; border-top: 8px solid var(--red); }
+  .bl .top { display: flex; justify-content: space-between; align-items: center; }
+  .bl h3 { font-size: 48px; font-weight: 900; margin-top: 12px; }
+  .bl .sub { font-size: 26px; font-weight: 700; color: var(--red); margin-top: 4px; }
+  .bl ul { list-style: none; margin: 22px 0 0; padding: 0; }
+  .bl li { display: grid; grid-template-columns: 40px 1fr; gap: 8px; font-size: 25px; line-height: 1.38; margin-bottom: 14px; color: #1f2937; }
+  .bl li .m { font-weight: 900; font-size: 28px; line-height: 1.2; }
+  .bl li .m.y { color: var(--green-ink); } .bl li .m.n { color: var(--red); }
+  .bl .chips { display: flex; gap: 14px; margin-top: 14px; flex-wrap: wrap; }
+  .bl .chips .chip { font-size: 20px; padding: 7px 16px; }
+  .met { display: grid; grid-template-columns: repeat(3, 1fr); gap: 14px; margin-top: 22px; }
+  .met div { background: #f8fafc; border: 1px solid var(--border); border-radius: 12px; padding: 14px 18px; font-size: 16px; font-weight: 700; color: #64748b; text-transform: uppercase; letter-spacing: .06em; line-height: 1.3; }
+  .met b { display: block; font-size: 44px; color: var(--ink); letter-spacing: -.02em; text-transform: none; }
+  .bar5 { margin-top: 34px; background: var(--navy); color: #e2e8f0; border-radius: 16px; padding: 28px 38px; font-size: 26px; white-space: nowrap; font-weight: 700; display: flex; gap: 40px; justify-content: space-between; }
+  .bar5 b { color: var(--green); }
+
+  /* ---------- 6 · business ---------- */
+  .four { display: grid; grid-template-columns: repeat(4, 1fr); gap: 22px; }
+  .q4 { background: #fff; border: 1px solid var(--border); border-radius: 16px; padding: 30px 30px; border-top: 6px solid var(--navy); }
+  .q4 .k { color: var(--green-ink); }
+  .q4 h3 { font-size: 32px; font-weight: 900; margin-top: 8px; line-height: 1.15; }
+  .q4 p { font-size: 23px; line-height: 1.42; color: #334155; margin: 12px 0 0; }
+  .q4 p.s { font-size: 19px; color: #64748b; margin-top: 10px; }
+  .biz { display: grid; grid-template-columns: 1.35fr 1fr; gap: 26px; margin-top: 30px; }
+  .model { background: #fff; border: 1px solid var(--border); border-radius: 16px; padding: 28px 30px; }
+  .model .top { display: flex; justify-content: space-between; align-items: center; }
+  .model .top .k { color: var(--ink); }
+  .ladder { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 34px; margin-top: 16px; }
+  .rung { position: relative; border-radius: 12px; padding: 20px 20px; background: var(--violet-bg); border: 1px solid #ddd6fe; }
+  .rung:not(:last-child)::after { content: "→"; position: absolute; right: -28px; top: 50%; transform: translateY(-50%); font-size: 26px; font-weight: 900; color: #a78bfa; }
+  .rung .s { font-size: 15px; font-weight: 800; letter-spacing: .12em; color: var(--violet); text-transform: uppercase; }
+  .rung h3 { font-size: 28px; font-weight: 900; margin-top: 4px; line-height: 1.2; }
+  .rung p { font-size: 20px; color: var(--muted); margin: 8px 0 0; line-height: 1.38; }
+  .model .pp { margin-top: 18px; font-size: 22px; line-height: 1.4; color: #334155; }
+  .model .pp b { color: var(--ink); }
+  .pos { background: var(--navy); color: #fff; border-radius: 16px; padding: 28px 32px; display: flex; flex-direction: column; }
+  .pos .k { color: var(--green); }
+  .pos .ln { font-size: 28px; line-height: 1.38; margin-top: 12px; color: #cbd5e1; }
+  .pos .ln b { color: #fff; }
+  .pos .kpi { margin-top: auto; padding-top: 18px; border-top: 1px solid #1e293b; font-size: 22px; line-height: 1.4; color: #cbd5e1; }
+  .pos .kpi b { color: #fcd34d; }
+
+  /* ---------- 7 · close ---------- */
+  .s7 .wrap { flex: 1; padding: 56px 110px 0; display: flex; flex-direction: column; }
+  .s7 h1 { font-size: 96px; line-height: 1.04; font-weight: 900; letter-spacing: -.04em; margin-top: 60px; }
+  .s7 h1 em { font-style: normal; color: var(--green); }
+  .road { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 26px; margin-top: 64px; }
+  .rd { border-radius: 16px; padding: 28px 32px; border: 1px solid #334155; background: var(--navy-3); }
+  .rd .when { display: flex; justify-content: space-between; align-items: center; font-size: 17px; font-weight: 800; letter-spacing: .14em; text-transform: uppercase; color: #94a3b8; }
+  .rd h3 { font-size: 34px; font-weight: 900; margin-top: 10px; }
+  .rd p { font-size: 24px; line-height: 1.42; color: #cbd5e1; margin: 10px 0 0; }
+  .rd.now { border-top: 6px solid var(--green-2); }
+  .rd.next { border-top: 6px solid var(--amber); }
+  .rd.vis { border-top: 6px solid var(--violet); }
+  .cta { display: grid; grid-template-columns: 1fr 1.08fr; gap: 26px; margin-top: auto; margin-bottom: 52px; }
+  .cta .c { border-radius: 16px; padding: 28px 32px; }
+  .cta .c1 { background: var(--green-2); color: var(--navy); }
+  .cta .c1 h3 { font-size: 34px; font-weight: 900; }
+  .cta .c1 p { font-size: 24px; line-height: 1.42; margin: 8px 0 0; font-weight: 600; }
+  .cta .c2 { border: 1px solid #334155; background: var(--navy-3); }
+  .cta .c2 h3 { font-size: 26px; font-weight: 900; }
+  .links { font-family: var(--mono); font-size: 23px; line-height: 1.8; white-space: nowrap; color: #e2e8f0; margin-top: 6px; }
+  .links span { color: #94a3b8; display: inline-block; width: 86px; }
+
+  /* ---------- backups ---------- */
+  .bx { border: 1.5px solid var(--border); border-radius: 12px; padding: 18px 22px; background: #fff; font-size: 20px; line-height: 1.38; color: var(--muted); }
+  .bx b { display: block; font-size: 23px; color: var(--ink); margin-bottom: 4px; }
+  .bx.gr { background: #ecfdf5; border-color: #6ee7b7; }
+  .bx.vi { background: var(--violet-bg); border-color: #c4b5fd; }
   .bx.dk { background: var(--navy); border-color: var(--navy); color: #cbd5e1; }
   .bx.dk b { color: #fff; }
-  .bx.gr { background: #ecfdf5; border-color: #6ee7b7; }
-  .bx.vi { background: #f5f3ff; border-color: #c4b5fd; }
-  .arow { display: grid; gap: 12px; align-items: stretch; }
-  .down { text-align: center; color: #94a3b8; font-size: 19px; line-height: 1; margin: 12px 0; font-weight: 800; }
-  .evid { font-size: 17px; line-height: 1.4; }
-  .evid .r { display: grid; grid-template-columns: 170px 1fr; gap: 10px; padding: 8px 0; border-bottom: 1px solid #eef1f5; }
-  .evid .r:last-child { border-bottom: 0; }
-  .evid .r .kk { font-weight: 800; color: #475569; font-size: 15px; letter-spacing: .08em; text-transform: uppercase; padding-top: 3px; }
-
-  /* ---------- slide 7 ---------- */
-  .quad { display: grid; grid-template-columns: 1fr 1fr; grid-template-rows: 1fr 1fr; gap: 24px; height: 100%; }
-  .q { border-radius: 16px; padding: 24px 28px; border: 1px solid var(--border); background: #fff; display: flex; flex-direction: column; }
-  .q .qt { display: flex; align-items: center; gap: 12px; font-size: 16px; font-weight: 800; letter-spacing: .12em; text-transform: uppercase; }
-  .q h3 { font-size: 28px; font-weight: 800; margin-top: 8px; line-height: 1.2; }
-  .q p, .q li { font-size: 20px; line-height: 1.42; color: #334155; }
-  .q p { margin: 10px 0 0; }
-  .q ul.clean { margin-top: 10px; }
-  .q ul.clean li { margin-bottom: 6px; }
-  .q.biz { border-top: 6px solid var(--green-2); } .q.biz .qt { color: var(--green-ink); }
-  .q.fail { border-top: 6px solid var(--red); } .q.fail .qt { color: var(--red); }
-  .q.lim { border-top: 6px solid var(--amber); } .q.lim .qt { color: #b45309; }
-  .q.hum { border-top: 6px solid var(--violet); } .q.hum .qt { color: var(--violet); }
-  .nums { display: flex; gap: 26px; margin-top: 14px; }
-  .nums div { font-size: 15px; font-weight: 700; color: #64748b; letter-spacing: .04em; text-transform: uppercase; }
-  .nums b { display: block; font-size: 40px; color: var(--ink); letter-spacing: -.02em; text-transform: none; }
-
-  /* ---------- slide 8 ---------- */
-  .mkt { display: grid; grid-template-columns: 1fr 1fr; gap: 34px; height: 100%; }
-  .stat { display: grid; grid-template-columns: 260px 1fr; gap: 22px; align-items: center; padding: 22px 0; border-bottom: 1px solid var(--border); }
-  .stat:last-child { border-bottom: 0; }
-  .stat .v { font-size: 52px; font-weight: 900; letter-spacing: -.03em; line-height: 1.02; }
-  .stat .v small { display: block; font-size: 16px; font-weight: 700; color: #64748b; letter-spacing: 0; margin-top: 6px; }
-  .stat p { margin: 0; font-size: 20px; line-height: 1.4; color: #334155; }
-  .stat p i { color: #64748b; font-style: normal; font-size: 15px; display: block; margin-top: 4px; }
-  .rev { display: grid; gap: 14px; }
-  .rev .card { padding: 18px 22px; }
-  .rev h3 { font-size: 25px; font-weight: 800; display: flex; justify-content: space-between; align-items: baseline; gap: 12px; }
-  .rev h3 span { font-size: 16px; font-weight: 700; color: var(--green-ink); white-space: nowrap; letter-spacing: .06em; text-transform: uppercase; }
-  .rev p { margin: 6px 0 0; font-size: 19px; line-height: 1.4; color: var(--muted); }
-  .hyp { font-size: 16.5px; font-weight: 700; color: #b45309; background: var(--amber-bg); border: 1px solid #fcd34d; border-radius: 8px; padding: 10px 14px; line-height: 1.4; }
-
-  /* ---------- slide 9 ---------- */
-  table.comp { width: 100%; border-collapse: separate; border-spacing: 0; background: #fff; border: 1px solid var(--border); border-radius: 14px; overflow: hidden; font-size: 18px; }
-  table.comp th, table.comp td { padding: 13px 16px; border-bottom: 1px solid #e5e9ef; text-align: center; vertical-align: middle; line-height: 1.28; }
-  table.comp thead th { background: var(--navy); color: #fff; font-size: 17px; font-weight: 700; vertical-align: bottom; }
-  table.comp td:first-child, table.comp th:first-child { text-align: left; }
-  table.comp td:first-child b { font-size: 20px; display: block; }
-  table.comp td:first-child span { font-size: 15.5px; color: var(--muted); }
-  table.comp tr.us td { background: #ecfdf5; border-top: 2px solid var(--green-2); border-bottom: 0; }
-  .y { color: var(--green-ink); font-weight: 900; font-size: 26px; }
-  .n { color: #cbd5e1; font-weight: 900; font-size: 24px; }
-  .p { color: #b45309; font-weight: 800; font-size: 16px; }
-
-  /* ---------- slide 10 ---------- */
-  .road { display: grid; grid-template-columns: repeat(3, 1fr); gap: 24px; }
-  .road .card { padding: 22px 26px; }
-  .road h3 { font-size: 26px; font-weight: 800; }
-  .road .when { font-size: 15px; font-weight: 800; letter-spacing: .12em; text-transform: uppercase; color: var(--green); }
-  .road li { font-size: 20.5px; line-height: 1.4; color: #cbd5e1; }
-  .road ul.clean li::before { background: var(--green); }
-  .ask { display: grid; grid-template-columns: 1.25fr 1fr; gap: 24px; margin-top: 26px; }
-  .ask .card h3 { font-size: 26px; font-weight: 800; }
-  .ask li { font-size: 21px; line-height: 1.42; color: #e2e8f0; }
-  .links { font-family: var(--mono); font-size: 20px; line-height: 2; color: #e2e8f0; }
-  .links .lk { color: #94a3b8; display: inline-block; width: 120px; }
+  .down { text-align: center; color: #94a3b8; font-size: 19px; font-weight: 800; margin: 16px 0; }
+  .kv { font-size: 22px; line-height: 1.42; }
+  .kv .r { display: grid; grid-template-columns: 170px 1fr; gap: 12px; padding: 15px 0; border-bottom: 1px solid #e5e9ef; }
+  .kv .r:last-child { border-bottom: 0; }
+  .kv .kk { font-weight: 800; color: #475569; font-size: 15px; letter-spacing: .1em; text-transform: uppercase; padding-top: 3px; }
+  table.t { width: 100%; border-collapse: separate; border-spacing: 0; background: #fff; border: 1px solid var(--border); border-radius: 14px; overflow: hidden; font-size: 22px; }
+  table.t th, table.t td { padding: 16px 20px; border-bottom: 1px solid #e5e9ef; text-align: left; vertical-align: top; line-height: 1.35; }
+  table.t thead th { background: var(--navy); color: #fff; font-size: 18px; }
+  table.t tr:last-child td { border-bottom: 0; }
+  ul.lst { list-style: none; margin: 0; padding: 0; }
+  ul.lst li { position: relative; padding-left: 30px; font-size: 24px; line-height: 1.4; margin-bottom: 16px; color: #334155; }
+  ul.lst li::before { content: ""; position: absolute; left: 2px; top: .55em; width: 12px; height: 12px; border-radius: 3px; background: var(--green-2); }
+  ul.lst.no li::before { background: var(--red); }
+  .legend { display: flex; gap: 22px; align-items: center; margin-top: 22px; font-size: 20px; color: #334155; }
 </style>
 </head>
 <body>
 
-<!-- ===================================================================== 1. TITLE -->
+<!-- ============================================================ 1 · HOOK + BUSINESS STAKE -->
 <section class="slide dark s1" id="s1">
   <div class="wrap">
-    <div>
-      <div class="brandline">
-        <svg viewBox="0 0 32 32" aria-hidden="true"><rect width="32" height="32" rx="7" fill="#0b1220"/><path d="M16 5l9 3.5v6.8c0 5.6-3.8 10.2-9 11.7-5.2-1.5-9-6.1-9-11.7V8.5L16 5z" fill="none" stroke="#34d399" stroke-width="2.4" stroke-linejoin="round"/><path d="M11.5 16.2l3.2 3.2 6-6.4" fill="none" stroke="#34d399" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"/></svg>
-        ReleaseProof
+    <div class="brandline">
+      <svg viewBox="0 0 32 32" aria-hidden="true"><rect width="32" height="32" rx="7" fill="#0b1220"/><path d="M16 5l9 3.5v6.8c0 5.6-3.8 10.2-9 11.7-5.2-1.5-9-6.1-9-11.7V8.5L16 5z" fill="none" stroke="#34d399" stroke-width="2.4" stroke-linejoin="round"/><path d="M11.5 16.2l3.2 3.2 6-6.4" fill="none" stroke="#34d399" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"/></svg>
+      ReleaseProof <span class="cat">· Firmware Migration Assurance for Industrial IoT</span>
+    </div>
+    <h1>The firmware works.<br><span class="r">The upgrade doesn't.</span></h1>
+    <div class="split">
+      <div class="lane ok">
+        <div class="lbl">In the lab · new firmware</div>
+        <div class="big"><span class="ic">✓</span>New firmware boots</div>
+        <span class="chip ok">Compatible</span>
+        <div class="uart">post-quantum (ML-DSA) bootloader + image → running</div>
       </div>
-      <div class="eyebrow">Firmware migration assurance · Intelligent Industry</div>
-      <h1 style="margin-top:18px">A firmware can boot and still be impossible to upgrade safely.</h1>
-      <p class="sub">Help industrial IoT manufacturers verify that an update can <b>reach installed devices</b>—not just boot on a new one—before rollout. AMD-hosted AI plans and explains. <b>The engine decides.</b></p>
-      <div class="chips">
-        <span>2 live configurations · Nordic nRF52840</span>
-        <span>wolfBoot &amp; MCUboot</span>
-        <span>ECDSA P-256 → ML-DSA</span>
-        <span>preflight, not OTA delivery</span>
-        <span>every artifact sha256-hashed</span>
+      <div class="lane bad">
+        <div class="lbl">In the field · devices already shipped</div>
+        <div class="big"><span class="ic">✕</span>Update rejected</div>
+        <span class="chip bad">Incompatible</span>
+        <div class="uart">deployed ECDSA bootloader rejects the ML-DSA update</div>
       </div>
     </div>
-    <div>
-      <div class="verdict-mock">
-        <div class="k">Overall migration · wolfBoot · ECDSA P-256 → ML-DSA-87</div>
-        <div class="vt"><div class="x">×</div><div class="w">INCOMPATIBLE</div></div>
-        <div class="row ok"><span>Works in the lab: candidate</span><span class="chip ok">Compatible</span></div>
-        <div class="row bad"><span>Can't migrate in the field: transition</span><span class="chip bad">Incompatible</span></div>
-        <div class="meta">Historical LIVE run RP-20261017T124806Z-a39610<br>8/8 tests executed · 61 hashed artifacts · engine contract V1.2<br>sha256:a22d6efc4a84…6e54 · not certification or proof on silicon</div>
+    <div class="money">
+      <div class="bar"></div>
+      <div>
+        <p>One failed firmware migration can turn a remote software update into <b>hundreds of costly on-site interventions.</b></p>
+        <div class="sub"><b>ReleaseProof</b> finds the blocker before the rollout, with executed tests and traceable evidence.</div>
       </div>
-      <p class="muted" style="font-size:17px;margin-top:16px;text-align:right">Values copied from a real run of the app (Renode emulation, 17 Oct 2026).</p>
     </div>
   </div>
   <div class="foot">
-    <div class="brand">AMD Developer Hackathon ACT III · lablab.ai · Track: Intelligent Industry</div>
-    <div class="src" style="text-align:right">Pre-deployment firmware migration assurance · industrial IoT</div>
+    <div class="brand">AMD Developer Hackathon ACT III · Intelligent Industry</div>
+    <div class="src" style="text-align:right">Measured by ReleaseProof in Renode emulation · nRF52840 + wolfBoot · ECDSA P-256 → ML-DSA-87 · LIVE run 87d365, Gemma on AMD</div>
     <div class="num">01</div>
   </div>
 </section>
 
-<!-- ===================================================================== 2. PROBLEM -->
-<section class="slide light s2" id="s2">
+<!-- ============================================================ 2 · THE COST -->
+<section class="slide light" id="s2">
   <div class="head">
-    <div class="eyebrow">The problem</div>
-    <h2>A factory's sensors must remain updatable—not just functional on day one</h2>
+    <div class="eyebrow">The business problem <span class="crit">· Business value</span></div>
+    <h2>One failed update. Thousands of devices at risk.</h2>
   </div>
   <div class="body">
-    <div class="cols">
-      <div>
-        <div class="card deadline">
-          <div class="yr" style="font-size:36px">OEM<small>our first buyer</small></div>
-          <div><h3>Wireless condition-monitoring manufacturers</h3><p>Firmware leads and product-security managers need to keep installed sensors maintainable, protecting the monitoring that supports industrial maintenance.</p></div>
+    <div class="cost">
+      <div class="scen">
+        <div class="top"><div class="k">Example: industrial sensor OEM</div><span class="tag ill" style="background:rgba(245,158,11,.15);color:#fcd34d">Illustrative scenario</span></div>
+        <div class="eq">
+          <div><div class="n">5,000</div><div class="l">wireless sensors installed in plants</div></div>
+          <div class="x">×</div>
+          <div><div class="n">5%</div><div class="l">can't take the update and need a site visit</div></div>
+          <div class="x">×</div>
+          <div><div class="n">€250</div><div class="l">per technician visit</div></div>
         </div>
-        <div class="card deadline">
-          <div class="yr" style="font-size:30px">nRF52840<small>real hardware fit</small></div>
-          <div><h3>NI MON-10411 · Lynxemi · Atomation</h3><p>Nordic documents this SoC in industrial wireless sensors. Our demo uses the same MCU family, <b>not</b> these vendors' proprietary firmware or bootloaders.<sup>[1]</sup></p></div>
+        <div class="res">
+          <div class="eqs">=</div>
+          <div class="v">€62,500</div>
+          <div class="d">250 site visits<br>from one blocked<br>migration</div>
         </div>
-        <div class="card deadline">
-          <div class="yr" style="font-size:36px">Field<small>the business risk</small></div>
-          <div><h3>A rejected update can require physical intervention</h3><p>Hard-to-reach sensors turn a bootloader mismatch into engineering rework, field visits and potential gaps in monitoring. No customer incident or savings are claimed.</p></div>
-        </div>
-        <div class="card deadline" style="margin-bottom:0">
-          <div class="yr" style="font-size:36px">CRA<small>context, not proof</small></div>
-          <div><h3>Secure-update practices and evidence matter</h3><p>Main CRA obligations: 11 Dec 2027; reporting: 11 Sep 2026. Scope, exclusions and transition rules apply. <b>No general ML-DSA mandate or CRA certification claim.</b><sup>[2]</sup></p></div>
-        </div>
+        <div class="note">Hypothetical inputs, not a measured ROI. Engineering rework and delay costs are not included. A design-partner pilot will measure the real numbers.</div>
       </div>
-      <div class="trap">
-        <h3>The trap: "boots" ≠ "migrates"</h3>
-        <div class="lane">
-          <div class="lbl">Lab test: candidate state</div>
-          <div class="flow">
-            <div class="box">ML-DSA-87 bootloader</div><div class="arrow">+</div><div class="box">ML-DSA-87 signed image</div>
-            <div class="res"><span class="chip ok">Boots</span></div>
-          </div>
-          <div class="uart ok">UART: version frame 2a 00 00 00 01 → v1 running</div>
-        </div>
-        <div class="lane">
-          <div class="lbl">Field reality: the transition</div>
-          <div class="flow">
-            <div class="box">Deployed ECDSA P-256 bootloader<br><span style="color:#94a3b8;font-size:16px">no self-update on this port</span></div><div class="arrow">←</div><div class="box">Proposed ML-DSA-87 update</div>
-            <div class="res"><span class="chip bad">Rejected</span></div>
-          </div>
-          <div class="uart">UART: "Update type invalid 0xB01!=0x200"; v1 keeps running</div>
-        </div>
-        <p class="punch">A passing boot test does not prove a deployable update. On this profile, the installed bootloader <em>cannot get there</em> through the proposed path.</p>
-        <p style="font-size:15px;color:#64748b;margin:14px 0 0">Both lanes were measured live by ReleaseProof (wolfBoot @4c79eee, Renode 1.16.1, run RP-20261017T124806Z-a39610).</p>
+      <div class="pains">
+        <div class="k">What a blocked migration costs the manufacturer</div>
+        <div class="pain"><h3>Field interventions</h3><p>The fix becomes manual: a technician, a cable, a visit, device by device.</p></div>
+        <div class="pain"><h3>Engineering rework</h3><p>The release goes back to design after it was declared ready.</p></div>
+        <div class="pain"><h3>Release delays</h3><p>Security updates wait, and the installed fleet stays on old firmware.</p></div>
+        <div class="pain"><h3>Operational continuity</h3><p>Sensors that feed condition monitoring and maintenance need service.</p></div>
+      </div>
+    </div>
+    <div class="why">
+      <div class="lbl">Why now<span>signing is changing</span></div>
+      <div class="it"><b>2024</b>NIST FIPS 204 standardises ML-DSA, a post-quantum signature for firmware signing</div>
+      <div class="it"><b>2026–2027</b>EU Cyber Resilience Act: reporting from Sep 2026, main obligations from Dec 2027</div>
+      <div class="it"><b>2030</b>CNSA 2.0 target for post-quantum firmware signing in US national security systems</div>
+    </div>
+  </div>
+  <div class="foot">
+    <div class="brand">ReleaseProof</div>
+    <div class="src">Scenario inputs are hypothetical. Regulation is context, not a mandate: the CRA does not require ML-DSA, and CNSA 2.0 applies to US national security systems only. Sources: backup B3.</div>
+    <div class="num">02</div>
+  </div>
+</section>
+
+<!-- ============================================================ 3 · THE SOLUTION -->
+<section class="slide light" id="s3">
+  <div class="head">
+    <div class="eyebrow">The solution <span class="crit">· Originality</span></div>
+    <h2>ReleaseProof verifies the migration before the rollout.</h2>
+  </div>
+  <div class="body">
+    <div class="flow3">
+      <div class="stp">
+        <div class="nn">Step 1</div>
+        <h3>Configure</h3>
+        <p class="what">Pick the device as it is deployed today and the planned change, e.g. ECDSA → post-quantum ML-DSA.</p>
+        <div class="get"><b>You get</b>A test plan for your real fleet configuration, not a generic checklist.</div>
+      </div>
+      <div class="stp">
+        <div class="nn">Step 2</div>
+        <h3>Test</h3>
+        <p class="what">Real bootloader builds, boot and update in emulation, with positive and negative tests.</p>
+        <div class="get"><b>You get</b>Blockers found in the lab, before any device in the field is touched.</div>
+      </div>
+      <div class="stp">
+        <div class="nn">Step 3</div>
+        <h3>Decide</h3>
+        <p class="what">A deterministic verdict, with every finding linked to a hashed artifact.</p>
+        <div class="get"><b>You get</b>A go / no-go release decision your team can review and defend.</div>
+      </div>
+    </div>
+    <div class="diff">
+      <div class="a">
+        <div class="who">A typical release test asks</div>
+        <div class="q">Does the new firmware work?</div>
+        <span class="chip ok">✓ Compatible</span>
+      </div>
+      <div class="b">
+        <div class="who">ReleaseProof also asks</div>
+        <div class="q">Can devices already in the field get there?</div>
+        <span class="chip bad">✕ Blocker found</span>
+      </div>
+    </div>
+    <p class="punch">Most tests check the destination. <em>ReleaseProof tests the path.</em></p>
+  </div>
+  <div class="foot">
+    <div class="brand">ReleaseProof</div>
+    <div class="src">Both answers come from the same demonstrated LIVE run (wolfBoot, 87d365): candidate COMPATIBLE, transition INCOMPATIBLE. Emulation, not silicon.</div>
+    <div class="num">03</div>
+  </div>
+</section>
+
+<!-- ============================================================ 4 · AI + AMD → VALUE -->
+<section class="slide light" id="s4">
+  <div class="head">
+    <div class="eyebrow">How it works <span class="crit">· Application of technology</span></div>
+    <h2>From AI-assisted testing to evidence-based decisions.</h2>
+  </div>
+  <div class="body">
+    <div class="loop">
+      <div class="node ai"><div class="who">AMD-hosted AI</div><h3>Plan</h3><p>Picks extra checks from a registered catalog</p></div>
+      <div class="node det"><div class="who">Runner</div><h3>Execute</h3><p>Real builds and emulation, every artifact hashed</p></div>
+      <div class="node det"><div class="who">Engine</div><h3>Decide</h3><p>Same evidence, same verdict. No LLM</p></div>
+      <div class="node ai"><div class="who">AMD-hosted AI</div><h3>Explain</h3><p>Cites evidence IDs, proposes next steps</p></div>
+      <div class="node hum"><div class="who">Engineer</div><h3>Choose</h3><p>Approves a proposal, which runs as a new assessment</p></div>
+    </div>
+    <div class="ai4">
+      <div>
+        <table class="val">
+          <thead><tr><th>Capability</th><th>Process improvement</th><th class="bv">Business outcome</th></tr></thead>
+          <tbody>
+            <tr><td>AI-assisted test planning</td><td>Relevant checks added automatically, required ones can't be dropped</td><td>Less manual work to prepare each validation</td></tr>
+            <tr><td>Automated build + emulation</td><td>The real migration is executed on every run</td><td>Incompatibilities found before deployment</td></tr>
+            <tr><td>Evidence-based verdict</td><td>Deterministic decision, every line linked to a hashed artifact</td><td>Traceable decisions that can be reviewed</td></tr>
+            <tr><td>AI explanations and alternatives</td><td>Plain-language root cause, allowed next steps</td><td>Faster fix, engineer stays in control</td></tr>
+          </tbody>
+        </table>
+        <div class="tabcap"><span>Capabilities are demonstrated; business outcomes are expected benefits to measure in a pilot.</span><span class="tag ill">Expected benefit</span></div>
+      </div>
+      <div class="amd">
+        <div class="k">Powered by AMD</div>
+        <h3>AMD Token Factory</h3>
+        <ul>
+          <li><b>Model:</b> Google Gemma-4-31B-IT</li>
+          <li><b>Plans</b>, <b>explains</b>, <b>proposes</b>: every call traced per run</li>
+          <li><b>No fallback</b> to other AI providers</li>
+          <li><b>Builds + emulation</b> on AMD EPYC (AWS c7a)</li>
+        </ul>
+        <div class="trust">When evidence is missing, the answer is <b>INDETERMINATE</b>: "not proven yet", never a false green.</div>
       </div>
     </div>
   </div>
   <div class="foot">
     <div class="brand">ReleaseProof</div>
-    <div class="src">[1] Nordic Semiconductor news: NI (Sep 2019), Lynxemi (Apr 2020), Atomation (Jun 2023). Hardware relevance only; no customer relationship or commercial image support. [2] European Commission CRA summary/reporting. Source links in pitch/submission.md.</div>
-    <div class="num">02</div>
+    <div class="src">Managed GPU not disclosed by the provider. Guardrails check citation IDs and verdict labels, not every sentence. INDETERMINATE example: re-evaluation run 42859a. Details: backup B1.</div>
+    <div class="num">04</div>
   </div>
 </section>
 
-<!-- ===================================================================== 3. SOLUTION / LIVE WORKFLOW -->
-<section class="slide light" id="s3">
-  <div class="head">
-    <div class="eyebrow">The solution, live</div>
-    <h2>Choose a supported configuration and inspect the migration path before rollout</h2>
-  </div>
-  <div class="body">
-    <div class="steps">
-      <div class="card step"><div class="n">1</div><div><h3>Pick a supported configuration</h3><p>Device + bootloader with pinned commits and toolchains. No scripts, flags or flash addresses to type.</p></div></div>
-      <div class="card step"><div class="n">2</div><div><h3>Pick the change</h3><p>For example ECDSA P-256 → ML-DSA-87. Review the required checks and the ones the AI may add.</p></div></div>
-      <div class="card step"><div class="n">3</div><div><h3>Run: it really executes</h3><p>Builds and signs with ephemeral keys, then boots and updates in Renode. Positive and negative tests feed the V1.2 verdict, canonical hash and manifest.</p></div></div>
-    </div>
-    <div class="shots3">
-      <div>
-        <img class="shot" src="assets/home_wizard.png" alt="ReleaseProof wizard">
-          <div class="cap"><b>Historical screenshot:</b> wizard with pinned versions. Current-source acceptance must be rerun before the final submission.</div>
-        <img class="shot" src="assets/wolfboot_stages.png" alt="Live pipeline stages" style="margin-top:18px">
-        <div class="cap"><b>Recorded pipeline:</b> 7 stages, 21 observations. This 42 s historical build/emulation run is not an AI-enabled end-to-end latency guarantee.</div>
-      </div>
-      <div>
-        <img class="shot" src="assets/wolfboot_decision.png" alt="Decision: INCOMPATIBLE">
-        <div class="cap"><b>Historical LIVE decision:</b> candidate and transition judged separately by the engine. Run <b class="mono">RP-20261017T124806Z-a39610</b>. Evidence links to hashed UART captures, ELF files, signed images and Renode scripts. This screenshot is not proof of AMD-enabled inference.</div>
-      </div>
-    </div>
-  </div>
-  <div class="foot"><div class="brand">ReleaseProof</div><div class="src"></div><div class="num">03</div></div>
-</section>
-
-<!-- ===================================================================== 4. TWO CONFIGURATIONS -->
-<section class="slide light" id="s4">
-  <div class="head">
-    <div class="eyebrow">Two configurations, both running end to end</div>
-    <h2>Same chip, two bootloaders, and two different reasons the migration fails</h2>
-  </div>
-  <div class="body">
-    <table class="cmp">
-      <thead><tr><th style="width:230px"></th><th>nRF52840 + wolfBoot<small>change: ECDSA P-256 → ML-DSA-87</small></th><th>nRF52840 + MCUboot (Zephyr)<small>change: ECDSA P-256 → ML-DSA</small></th></tr></thead>
-      <tbody>
-        <tr><td class="rk">Pinned stack</td><td><span class="mono">wolfBoot 4c79eee · wolfSSL 4aa1ad7 · Arm GCC 14.2.rel1</span></td><td><span class="mono">MCUboot 4eba8087 · Zephyr v4.2.0 · SDK 0.17.4 · imgtool 2.2.0</span></td></tr>
-        <tr><td class="rk">Emulation</td><td>Renode 1.16.1, nRF52840; SVD baked in and sha256-pinned</td><td>Renode 1.16.1 with ReleaseProof's own NVMC flash model (MIT), swap-using-move</td></tr>
-        <tr><td class="rk">Candidate check</td><td>ML-DSA-87 bootloader and image built and <b>booted</b> (E02); signed image 12&nbsp;876&nbsp;B fits the 262&nbsp;144&nbsp;B&nbsp;slot</td><td>PQC signing attempt with the pinned tool (E02): <b>imgtool refuses ml-dsa-44/65/87</b> (measured)</td></tr>
-        <tr><td class="rk">Field-update path</td><td>Source inspection (E11): no nRF52 self-update path (<span class="mono">RAM_CODE=0</span>)</td><td>Partition map + Kconfig (E11): single-stage MCUboot, no bootloader slot</td></tr>
-        <tr><td class="rk">Negative tests</td><td>Tampered image rejected (E03) · deployed ECDSA bootloader rejects the ML-DSA update (X01) · candidate rejects an ECDSA image (P01)</td><td>Tampered image rejected (E03) · update signed with another key rejected (X01)</td></tr>
-        <tr><td class="rk">Engine verdict</td><td><span class="chip ok">Candidate COMPATIBLE</span> <span class="chip bad">Transition INCOMPATIBLE</span><br><span class="muted" style="font-size:16px">REQ-BOOT-S0S1 violated · run a39610 · 8/8 tests · 61 artifacts</span></td><td><span class="chip bad">Candidate INCOMPATIBLE</span> <span class="chip bad">Transition INCOMPATIBLE</span><br><span class="muted" style="font-size:16px">REQ-PQC-VERIFIER + REQ-BL-FIELD-UPDATE · run 7682fc · 7/7 tests · 50 artifacts</span></td></tr>
-      </tbody>
-    </table>
-    <div style="display:grid;grid-template-columns:1fr 640px;gap:28px;margin-top:22px;align-items:center">
-      <p style="font-size:20px;line-height:1.45;margin:0;color:#334155"><b>Why the checks differ:</b> the test semantics are bootloader-agnostic (E01 current boots, E02 candidate, E03 auth-negative, X01 cross-transition, E05 layout, E11 field-update capability). Each profile maps them to its own build and emulation templates. <b>Runners measure; only the engine decides.</b> A missing observation becomes <span class="mono">UNKNOWN</span>, never a pass.</p>
-      <img class="shot" src="assets/mcuboot_pqc_refusal.png" alt="imgtool refuses ML-DSA" style="width:640px">
-    </div>
-  </div>
-  <div class="foot"><div class="brand">ReleaseProof</div><div class="src">Historical runs a39610 / 7682fc and screenshot, 17 Oct 2026. Profiles and runner READMEs document the scope. A fresh strict acceptance must identify the same backend/runner release before submission.</div><div class="num">04</div></div>
-</section>
-
-<!-- ===================================================================== 5. AGENTIC LOOP -->
+<!-- ============================================================ 5 · PROOF -->
 <section class="slide light" id="s5">
   <div class="head">
-    <div class="eyebrow">The agentic loop</div>
-    <h2>The AI proposes, the emulator measures, the engine decides, and a human chooses the next step</h2>
+    <div class="eyebrow">Working prototype <span class="crit">· Demonstrated in emulation</span></div>
+    <h2>Built and tested: two real migration blockers found.</h2>
   </div>
   <div class="body">
-    <div class="loop">
-      <div class="node ai"><div class="who">AMD-hosted AI</div><h3>① Plan tests</h3><p>Picks and orders the optional registered checks. Required checks always run, and unknown templates are blocked and shown.</p></div>
-      <div class="node det"><div class="who">Runner</div><h3>② Execute for real</h3><p>Pinned build, ephemeral keys, Renode boot and update, UART capture. No network access, and every artifact is hashed.</p></div>
-      <div class="node det"><div class="who">V1.2 engine</div><h3>③ Deterministic verdict</h3><p>Candidate, transition and migration verdicts plus an explanation graph and a canonical hash. Golden-hash regression tests guard it.</p></div>
-      <div class="node ai"><div class="who">AMD-hosted AI</div><h3>④ Explain + alternatives</h3><p>Explanations must cite real evidence IDs. Alternatives come only from the profile's allowed set and are labelled PROPOSAL.</p></div>
-      <div class="node det"><div class="who">Human + engine</div><h3>⑤ Re-evaluate</h3><p>A human picks an alternative. That creates a <b>new</b> run with a parent reference, and history is never changed.</p></div>
+    <div class="two">
+      <div class="bl">
+        <div class="top"><div class="k">Nordic nRF52840 + wolfBoot</div><span class="tag dem">Demonstrated</span></div>
+        <h3>The new firmware works</h3>
+        <div class="sub">…but deployed devices can't install it</div>
+        <ul>
+          <li><span class="m y">✓</span><span>Post-quantum ML-DSA-87 bootloader and image build and boot</span></li>
+          <li><span class="m n">✕</span><span>Deployed ECDSA bootloader rejects the ML-DSA update</span></li>
+          <li><span class="m n">✕</span><span>No bootloader self-update path on this port</span></li>
+        </ul>
+        <div class="chips"><span class="chip ok">Candidate compatible</span><span class="chip bad">Transition incompatible</span></div>
+        <div class="met"><div><b>127 s</b>incl. AMD AI</div><div><b>7/7</b>tests executed</div><div><b>57</b>hashed artifacts</div></div>
+      </div>
+      <div class="bl">
+        <div class="top"><div class="k">Nordic nRF52840 + MCUboot (Zephyr)</div><span class="tag dem">Demonstrated</span></div>
+        <h3>The new firmware can't be built</h3>
+        <div class="sub">…and the upgrade path is blocked too</div>
+        <ul>
+          <li><span class="m n">✕</span><span>Pinned signing tool refuses ML-DSA keys (measured by running it)</span></li>
+          <li><span class="m n">✕</span><span>Single-stage MCUboot can't replace itself in the field</span></li>
+          <li><span class="m y">✓</span><span>Tampered and wrong-key updates are rejected</span></li>
+        </ul>
+        <div class="chips"><span class="chip bad">Candidate incompatible</span><span class="chip bad">Transition incompatible</span></div>
+        <div class="met"><div><b>190 s</b>incl. AMD AI</div><div><b>6/6</b>tests executed</div><div><b>45</b>hashed artifacts</div></div>
+      </div>
     </div>
-    <p class="return">↺ the re-evaluation feeds back into ③ or, when new tests are needed, starts a new LIVE run at ②</p>
-    <div class="example">
-      <div class="ex bad"><div class="id">LIVE · RP-20261017T124806Z-a39610 · bootloader_self_update</div><div class="v">INCOMPATIBLE</div><p>REQ-BOOT-S0S1 is violated: the deployed wolfBoot cannot replace itself over the air on nRF52840.</p></div>
-      <div class="hand"><b>→</b>human clicks<br>"Evaluate this plan"</div>
-      <div class="ex unk"><div class="id">REEVALUATION · RP-20261017T124931Z-72d0b1 · field_service_reflash</div><div class="v">INDETERMINATE</div><p>The blocker is gone, but recovery from an interrupted update (INV-I4) was never observed, so the result is an honest unknown and not a pass. The parent's hash is unchanged.</p></div>
-    </div>
-    <div class="guard">
-      <div><b>Schema-validated</b> structured output; bad JSON is repaired once, otherwise rejected</div>
-      <div><b>Citation check:</b> structured claims cite allowed IDs; buffered chat checks ID existence</div>
-      <div><b>Verdict-phase check:</b> explicit labels cannot swap candidate success into migration success</div>
-      <div><b>Allow-listed AMD host</b> and no fallback provider. If the AI is down: <span class="mono">AI_UNAVAILABLE</span> and the deterministic plan runs</div>
-      <div><b>Tool output is untrusted:</b> UART and log text is wrapped against prompt injection</div>
-      <div><b>No shell from the AI:</b> it can only choose allow-listed templates</div>
+    <div class="bar5">
+      <span><b>Same engine</b>, two bootloader families</span>
+      <span>Runners <b>measure</b>, only the engine <b>decides</b></span>
+      <span>Not observed = <b>UNKNOWN</b>, never a pass</span>
     </div>
   </div>
-   <div class="foot"><div class="brand">ReleaseProof</div><div class="src">The example run pair is historical. Show actual AMD traces for the demo run. Guardrails check IDs/explicit labels, not semantic truth of every sentence; human engineering review remains required.</div><div class="num">05</div></div>
+  <div class="foot">
+    <div class="brand">ReleaseProof</div>
+    <div class="src">LIVE runs 87d365 (wolfBoot) and 092e99 (MCUboot), 17 Oct 2026, both passing all 27 gates of the strict acceptance with Gemma on AMD. Times are for these runs only; not a performance claim.</div>
+    <div class="num">05</div>
+  </div>
 </section>
 
-<!-- ===================================================================== 6. ARCHITECTURE + AMD -->
+<!-- ============================================================ 6 · BUSINESS OPPORTUNITY -->
 <section class="slide light" id="s6">
   <div class="head">
-    <div class="eyebrow">Architecture on AMD</div>
-      <h2>AMD powers supervised planning and explanations—not pass/fail decisions</h2>
+    <div class="eyebrow">Market and business model <span class="crit">· Business value</span></div>
+    <h2>A repeatable business for industrial IoT manufacturers.</h2>
   </div>
   <div class="body">
-    <div class="arch">
-      <div class="zone">
-        <div class="zt"><span>Docker Compose · cloud: AWS c7a / AMD EPYC</span><span class="chip ok" style="font-size:14px">Live behind CloudFront</span></div>
-        <div class="arow" style="grid-template-columns: 1fr 1fr 1fr">
-          <div class="bx dk"><b>Browser · Next.js UI</b><span style="color:#94a3b8">wizard · live run (SSE) · evidence · alternatives · AMD panel</span></div>
-          <div class="bx"><b>Caddy</b><span>auto-TLS edge · /api → api · / → web</span></div>
-          <div class="bx"><b>FastAPI api</b><span>orchestrator state machine · queue · SQLite · artifacts · manifests</span></div>
+    <div class="four">
+      <div class="q4"><div class="k">Who buys</div><h3>Firmware and product-security leads</h3><p>At industrial IoT OEMs, with quality and programme managers as co-sponsors.</p></div>
+      <div class="q4"><div class="k">Entry market</div><h3>Industrial sensor OEMs</h3><p>Wireless condition-monitoring sensors, often hard to reach once installed.</p><p class="s">nRF52840, our demo chip, is used in such sensors.</p></div>
+      <div class="q4"><div class="k">When they buy</div><h3>Before a risky change</h3><p>Signing-key rotation, bootloader change, new hardware revision, post-quantum roadmap.</p></div>
+      <div class="q4"><div class="k">Why it recurs</div><h3>Every release, not once</h3><p>Each firmware, bootloader, key or platform change needs a new check, for years.</p></div>
+    </div>
+    <div class="biz">
+      <div class="model">
+        <div class="top"><div class="k">Business model</div><span class="tag hyp">Hypothesis to validate</span></div>
+        <div class="ladder">
+          <div class="rung"><div class="s">1 · Land</div><h3>Paid pilot</h3><p>Onboard one product profile: chip + bootloader + toolchain</p></div>
+          <div class="rung"><div class="s">2 · Recur</div><h3>Subscription</h3><p>Per product profile, with assessments on every release</p></div>
+          <div class="rung"><div class="s">3 · Expand</div><h3>Release gate</h3><p>CI/API integration, evidence packs, more product lines</p></div>
         </div>
-        <div class="down">↓ HTTP / NDJSON (internal network, no egress)</div>
-        <div class="arow" style="grid-template-columns: 1fr 1fr">
-          <div class="bx gr"><b>runner-wolfboot</b><span>wolfBoot + wolfSSL · Arm GCC 14.2 · keytools · Renode 1.16.1 · own SVD</span></div>
-          <div class="bx gr"><b>runner-mcuboot</b><span>Zephyr v4.2.0 sysbuild · MCUboot · imgtool 2.2.0 · Renode + NVMC model</span></div>
+        <div class="pp"><b>Priced per product profile, not per device.</b> Expansion: connected devices, critical infrastructure, long-lifecycle embedded.</div>
+      </div>
+      <div class="pos">
+        <div class="k">Where it fits</div>
+        <div class="ln">Scanners find <b>what must change</b>. OTA platforms <b>deliver</b> the update. ReleaseProof proves <b>the path in between</b>, complementary to both.</div>
+        <div class="kpi">Pilot KPIs: <b>blockers found before rollout</b> · <b>engineering hours saved</b> · <b>site visits avoided</b></div>
+      </div>
+    </div>
+  </div>
+  <div class="foot">
+    <div class="brand">ReleaseProof</div>
+    <div class="src">No customers, pricing or ROI are claimed. nRF52840 appears in NI MON-10411, Lynxemi and Atomation sensors (Nordic Semiconductor): hardware relevance only, not their firmware and not customers.</div>
+    <div class="num">06</div>
+  </div>
+</section>
+
+<!-- ============================================================ 7 · VISION + CTA -->
+<section class="slide dark s7" id="s7">
+  <div class="wrap">
+    <div class="brandline">
+      <svg viewBox="0 0 32 32" aria-hidden="true"><rect width="32" height="32" rx="7" fill="#0b1220"/><path d="M16 5l9 3.5v6.8c0 5.6-3.8 10.2-9 11.7-5.2-1.5-9-6.1-9-11.7V8.5L16 5z" fill="none" stroke="#34d399" stroke-width="2.4" stroke-linejoin="round"/><path d="M11.5 16.2l3.2 3.2 6-6.4" fill="none" stroke="#34d399" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"/></svg>
+      ReleaseProof
+    </div>
+    <h1>Make every firmware migration<br><em>a decision backed by evidence.</em></h1>
+    <div class="road">
+      <div class="rd now"><div class="when">Today <span class="tag dem">Built</span></div><h3>Migration preflight</h3><p>2 supported configurations, evidence pack, strict release-gate CLI.</p></div>
+      <div class="rd next"><div class="when">Next <span class="tag hyp">Planned</span></div><h3>Closer to the field</h3><p>Real dev kits, power-loss tests, STM32 and NXP, commercial bootloaders.</p></div>
+      <div class="rd vis"><div class="when">Vision <span class="tag hyp">Planned</span></div><h3>A gate on every release</h3><p>A check in the release process for every device generation already shipped.</p></div>
+    </div>
+    <div class="cta">
+      <div class="c c1">
+        <h3>We're looking for industrial design partners</h3>
+        <p>Bring one board and one planned change. We run the pilot and measure blockers found, hours saved and visits avoided.</p>
+      </div>
+      <div class="c c2">
+        <h3>Try it</h3>
+        <div class="links"><span>Demo</span>d1yxcnwgdgjzt6.cloudfront.net<br><span>Code</span>github.com/francescocarpineti091299/release-proof</div>
+      </div>
+    </div>
+  </div>
+  <div class="foot">
+    <div class="brand">ReleaseProof</div>
+    <div class="src" style="text-align:right">Non-official engineering assessment · emulation, not silicon · 2 supported configurations today</div>
+    <div class="num">07</div>
+  </div>
+</section>
+
+<!-- ============================================================ B1 · ARCHITECTURE & AMD -->
+<section class="slide light backup" id="s8">
+  <div class="head">
+    <div class="eyebrow">Backup · architecture and AMD</div>
+    <h2>AMD powers planning and explanations, not pass/fail decisions</h2>
+  </div>
+  <div class="body">
+    <div style="display:grid;grid-template-columns:1.3fr .7fr;gap:30px">
+      <div>
+        <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:12px">
+          <div class="bx dk"><b>Next.js UI</b>wizard · live run (SSE) · evidence · AMD panel</div>
+          <div class="bx"><b>Caddy</b>TLS edge · /api → api · / → web</div>
+          <div class="bx"><b>FastAPI</b>orchestrator · queue · SQLite · manifests</div>
         </div>
-        <div class="down">↓ typed observations + artifact sha256</div>
-        <div class="arow" style="grid-template-columns: 1fr 1fr 1fr">
-          <div class="bx"><b>Assessment adapters</b><span>observations → V1.2 assessment; missing fact ⇒ UNKNOWN / gap</span></div>
-          <div class="bx gr"><b>V1.2 semantic engine</b><span>validate · evaluate · explanation graph · canonical hash</span></div>
-          <div class="bx vi"><b>AI gateway</b><span>planner · explainer · alternatives · assistant; schema, citation and verdict-echo guards; traced</span></div>
+        <div class="down">↓ internal network, no internet egress</div>
+        <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px">
+          <div class="bx gr"><b>runner-wolfboot</b>wolfBoot 4c79eee · wolfSSL 4aa1ad7 · Arm GCC 14.2.rel1 · Renode 1.16.1</div>
+          <div class="bx gr"><b>runner-mcuboot</b>MCUboot 4eba8087 · Zephyr v4.2.0 · SDK 0.17.4 · imgtool 2.2.0 · Renode + own NVMC model</div>
+        </div>
+        <div class="down">↓ typed observations + sha256 of every artifact</div>
+        <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:12px">
+          <div class="bx"><b>Adapters</b>missing observation ⇒ UNKNOWN + gap</div>
+          <div class="bx gr"><b>V1.2 engine</b>validate · evaluate · explanation graph · canonical hash</div>
+          <div class="bx vi"><b>AI gateway</b>planner · explainer · alternatives · assistant; schema, citation and verdict checks</div>
         </div>
         <div class="down">↓ persisted per run</div>
-        <div class="bx dk"><b>Run record (immutable)</b><span style="color:#94a3b8">verdicts · explanation graph · gap plan · dossier · <span class="mono" style="color:#cbd5e1;font-size:16px">manifest.json</span> with inputs, pins, artifact sha256 and result hash · AI traces</span></div>
-        <p style="font-size:17px;color:#64748b;margin:16px 0 0">Run lifecycle: PREPARING → AI_PLAN → DISCOVERY → BUILD_SIGN → EMULATION_TESTS → EVALUATION → NEXT_STEPS. If a runner is killed or crashes, the run is FAILED and no verdict is issued. Secrets live only in the api container.</p>
+        <div class="bx dk"><b>Immutable run record</b>verdicts · dossier · manifest.json (inputs, pins, artifact hashes, result hash) · AI traces. Runner crash ⇒ FAILED, no verdict.</div>
       </div>
-      <div class="zone amd">
-        <div class="zt"><span>AMD evidence</span></div>
-         <div class="bx vi" style="margin-bottom:14px"><b>AMD Token Factory · managed GPU undisclosed</b><span>OpenAI-compatible, operator allow-listed host, reached through API egress only</span></div>
-        <div class="evid">
-           <div class="r"><div class="kk">Host CPU</div><div>AMD EPYC 4th gen (EC2 c7a.2xlarge, 8 vCPU) runs builds and Renode emulation for the public demo</div></div>
-           <div class="r"><div class="kk">GPU</div><div>Managed GPU undisclosed; labels are not attestation</div></div>
-           <div class="r"><div class="kk">Model</div><div>Google Gemma-4-31B-IT on AMD</div></div>
-           <div class="r"><div class="kk">Serving</div><div>AMD Token Factory managed API</div></div>
-           <div class="r"><div class="kk">Smoke sample</div><div>10/10 logical calls OK with Gemma. Not a performance benchmark.</div></div>
-           <div class="r"><div class="kk">Trust boundary</div><div>Buffered chat and reports check citation IDs and explicit verdict phases. This is not semantic proof of every sentence.</div></div>
-           <div class="r"><div class="kk">Unknowns</div><div>Emulation ≠ silicon. Interrupted-update recovery stays UNKNOWN; no power-loss safety claim.</div></div>
-        </div>
+      <div class="card kv">
+        <div class="r"><div class="kk">Inference</div><div>AMD Token Factory, OpenAI-compatible, allow-listed host</div></div>
+        <div class="r"><div class="kk">Model</div><div>Google Gemma-4-31B-IT</div></div>
+        <div class="r"><div class="kk">GPU</div><div>Managed, undisclosed. Labels are not attestation</div></div>
+        <div class="r"><div class="kk">Fallback</div><div>None. Endpoint down ⇒ AI_UNAVAILABLE, deterministic plan runs</div></div>
+        <div class="r"><div class="kk">Demo host</div><div>AWS EC2 c7a.2xlarge (AMD EPYC 4th gen) behind CloudFront, per infra audit of 17 Oct 2026</div></div>
+        <div class="r"><div class="kk">Smoke</div><div>10/10 logical calls OK with Gemma. Not a benchmark</div></div>
       </div>
     </div>
   </div>
-   <div class="foot"><div class="brand">ReleaseProof</div><div class="src">Retained Token Factory smoke is historical. Fresh traces must be correlated to the run shown in a live demo. Runner crashes produce FAILED, not a firmware verdict. Neither provider labels nor artifact hashes attest managed GPU identity.</div><div class="num">06</div></div>
+  <div class="foot"><div class="brand">ReleaseProof</div><div class="src">Infra audit does not attest that the deployed images match the latest source. Gemma acceptance runs 87d365 (wolfBoot) and 092e99 (MCUboot).</div><div class="num">B1</div></div>
 </section>
 
-<!-- ===================================================================== 7. MARKET + BUSINESS MODEL -->
-<section class="slide light" id="s7">
+<!-- ============================================================ B2 · REAL VS NOT -->
+<section class="slide light backup" id="s9">
   <div class="head">
-    <div class="eyebrow">Market and business model</div>
-    <h2>Start with industrial sensor OEMs: verify one migration before risking a rollout</h2>
+    <div class="eyebrow">Backup · demonstrated, illustrative, planned</div>
+    <h2>Scoped engineering evidence, stated honestly</h2>
   </div>
   <div class="body">
-    <div class="mkt">
-      <div>
-        <div class="k" style="margin-bottom:6px">Illustrative economics—not observed ROI</div>
-        <div class="stat"><div class="v">5,000<small>hypothetical sensors</small></div><p>A fleet used only to illustrate exposure. ReleaseProof evaluates a configuration and transition, not each node individually.</p></div>
-        <div class="stat"><div class="v">5% × €250<small>hypothetical intervention</small></div><p>Assume 250 devices require physical service, at €250 per visit. These assumptions are not a measured failure rate or market price.</p></div>
-        <div class="stat"><div class="v">€62,500<small>scenario cost—not savings</small></div><p>5,000 × 5% × €250. We have not demonstrated that ReleaseProof avoids this cost; validate with design partners.</p></div>
-        <div class="card" style="margin-top:22px"><h3 style="font-size:25px">What a pilot should measure</h3><p style="font-size:20px;line-height:1.4">Pre-rollout blockers found, engineering hours saved, validated field visits avoided, and cost per supported profile/run.</p></div>
+    <div style="display:grid;grid-template-columns:1fr 1fr;gap:30px">
+      <div class="card" style="border-top:8px solid var(--green-2)">
+        <h3 style="font-size:34px;font-weight:900;margin-bottom:20px">Demonstrated today</h3>
+        <ul class="lst">
+          <li>Upstream bootloader code at pinned commits, compiled with pinned toolchains on every run</li>
+          <li>Ephemeral signing keys; real binaries booted and updated in Renode</li>
+          <li>Negative tests: tampered image, wrong key, old bootloader receiving the new image</li>
+          <li>Deterministic V1.2 engine with golden-hash regression tests</li>
+          <li>Re-evaluations as new runs with a parent reference; history immutable</li>
+          <li>Evidence pack download and strict release-gate CLI with engine replay</li>
+        </ul>
       </div>
-      <div>
-        <div class="k" style="margin-bottom:10px">Buyer: embedded engineering / firmware / product security</div>
-        <div class="rev">
-          <div class="card"><h3>Configuration-profile subscription <span>recurring</span></h3><p>Per device + bootloader + toolchain profile, kept pinned and re-validated as upstream changes. Covers wolfBoot, MCUboot and future bootloader families.</p></div>
-          <div class="card"><h3>Assessments + evidence pack <span>proposed usage</span></h3><p>Versioned review packs and a strict preflight CLI are implemented. Hosted CI execution, OTA integration and production billing are not claimed.</p></div>
-          <div class="card"><h3>Custom profile onboarding <span>one-off</span></h3><p>Bringing an OEM's own board and bootloader fork into the registry, with acceptance-gated promotion to SUPPORTED.</p></div>
-          <div class="card" style="background:var(--navy);border-color:var(--navy)"><h3 style="color:#fff">Land one technical pilot <span style="color:var(--green)">plan</span></h3><p style="color:#cbd5e1">Verify one OEM board/bootloader/change, then make repeatable preflight evidence part of that supported product line's release process.</p></div>
-          <div class="hyp">Packaging and willingness to pay are hypotheses. Fleet size informs risk exposure, not per-device billing. No customers, measured ROI or combined global TAM are claimed.</div>
-        </div>
+      <div class="card" style="border-top:8px solid var(--red)">
+        <h3 style="font-size:34px;font-weight:900;margin-bottom:20px">Not claimed</h3>
+        <ul class="lst no">
+          <li>Results on physical silicon: this is emulation</li>
+          <li>Power-loss / interrupted-update safety: stays UNKNOWN</li>
+          <li>Support for arbitrary or proprietary firmware: 2 configurations only</li>
+          <li>Certification or regulatory compliance: non-official assessment</li>
+          <li>Semantic truth of every AI sentence: checks cover IDs and verdict labels</li>
+          <li>Managed GPU identity, benchmarks, customers, pricing or ROI</li>
+        </ul>
       </div>
     </div>
+    <div class="legend">
+      <span class="tag dem">Demonstrated</span> executed and recorded
+      <span class="tag ill">Illustrative</span> example numbers to validate
+      <span class="tag hyp">Hypothesis / planned</span> roadmap and business model
+    </div>
   </div>
-  <div class="foot"><div class="brand">ReleaseProof</div><div class="src">All economic inputs on this slide are hypothetical. Technical proof: historical wolfBoot run a39610, 8/8 tests executed and 61 hashed artifacts. Build/emulation: 42 s; not an end-to-end AI latency promise.</div><div class="num">07</div></div>
+  <div class="foot"><div class="brand">ReleaseProof</div><div class="src">Details: README, docs/ARCHITECTURE.md, docs/RELEASE_GATE.md, runner READMEs.</div><div class="num">B2</div></div>
 </section>
 
-<!-- ===================================================================== 8. COMPETITION + ASK -->
-<section class="slide light" id="s8">
+<!-- ============================================================ B3 · LANDSCAPE & REGULATION -->
+<section class="slide light backup" id="s10">
   <div class="head">
-    <div class="eyebrow">Competitive landscape</div>
-    <h2>Inventory what changes. Verify the migration path. Then deliver with OTA.</h2>
+    <div class="eyebrow">Backup · landscape, regulation, value measurement</div>
+    <h2>Complementary to scanners and OTA, focused on the transition</h2>
   </div>
   <div class="body">
-    <table class="comp">
-      <thead><tr>
-        <th style="width:470px">Category · examples</th>
-        <th>Main documented focus</th>
-        <th>Relationship to ReleaseProof</th>
-      </tr></thead>
+    <table class="t">
+      <thead><tr><th style="width:420px">Category · examples</th><th>Main documented focus</th><th>Relationship to ReleaseProof</th></tr></thead>
       <tbody>
-        <tr><td><b>Binarly · ONEKEY</b><span>crypto inventory / PQC readiness</span></td><td>Binary analysis, dependencies, crypto exposure; Binarly also documents reachability and CI gates</td><td>Complementary inputs. No claim that they cannot integrate dynamic tests.</td></tr>
-        <tr><td><b>Finite State</b><span>adjacent firmware release-assurance competitor</span></td><td>Product security, evidence-linked AI, release policy gates and audit-ready evidence</td><td>Closest adjacent positioning. We focus on cross-generation bootloader migration, not unique ownership of evidence gates.</td></tr>
-        <tr><td><b>Memfault · Mender · Foundries.io</b><span>OTA / fleet lifecycle</span></td><td>Deployment, telemetry, staged rollout and secure-update workflows</td><td>Potential integration partners. ReleaseProof is a preflight check, not a delivery replacement.</td></tr>
-        <tr><td><b>Renode / Antmicro · upstream CI</b><span>embedded emulation / testing building blocks</span></td><td>Repeatable execution and bootloader regression tests</td><td>We build on them with transition rules, negative tests, evidence projection and supervised AI.</td></tr>
-        <tr class="us"><td><b>ReleaseProof</b><span>two supported nRF52840 configurations</span></td><td>Deployed → candidate tests; separate candidate/transition verdicts; conservative UNKNOWN handling</td><td>Scoped engineering assurance before rollout—not hardware validation, OTA or certification.</td></tr>
+        <tr><td><b>Binarly · ONEKEY</b><br>crypto inventory / PQC readiness</td><td>Binary analysis, crypto exposure; Binarly also documents reachability and CI gates</td><td>Complementary: a finding there is a natural trigger for a run here</td></tr>
+        <tr><td><b>Finite State</b><br>adjacent release assurance</td><td>Evidence-linked AI, release policy gates</td><td>Closest adjacent; our focus is the deployed → candidate bootloader transition</td></tr>
+        <tr><td><b>Memfault · Mender · Foundries.io</b><br>OTA / fleet lifecycle</td><td>Delivery, staged rollout, telemetry</td><td>Partners: they deliver, we pre-check the path</td></tr>
+        <tr><td><b>Renode · upstream bootloader CI</b><br>building blocks</td><td>Repeatable emulation, same-scheme update tests</td><td>We add cross-generation tests, transition rules and evidence</td></tr>
       </tbody>
     </table>
     <div style="display:grid;grid-template-columns:1fr 1fr;gap:28px;margin-top:24px">
-      <div class="card"><h3 style="font-size:24px;font-weight:800">Next validation—not existing capabilities</h3><p style="font-size:19px;line-height:1.42;margin:8px 0 0;color:#334155">Hardware-in-the-loop and interrupted-update tests, then commercial forks, STM32/NXP profiles and OTA/CBOM integrations. Each new configuration needs its own adapter, runner and acceptance.</p></div>
-      <div class="card" style="background:var(--navy);color:#fff"><h3 style="font-size:24px;font-weight:800">Looking for industrial sensor design partners</h3><p style="font-size:22px;line-height:1.42;margin:8px 0 0;color:#e2e8f0">Don't ask only whether your new firmware works. Ask whether deployed devices can get there—before rollout.</p></div>
+      <div class="card">
+        <h3 style="font-size:28px;font-weight:900">Regulatory context, not a mandate</h3>
+        <p style="font-size:22px;line-height:1.45;color:#334155;margin:10px 0 0">NIST FIPS 204 (ML-DSA), Aug 2024. EU CRA: reporting from 11 Sep 2026, main obligations 11 Dec 2027. CNSA 2.0 (US national security systems only): firmware signing exclusive by 2030. NIST IR 8547 is still a draft.</p>
+      </div>
+      <div class="card">
+        <h3 style="font-size:28px;font-weight:900">How a pilot measures value</h3>
+        <p style="font-size:22px;line-height:1.45;color:#334155;margin:10px 0 0">Share of releases with a blocker found before rollout · engineering hours per migration check · site visits avoided · cost per assessed profile. Replaces the illustrative €62,500 with measured data.</p>
+      </div>
     </div>
   </div>
-  <div class="foot"><div class="brand">ReleaseProof</div><div class="src">Public vendor documentation, Oct 2026: binarly.io, onekey.com, finitestate.io, memfault.com, mender.io, docs.foundries.io, renode.io. Sources in submission.md. Focus comparison only: no head-to-head benchmark, exclusivity or capability-absence claims.</div><div class="num">08</div></div>
+  <div class="foot"><div class="brand">ReleaseProof</div><div class="src">Public vendor documentation, Oct 2026. Focus comparison only: no head-to-head benchmark or capability-absence claim. Sources in pitch/submission.md.</div><div class="num">B3</div></div>
 </section>
 
 <script>
-  // Screen helper: open slides.html#3 to show only slide 3 (used for previews). Print is unaffected.
+  // Open slides.html#3 to show only slide 3. Print is unaffected.
   (function () {
     var m = /^#(\d+)$/.exec(location.hash);
     if (!m) return;

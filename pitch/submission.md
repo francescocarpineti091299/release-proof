@@ -12,9 +12,9 @@ AMD Developer Hackathon ACT III · lablab.ai · track **Intelligent Industry**
 
 ## Short description
 
-> ReleaseProof tells industrial IoT teams whether devices already in the field can accept new
-> post-quantum firmware, before rollout. Real builds, Renode emulation, deterministic verdicts;
-> Google Gemma on AMD plans and explains.
+> ReleaseProof helps industrial IoT manufacturers find firmware migration blockers before rollout,
+> avoiding costly site visits. Real builds and Renode emulation; Gemma on AMD plans and explains;
+> a deterministic engine decides.
 
 ## Long description
 
@@ -208,7 +208,7 @@ SVD file at load time. On the no-egress runner network that download failed, and
 
 - Demo: https://d1yxcnwgdgjzt6.cloudfront.net (anonymous, no login)
 - Code: https://github.com/francescocarpineti091299/release-proof (MIT; third-party tools keep their licenses)
-- Slides: `pitch/final/slides_final.pdf` · Cover: `pitch/cover.png`
+- Slides: `pitch/slides.pdf` (10 pages, 16:9) · Cover: `pitch/cover.png` (1920×1080)
 - Team: Francesco Carpineti
 
 ## Sources

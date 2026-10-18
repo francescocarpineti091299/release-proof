@@ -2,7 +2,7 @@
 <html lang="en">
 <head>
 <meta charset="utf-8">
-<title>ReleaseProof — cover</title>
+<title>ReleaseProof · Firmware Migration Assurance for Industrial IoT</title>
 <style>
   @page { size: 1920px 1080px; margin: 0; }
   * { box-sizing: border-box; }
@@ -65,22 +65,21 @@
         ReleaseProof
       </div>
       <div class="eyebrow">Industrial IoT · firmware migration assurance</div>
-      <h1>A firmware can boot and still be <em>impossible to upgrade</em> safely.</h1>
-      <p class="sub">Verify that an update can <b>reach installed devices</b> before rollout. Real builds and Renode emulation. AMD-hosted AI plans and explains; <b>the engine decides.</b></p>
+      <h1>The firmware works.<br><em>The upgrade doesn't.</em></h1>
+      <p class="sub">Find firmware migration blockers <b>before rollout</b>, not with hundreds of site visits. Real builds and Renode emulation. Gemma on AMD plans and explains; <b>the engine decides.</b></p>
     </div>
     <div class="stack">
       <div class="panel verdict">
         <div class="k">wolfBoot · nRF52840 · ECDSA P-256 → ML-DSA-87</div>
         <div class="vt"><div class="x">×</div><div class="w">INCOMPATIBLE</div></div>
-        <div class="row ok"><span>Candidate boots?</span><span class="chip ok">Compatible</span></div>
-        <div class="row bad"><span>Supported transition works?</span><span class="chip bad">Incompatible</span></div>
-        <div class="meta">Historical LIVE run a39610 · 8/8 tests executed<br>Emulation, not silicon · non-official assessment</div>
+        <div class="row ok"><span>New firmware works?</span><span class="chip ok">Compatible</span></div>
+        <div class="row bad"><span>Deployed devices can get there?</span><span class="chip bad">Incompatible</span></div>
+        <div class="meta">LIVE run 87d365 · 7/7 tests · Gemma on AMD Token Factory<br>Emulation, not silicon · non-official assessment</div>
       </div>
       <div class="panel uart">
-        <div class="t">UART · deployed ECDSA bootloader + ML-DSA update</div>
-        <div class="g">2a 00 00 00 01   v1 running</div>
-        <div class="r">Update type invalid 0xB01!=0x200</div>
-        <div class="g">2a 00 00 00 01   v1 still running after reset</div>
+        <div class="t">Illustrative exposure · one blocked migration</div>
+        <div class="g">5,000 sensors × 5% site visits × €250</div>
+        <div class="r" style="font-size:40px;font-weight:800;margin-top:4px">= €62,500</div>
       </div>
     </div>
   </div>

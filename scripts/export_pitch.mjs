@@ -87,6 +87,7 @@ try {
   const audit = await call("Runtime.evaluate", { expression: `(() => {
     const slides = [...document.querySelectorAll('.slide')];
     return {pages: slides.length, placeholders: document.body.innerText.includes('[['),
+      wrongSize: slides.filter(s => s.offsetWidth !== 1920 || s.offsetHeight !== 1080).map(s => s.id),
       overflow: slides.flatMap(slide => {
         const boundary = slide.getBoundingClientRect();
         const footer = slide.querySelector('.foot').getBoundingClientRect();
@@ -98,7 +99,7 @@ try {
       })};
   })()`, returnByValue: true }, slides);
   const layout = audit.result.value;
-  if (layout.pages !== 8 || layout.placeholders || layout.overflow.length) {
+  if (layout.pages !== 10 || layout.placeholders || layout.overflow.length || layout.wrongSize.length) {
     throw new Error(`Pitch layout check failed: ${JSON.stringify(layout)}`);
   }
   const pdf = await call("Page.printToPDF", {

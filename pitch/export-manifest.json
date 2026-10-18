@@ -1,13 +1,14 @@
 {
-  "exported_at": "2026-10-17T16:04:31.494Z",
-  "browser": "Chrome/155.0.8059.40",
-  "pages": 8,
+  "exported_at": "2026-10-18T09:43:38.122Z",
+  "browser": "Chrome/155.0.8059.80",
+  "pages": 10,
   "placeholders": false,
+  "wrongSize": [],
   "overflow": [],
   "sha256": {
-    "slides.html": "7e133806d9bb1dc203c49c729fe518a243c8076cff7c564c284e87ff52c4f1e6",
-    "slides.pdf": "b02c29dccbe6610b8c250b154394a0d047393b31c7d0916037f0c48bc1eb0567",
-    "cover.html": "6193e1e0c5ecd1bdedd4d0e1347eaff8c6a6f21807548c8c337e2c043bec92f9",
-    "cover.png": "91c413452bf4736f50d845a57e4dc1aca72420b2c6d987de1fbe99ee7cdab822"
+    "slides.html": "a90b9a6d008d85cbf7734a686d51bbc4eef68b4a2171f7dbdb52aa2658d33439",
+    "slides.pdf": "70ffa3a492775fdc213763d634aa0de399a44f3764d3c2469edaf1c0d79160ca",
+    "cover.html": "c4f8f0336d30fa2c6dd3d48f8d346b4db4ff6a15ed389cd67227fc9968c840ea",
+    "cover.png": "c64afb8c75fbcbec17308d9d0651f49f131944464c48b2776b350d7de72668e7"
   }
 }

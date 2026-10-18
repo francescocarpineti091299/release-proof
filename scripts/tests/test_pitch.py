@@ -19,15 +19,16 @@ def test_submission_copy_fits_standard_form_limits():
     assert 600 <= len(long) <= 2000
 
 
-def test_exported_deck_matches_sources_and_has_eight_placeholder_free_slides():
+def test_exported_deck_matches_sources_and_has_ten_placeholder_free_slides():
     pitch = ROOT / "pitch"
     text = (pitch / "slides.html").read_text(encoding="utf-8")
     assert re.findall(r'<section class="slide [^"]+" id="s(\d+)"', text) == [
-        str(i) for i in range(1, 9)
+        str(i) for i in range(1, 11)
     ]
     assert "[[" not in text
     report = json.loads((pitch / "export-manifest.json").read_text(encoding="utf-8"))
-    assert report["pages"] == 8 and report["overflow"] == [] and not report["placeholders"]
+    assert report["pages"] == 10 and report["overflow"] == [] and not report["placeholders"]
+    assert report["wrongSize"] == []
     for name, digest in report["sha256"].items():
         assert hashlib.sha256((pitch / name).read_bytes()).hexdigest() == digest, (
             f"{name} changed; run node scripts/export_pitch.mjs"

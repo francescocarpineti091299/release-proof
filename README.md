@@ -21,7 +21,7 @@ rollout:
 | **Track** | AMD Developer Hackathon ACT III · Intelligent Industry |
 | **AI** | `Gemma-4-31B-IT` on AMD Token Factory, no fallback provider |
 | **Compute** | AWS EC2 `c7a.2xlarge`, 4th-gen AMD EPYC |
-| **Pitch deck** | [`pitch/final/slides_final.pdf`](pitch/final/slides_final.pdf) |
+| **Pitch deck** | [`pitch/slides.pdf`](pitch/slides.pdf) |
 | **Evidence** | [`docs/EVIDENCE.md`](docs/EVIDENCE.md) · deployment: [`docs/DEPLOYMENT.md`](docs/DEPLOYMENT.md) |
 
 ## Key results (measured on the public demo, 17 Oct 2026)
